@@ -16,13 +16,28 @@ class ChallanEditDetailsScreen extends StatefulWidget {
       _ChallanEditDetailsScreenState();
 }
 
+class _ChallanScreenStateCache {
+  final Set<String> expandedSections;
+  final Set<String> checkedRejectFields;
+  final bool isRadioSelected;
+  final String rejectRemark;
+
+  const _ChallanScreenStateCache({
+    required this.expandedSections,
+    required this.checkedRejectFields,
+    required this.isRadioSelected,
+    required this.rejectRemark,
+  });
+}
+
 class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
+  static final Map<String, _ChallanScreenStateCache> _pageStateCache = {};
   bool _loading = true;
   String? _error;
   Map<String, dynamic>? _data;
   bool _processing = false;
   String loggedInUserId = '';
-  String? _expandedSection = 'Basic Information';
+  Set<String> _expandedSections = {'Basic Information'};
   final Set<String> _checkedRejectFields = {};
   final List<String> _rejectFieldOrder = [];
   final Map<String, String> _fieldKeyToLabel = {};
@@ -45,6 +60,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
 
   @override
   void dispose() {
+    _savePageState();
     _rejectRemarkController.dispose();
     super.dispose();
   }
@@ -68,6 +84,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         _checkedRejectFields.remove(fieldKey);
       }
       _syncRejectRemark();
+      _savePageState();
     });
   }
 
@@ -88,9 +105,30 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return _rejectRemarkController.text.trim();
   }
 
+  void _restorePageState() {
+    final cached = _pageStateCache[widget.sp462];
+
+    if (cached != null) {
+      _expandedSections = Set<String>.from(cached.expandedSections);
+      _checkedRejectFields.addAll(cached.checkedRejectFields);
+      _isRadioSelected = cached.isRadioSelected;
+      _rejectRemarkController.text = cached.rejectRemark;
+    }
+  }
+
+  void _savePageState() {
+    _pageStateCache[widget.sp462] = _ChallanScreenStateCache(
+      expandedSections: Set<String>.from(_expandedSections),
+      checkedRejectFields: Set<String>.from(_checkedRejectFields),
+      isRadioSelected: _isRadioSelected,
+      rejectRemark: _rejectRemarkController.text,
+    );
+  }
+
   Future<void> _initializePage() async {
     final uid = await ApiService.getUserId();
     loggedInUserId = uid ?? '';
+    _restorePageState();
     _loadData();
   }
 
@@ -109,10 +147,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       setState(() {
         _data = data;
         _loading = false;
-        _checkedRejectFields.clear();
-        _rejectRemarkController.clear();
+
         _initRejectFieldKeys(sections);
-        _isRadioSelected = false;
       });
     } catch (e) {
       setState(() {
@@ -136,8 +172,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return text;
   }
 
-  List<_SectionDef> _buildSections() =>
-      _buildSectionsFromData(_data!);
+  List<_SectionDef> _buildSections() => _buildSectionsFromData(_data!);
 
   List<_SectionDef> _buildSectionsFromData(Map<String, dynamic> d) {
     const basic = 'Basic Information';
@@ -153,15 +188,17 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return [
       _SectionDef(
         title: basic,
-        summary: _summary(
-          'Customer: ${_formatValue(d['customername'])}',
-        ),
+        summary: _summary('Customer: ${_formatValue(d['customername'])}'),
         icon: Icons.info_outline_rounded,
         iconColor: const Color(0xFF3B82F6),
         fields: [
           _FieldData(basic, 'Date', _formatValue(d['cdate'])),
-          _FieldData(basic, 'Challan No', _formatValue(d['challanno']),
-              highlight: true),
+          _FieldData(
+            basic,
+            'Challan No',
+            _formatValue(d['challanno']),
+            highlight: true,
+          ),
           _FieldData(basic, 'Customer Name', _formatValue(d['customername'])),
           _FieldData(basic, 'Model Name', _formatValue(d['modelname'])),
           _FieldData(basic, 'Variant Name', _formatValue(d['variantname'])),
@@ -174,22 +211,35 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: pricing,
-        summary: _summary(
-          'Ex-Showroom: ${_formatValue(d['ExshowRoomPrice'])}',
-        ),
+        summary: _summary('Ex-Showroom: ${_formatValue(d['ExshowRoomPrice'])}'),
         icon: Icons.attach_money_rounded,
         iconColor: const Color(0xFF10B981),
         fields: [
-          _FieldData(pricing, 'Ex-Showroom Price', _formatValue(d['ExshowRoomPrice'])),
+          _FieldData(
+            pricing,
+            'Ex-Showroom Price',
+            _formatValue(d['ExshowRoomPrice']),
+          ),
           _FieldData(pricing, 'Fasttag', _formatValue(d['fasttag'])),
-          _FieldData(pricing, 'Handling Charge', _formatValue(d['handlingchrg'])),
+          _FieldData(
+            pricing,
+            'Handling Charge',
+            _formatValue(d['handlingchrg']),
+          ),
           _FieldData(pricing, 'TCS', _formatValue(d['tcs'])),
           _FieldData(pricing, 'TRC', _formatValue(d['trc'])),
           _FieldData(pricing, 'Accessories', _formatValue(d['Accessories'])),
-          _FieldData(pricing, 'Additional Warranty',
-              _formatValue(d['AdditionalWarranty'])),
+          _FieldData(
+            pricing,
+            'Additional Warranty',
+            _formatValue(d['AdditionalWarranty']),
+          ),
           _FieldData(pricing, 'Warranty Year', _formatValue(d['WarrantyYear'])),
-          _FieldData(pricing, 'Warranty Amount', _formatValue(d['WarrantyAmount'])),
+          _FieldData(
+            pricing,
+            'Warranty Amount',
+            _formatValue(d['WarrantyAmount']),
+          ),
         ],
       ),
       _SectionDef(
@@ -198,17 +248,49 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         icon: Icons.local_offer_rounded,
         iconColor: const Color(0xFFF59E0B),
         fields: [
-          _FieldData(discounts, 'Corporate Y/N', _formatValue(d['Corporateyn'])),
-          _FieldData(discounts, 'Corporate Amount', _formatValue(d['Corporateamount'])),
-          _FieldData(discounts, 'Corporate Given', _formatValue(d['Corporategiven'])),
+          _FieldData(
+            discounts,
+            'Corporate Y/N',
+            _formatValue(d['Corporateyn']),
+          ),
+          _FieldData(
+            discounts,
+            'Corporate Amount',
+            _formatValue(d['Corporateamount']),
+          ),
+          _FieldData(
+            discounts,
+            'Corporate Given',
+            _formatValue(d['Corporategiven']),
+          ),
           _FieldData(discounts, 'Exchange Y/N', _formatValue(d['Exchangeyn'])),
-          _FieldData(discounts, 'Exchange Amount', _formatValue(d['Exchangeamount'])),
-          _FieldData(discounts, 'Exchange Given', _formatValue(d['Exchangegiven'])),
+          _FieldData(
+            discounts,
+            'Exchange Amount',
+            _formatValue(d['Exchangeamount']),
+          ),
+          _FieldData(
+            discounts,
+            'Exchange Given',
+            _formatValue(d['Exchangegiven']),
+          ),
           _FieldData(discounts, 'Loyalty Y/N', _formatValue(d['Loyalityyn'])),
-          _FieldData(discounts, 'Loyalty Amount', _formatValue(d['Loyalityamount'])),
-          _FieldData(discounts, 'Loyalty Given', _formatValue(d['Loyalitygiven'])),
+          _FieldData(
+            discounts,
+            'Loyalty Amount',
+            _formatValue(d['Loyalityamount']),
+          ),
+          _FieldData(
+            discounts,
+            'Loyalty Given',
+            _formatValue(d['Loyalitygiven']),
+          ),
           _FieldData(discounts, 'Dealer Y/N', _formatValue(d['dealeryn'])),
-          _FieldData(discounts, 'Dealer Amount', _formatValue(d['dealeramount'])),
+          _FieldData(
+            discounts,
+            'Dealer Amount',
+            _formatValue(d['dealeramount']),
+          ),
           _FieldData(discounts, 'Dealer Given', _formatValue(d['dealergiven'])),
         ],
       ),
@@ -218,8 +300,17 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         icon: Icons.discount_rounded,
         iconColor: const Color(0xFFEC4899),
         fields: [
-          _FieldData(discount, 'Ex-Showroom Price', _formatValue(d['ExshowRoomPrice'])),
-          _FieldData(discount, 'Less of All Encashment Scheme', _formatValue(d['lessofallencashmentschemne'])),
+          _FieldData(
+            discount,
+            'Ex-Showroom Price',
+            _formatValue(d['ExshowRoomPrice']),
+          ),
+          _FieldData(
+            discount,
+            'Less of All Encashment Scheme',
+            _formatValue(d['lessofallencashmentschemne']),
+            critical: true,
+          ),
           _FieldData(discount, 'Subtotal', _formatValue(d['subtotal'])),
         ],
       ),
@@ -230,10 +321,14 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         iconColor: const Color(0xFF8B5CF6),
         fields: [
           _FieldData(rto, 'RTO Rate', _formatValue(d['RTORate'])),
-          _FieldData(rto, 'RTO Tax Surcharge', _formatValue(d['RTOTaxSurcharge'])),
+          _FieldData(
+            rto,
+            'RTO Tax Surcharge',
+            _formatValue(d['RTOTaxSurcharge']),
+          ),
           _FieldData(rto, 'Green Tax', _formatValue(d['GreenTax'])),
           _FieldData(rto, 'Reg Fee', _formatValue(d['RegFee'])),
-          _FieldData(rto, 'HPN', _formatValue(d['HPN'])),
+          _FieldData(rto, 'HPN', _formatValue(d['HPN']), critical: true),
           _FieldData(rto, 'Duplicate', _formatValue(d['Duplicate'])),
           _FieldData(rto, 'Smart Card', _formatValue(d['SmartCard'])),
           _FieldData(rto, 'Other', _formatValue(d['Other'])),
@@ -267,26 +362,61 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         fields: [
           _FieldData(insurance, 'IDV', _formatValue(d['Idv'])),
           _FieldData(insurance, 'IDV Amount', _formatValue(d['IdvAmount'])),
-          _FieldData(insurance, 'Insurance Percentage',
-              _formatValue(d['InsurancePercentage'])),
-          _FieldData(insurance, 'Insurance Per Amount', _formatValue(d['InsperAmount'])),
-          _FieldData(insurance, 'Discount Percentage',
-              _formatValue(d['DiscountPrecentage'])),
-          _FieldData(insurance, 'Discount Amount', _formatValue(d['DiscountAmount'])),
+          _FieldData(
+            insurance,
+            'Insurance Percentage',
+            _formatValue(d['InsurancePercentage']),
+          ),
+          _FieldData(
+            insurance,
+            'Insurance Per Amount',
+            _formatValue(d['InsperAmount']),
+          ),
+          _FieldData(
+            insurance,
+            'Discount Percentage',
+            _formatValue(d['DiscountPrecentage']),
+          ),
+          _FieldData(
+            insurance,
+            'Discount Amount',
+            _formatValue(d['DiscountAmount']),
+            critical: true,
+          ),
           _FieldData(insurance, 'Third Party', _formatValue(d['ThirdParty'])),
           _FieldData(insurance, 'PA Cover', _formatValue(d['PACover'])),
           _FieldData(insurance, 'ZD', _formatValue(d['ZD'])),
           _FieldData(insurance, 'PB', _formatValue(d['PB'])),
           _FieldData(insurance, 'KP', _formatValue(d['KP'])),
           _FieldData(insurance, 'Paid Driver', _formatValue(d['PaidDriver'])),
-          _FieldData(insurance, 'Insurance Amount', _formatValue(d['InsuranceAmount'])),
-          _FieldData(insurance, 'Insurance Company', _formatValue(d['inscmpy'])),
+          _FieldData(
+            insurance,
+            'Insurance Amount',
+            _formatValue(d['InsuranceAmount']),
+          ),
+          _FieldData(
+            insurance,
+            'Insurance Company',
+            _formatValue(d['inscmpy']),
+          ),
           _FieldData(insurance, 'Policy', _formatValue(d['policy'])),
-          _FieldData(insurance, 'Insurance Issue Date', _formatValue(d['insissuedate'])),
+          _FieldData(
+            insurance,
+            'Insurance Issue Date',
+            _formatValue(d['insissuedate']),
+          ),
           _FieldData(insurance, 'Insurance Amt', _formatValue(d['insamt'])),
           _FieldData(insurance, 'Insurance Type', _formatValue(d['instype'])),
-          _FieldData(insurance, 'Insurance Showroom', _formatValue(d['insshowroom'])),
-          _FieldData(insurance, 'Previous Insurance Amt', _formatValue(d['preinsamt'])),
+          _FieldData(
+            insurance,
+            'Insurance Showroom',
+            _formatValue(d['insshowroom']),
+          ),
+          _FieldData(
+            insurance,
+            'Previous Insurance Amt',
+            _formatValue(d['preinsamt']),
+          ),
           _FieldData(insurance, 'NCB', _formatValue(d['NCB'])),
         ],
       ),
@@ -296,13 +426,36 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         icon: Icons.account_balance_rounded,
         iconColor: const Color(0xFFEF4444),
         fields: [
-          _FieldData(financial, 'Net Amount', _formatValue(d['netamount'])),
-          _FieldData(financial, 'Less of All Encashment Scheme',
-              _formatValue(d['lessofallencashmentschemne'])),
-          _FieldData(financial, 'Hypothecation', _formatValue(d['hypothecationname'])),
+          _FieldData(
+            financial,
+            'Net Amount',
+            _formatValue(d['netamount']),
+            critical: true,
+          ),
+          _FieldData(
+            financial,
+            'Less of All Encashment Scheme',
+            _formatValue(d['lessofallencashmentschemne']),
+            critical: true,
+          ),
+          _FieldData(
+            financial,
+            'Hypothecation',
+            _formatValue(d['hypothecationname']),
+          ),
           _FieldData(financial, 'Bank Name', _formatValue(d['bankname'])),
-          _FieldData(financial, 'Bank Amount', _formatValue(d['bankamt'])),
-          _FieldData(financial, 'Finance Amount', _formatValue(d['financeamt'])),
+          _FieldData(
+            financial,
+            'Bank Amount',
+            _formatValue(d['bankamt']),
+            critical: true,
+          ),
+          _FieldData(
+            financial,
+            'Finance Amount',
+            _formatValue(d['financeamt']),
+            critical: true,
+          ),
           _FieldData(financial, 'Finance Type', _formatValue(d['financetype'])),
           _FieldData(financial, 'Bank Due', _formatValue(d['bankdue'])),
           _FieldData(financial, 'Customer Due', _formatValue(d['custdue'])),
@@ -344,8 +497,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             child: _loading
                 ? _buildLoader()
                 : _error != null
-                    ? _buildError()
-                    : _buildContent(),
+                ? _buildError()
+                : _buildContent(),
           ),
         ],
       ),
@@ -421,10 +574,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   ],
                 ),
               ),
-              _headerIconButton(
-                icon: Icons.refresh_rounded,
-                onTap: _loadData,
-              ),
+              _headerIconButton(icon: Icons.refresh_rounded, onTap: _loadData),
             ],
           ),
         ),
@@ -466,10 +616,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           SizedBox(
             width: 52,
             height: 52,
-            child: CircularProgressIndicator(
-              strokeWidth: 3.5,
-              color: _primary,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 3.5, color: _primary),
           ),
           SizedBox(height: 18),
           Text(
@@ -564,6 +711,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
               _checkedRejectFields.clear();
               _rejectRemarkController.clear();
             }
+            _savePageState();
           });
         },
         borderRadius: BorderRadius.circular(10),
@@ -578,7 +726,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: _isRadioSelected ? _primary : _textMid.withValues(alpha: 0.4),
+                    color: _isRadioSelected
+                        ? _primary
+                        : _textMid.withValues(alpha: 0.4),
                     width: 2,
                   ),
                 ),
@@ -689,8 +839,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.edit_note_rounded,
-                  size: 16, color: Color(0xFFEF4444)),
+              const Icon(
+                Icons.edit_note_rounded,
+                size: 16,
+                color: Color(0xFFEF4444),
+              ),
               const SizedBox(width: 6),
               Text(
                 'Reject remark (${_checkedRejectFields.length} field${_checkedRejectFields.length == 1 ? '' : 's'})',
@@ -721,9 +874,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     required _SectionDef section,
     required bool showDivider,
   }) {
-    final isExpanded = _expandedSection == section.title;
-    final summaryMaxWidth =
-        MediaQuery.of(context).size.width < 700 ? 130.0 : 460.0;
+    final isExpanded = _expandedSections.contains(section.title);
+
+    final hasCriticalField = section.fields.any((f) => f.critical);
+    final summaryMaxWidth = MediaQuery.of(context).size.width < 700
+        ? 130.0
+        : 460.0;
 
     return Column(
       children: [
@@ -733,21 +889,62 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             key: ValueKey('${section.title}-$isExpanded'),
             tilePadding: const EdgeInsets.symmetric(horizontal: 12),
             childrenPadding: EdgeInsets.zero,
-            leading: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: section.iconColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(section.icon, color: section.iconColor, size: 20),
+            leading: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: hasCriticalField
+                        ? const Color(0xFFFFE5E5)
+                        : section.iconColor.withValues(alpha: 0.1),
+
+                    borderRadius: BorderRadius.circular(8),
+
+                    border: hasCriticalField
+                        ? Border.all(color: const Color(0xFFFF6B6B), width: 1.2)
+                        : null,
+                  ),
+
+                  child: Icon(
+                    section.icon,
+                    color: hasCriticalField
+                        ? const Color(0xFFDC2626)
+                        : section.iconColor,
+                    size: 20,
+                  ),
+                ),
+
+                if (hasCriticalField)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      width: 18,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+
+                      child: const Icon(
+                        Icons.priority_high,
+                        size: 10,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             title: Text(
               section.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: _textDark,
+                fontWeight: FontWeight.w700,
+
+                color: hasCriticalField ? const Color(0xFFB91C1C) : _textDark,
               ),
             ),
             trailing: Row(
@@ -782,7 +979,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             initiallyExpanded: isExpanded,
             onExpansionChanged: (expanded) {
               setState(() {
-                _expandedSection = expanded ? section.title : null;
+                if (expanded) {
+                  _expandedSections.add(section.title);
+                } else {
+                  _expandedSections.remove(section.title);
+                }
+
+                _savePageState();
               });
             },
             children: [
@@ -801,12 +1004,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           field: section.fields[i],
                           isEven: i % 2 == 0,
                           isLast: i == section.fields.length - 1,
-                          isChecked: _checkedRejectFields
-                              .contains(section.fields[i].fieldKey),
-                          onCheckChanged: (v) => _toggleRejectField(
+                          isChecked: _checkedRejectFields.contains(
                             section.fields[i].fieldKey,
-                            v,
                           ),
+                          onCheckChanged: (v) =>
+                              _toggleRejectField(section.fields[i].fieldKey, v),
                           showCheckbox: _isRadioSelected,
                         ),
                     ],
@@ -1028,6 +1230,7 @@ class _FieldData {
   final String label;
   final String value;
   final bool highlight;
+  final bool critical;
 
   String get fieldKey => '$sectionTitle::$label';
 
@@ -1036,6 +1239,7 @@ class _FieldData {
     this.label,
     this.value, {
     this.highlight = false,
+    this.critical = false,
   });
 }
 
@@ -1131,6 +1335,47 @@ class _SectionFieldRow extends StatelessWidget {
                             color: _primary,
                             fontWeight: FontWeight.w800,
                           ),
+                        ),
+                      ),
+                    )
+                  : field.critical
+                  ? Align(
+                      alignment: Alignment.centerRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFFE5E5), Color(0xFFFFF3E0)],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Color(0xFFFF6B6B),
+                            width: 1.2,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.warning_amber_rounded,
+                              size: 14,
+                              color: Color(0xFFDC2626),
+                            ),
+
+                            const SizedBox(width: 4),
+
+                            Text(
+                              field.value,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFFB91C1C),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     )
