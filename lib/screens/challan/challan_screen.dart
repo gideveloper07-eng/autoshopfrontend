@@ -13,6 +13,121 @@ class ChallanScreen extends StatefulWidget {
 
 class _ChallanScreenState extends State<ChallanScreen>
     with SingleTickerProviderStateMixin {
+  static const Map<String, Map<String, String>> _uiText = {
+    'en': {
+      'searchHint': 'Search customer, challan no...',
+      'invalidChallanId': 'Invalid challan ID. Available fields:',
+    },
+    'ar': {
+      'searchHint': 'بحث العملاء، تشالان لا...',
+      'invalidChallanId': 'معرف تشالان غير صالح. الحقول المتاحة:',
+    },
+    'as': {
+      'searchHint': 'গ্ৰাহক অনুসন্ধান, challan নং...',
+      'invalidChallanId': 'অবৈধ challan আইডি। উপলব্ধ ক্ষেত্ৰসমূহ:',
+    },
+    'bn': {
+      'searchHint': 'গ্রাহক অনুসন্ধান করুন, চালান নম্বর...',
+      'invalidChallanId': 'অবৈধ চালান আইডি। উপলব্ধ ক্ষেত্র:',
+    },
+    'de': {
+      'searchHint': 'Suche Kunde, Challan Nr...',
+      'invalidChallanId': 'Ungültige Challan-ID. Verfügbare Felder:',
+    },
+    'es': {
+      'searchHint': 'Buscar cliente, challan no...',
+      'invalidChallanId': 'ID de Challan no válido. Campos disponibles:',
+    },
+    'fr': {
+      'searchHint': 'Rechercher un client, Challan non...',
+      'invalidChallanId': 'ID de Challan invalide. Champs disponibles :',
+    },
+    'gu': {
+      'searchHint': 'ગ્રાહક શોધો, ચલણ નંબર...',
+      'invalidChallanId': 'અમાન્ય ચલણ ID. ઉપલબ્ધ ક્ષેત્રો:',
+    },
+    'hi': {
+      'searchHint': 'ग्राहक खोजें, चालान नंबर...',
+      'invalidChallanId': 'अमान्य चालान आईडी. उपलब्ध फ़ील्ड:',
+    },
+    'id': {
+      'searchHint': 'Cari pelanggan, challan no...',
+      'invalidChallanId': 'ID tantangan tidak valid. Bidang yang tersedia:',
+    },
+    'it': {
+      'searchHint': 'Cerca cliente, sfida no...',
+      'invalidChallanId': 'ID sfida non valido. Campi disponibili:',
+    },
+    'ja': {
+      'searchHint': '顧客を検索、チャランいいえ...',
+      'invalidChallanId': '無効なチャランIDです。利用可能なフィールド:',
+    },
+    'kn': {
+      'searchHint': 'ಗ್ರಾಹಕರನ್ನು ಹುಡುಕಿ, ಚಲನ್ ಸಂಖ್ಯೆ...',
+      'invalidChallanId': 'ಅಮಾನ್ಯವಾದ ಚಲನ್ ಐಡಿ. ಲಭ್ಯವಿರುವ ಕ್ಷೇತ್ರಗಳು:',
+    },
+    'ml': {
+      'searchHint': 'ഉപഭോക്താവിനെ തിരയുക, ചലാൻ നമ്പർ...',
+      'invalidChallanId': 'അസാധുവായ ചലാൻ ഐഡി. ലഭ്യമായ ഫീൽഡുകൾ:',
+    },
+    'mr': {
+      'searchHint': 'ग्राहक शोधा, चलन क्रमांक...',
+      'invalidChallanId': 'अवैध चालान आयडी. उपलब्ध फील्ड:',
+    },
+    'nl': {
+      'searchHint': 'Zoek klant, challan nee...',
+      'invalidChallanId': 'Ongeldige challan-ID. Beschikbare velden:',
+    },
+    'or': {
+      'searchHint': 'ଗ୍ରାହକ ଖୋଜ, ଚ୍ୟାଲେନ୍ ନା ...',
+      'invalidChallanId': 'ଅବ val ଧ ଚ୍ୟାଲେନ୍ ID | ଉପଲବ୍ଧ କ୍ଷେତ୍ରଗୁଡିକ:',
+    },
+    'pa': {
+      'searchHint': 'ਗਾਹਕ ਖੋਜੋ, ਚਲਾਨ ਨੰਬਰ...',
+      'invalidChallanId': 'ਅਵੈਧ ਚਲਾਨ ID। ਉਪਲਬਧ ਖੇਤਰ:',
+    },
+    'pl': {
+      'searchHint': 'Szukaj klienta, wyzwanie nie...',
+      'invalidChallanId': 'Nieprawidłowy identyfikator challana. Dostępne pola:',
+    },
+    'pt': {
+      'searchHint': 'Pesquisa cliente, desafio não...',
+      'invalidChallanId': 'ID do desafio inválido. Campos disponíveis:',
+    },
+    'ru': {
+      'searchHint': 'Поиск клиента, чалан нет...',
+      'invalidChallanId': 'Неверный идентификатор чалана. Доступные поля:',
+    },
+    'ta': {
+      'searchHint': 'வாடிக்கையாளரைத் தேடுங்கள், சலான் எண்...',
+      'invalidChallanId': 'செல்லாத சலான் ஐடி. கிடைக்கும் புலங்கள்:',
+    },
+    'te': {
+      'searchHint': 'వినియోగదారుని శోధించండి, చలాన్ సంఖ్య...',
+      'invalidChallanId': 'చెల్లని చలాన్ ID. అందుబాటులో ఉన్న ఫీల్డ్‌లు:',
+    },
+    'th': {
+      'searchHint': 'ค้นหาลูกค้า chalan no...',
+      'invalidChallanId': 'ID Challan ไม่ถูกต้อง ฟิลด์ที่มี:',
+    },
+    'tr': {
+      'searchHint': 'Müşteriyi ara, Challan hayır...',
+      'invalidChallanId': 'Geçersiz challan kimliği. Mevcut alanlar:',
+    },
+    'ur': {
+      'searchHint': 'کسٹمر تلاش کریں، چالان نمبر...',
+      'invalidChallanId': 'غلط چالان ID۔ دستیاب فیلڈز:',
+    },
+    'vi': {
+      'searchHint': 'Tìm kiếm khách hàng, challan no...',
+      'invalidChallanId': 'ID challan không hợp lệ. Các trường có sẵn:',
+    },
+    'zh': {
+      'searchHint': '搜索客户，查兰没有...',
+      'invalidChallanId': '查兰 ID 无效。可用字段：',
+    },
+  };
+
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _rows = [];
@@ -50,6 +165,11 @@ List<Map<String, dynamic>> _filteredRows = [];
       _ColDef(key: 'sp_468', label: l10n.challanNo, flex: 3),
       _ColDef(key: 'sp_469', label: l10n.customerName, flex: 5),
     ];
+  }
+
+  String _t(String key) {
+    final code = Localizations.localeOf(context).languageCode;
+    return _uiText[code]?[key] ?? _uiText['en']![key] ?? key;
   }
 
   @override
@@ -169,7 +289,7 @@ void _filterSearch(String query) {
         SnackBar(
           backgroundColor: const Color(0xFFE53935),
           behavior: SnackBarBehavior.floating,
-          content: Text("Invalid challan ID. Available fields: ${row.keys.take(5).join(', ')}"),
+          content: Text("${_t('invalidChallanId')} ${row.keys.take(5).join(', ')}"),
           duration: const Duration(seconds: 5),
         ),
       );
@@ -562,8 +682,8 @@ Future<void> _stopListening() async {
           child: TextField(
             controller: _searchController,
             onChanged: _filterSearch,
-            decoration: const InputDecoration(
-              hintText: "Search customer, challan no...",
+            decoration: InputDecoration(
+              hintText: _t('searchHint'),
               border: InputBorder.none,
             ),
           ),
