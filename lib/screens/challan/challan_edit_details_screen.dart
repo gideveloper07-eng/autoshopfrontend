@@ -33,6 +33,72 @@ class _ChallanScreenStateCache {
 
 class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   static final Map<String, _ChallanScreenStateCache> _pageStateCache = {};
+  static const Map<String, Map<String, String>> _uiText = {
+    'en': {
+      'customerLabel': 'Customer',
+      'exShowroomLabel': 'Ex-Showroom',
+      'corporateLabel': 'Corporate',
+      'subtotalLabel': 'Subtotal',
+      'rtoAmountLabel': 'RTO Amount',
+      'insuranceAmtLabel': 'Insurance Amt',
+      'netAmountLabel': 'Net Amount',
+      'mobileLabel': 'Mobile',
+      'challanDetails': 'Challan Details',
+      'challanNoLabel': 'Challan No',
+      'loadingChallanDetails': 'Loading challan details...',
+      'failedToLoadDetails': 'Failed to load details',
+      'showSelectionCheckboxes': 'Show Selection Checkboxes',
+      'enableCheckboxesHelp': 'Enable checkboxes to select fields for rejection remarks',
+      'rejectRemarkTitle': 'Reject remark',
+      'reject': 'Reject',
+      'approve': 'Approve',
+      'pleaseSelectFieldOrReason': 'Please check at least one field or enter a rejection reason',
+      'basicInformation': 'Basic Information',
+      'pricingDetails': 'Pricing Details',
+      'discountsAndOffers': 'Discounts & Offers',
+      'discountTitle': 'Discount',
+      'rtoDetails': 'RTO Details',
+      'taxDetails': 'Tax Details',
+      'insuranceDetails': 'Insurance Details',
+      'financialDetails': 'Financial Details',
+      'customerInformation': 'Customer Information',
+      'rejectChallan': 'Reject Challan',
+      'checkedFieldInfo': 'Checked fields are added below. You can edit before rejecting:',
+      'rejectRemarkHint': 'Reject remark (auto-filled from checked fields)...',
+    },
+    'de': {
+      'customerLabel': 'Kunde',
+      'exShowroomLabel': 'Ex-Showroom',
+      'corporateLabel': 'Firmenkunde',
+      'subtotalLabel': 'Zwischensumme',
+      'rtoAmountLabel': 'RTO-Betrag',
+      'insuranceAmtLabel': 'Versicherungsbetrag',
+      'netAmountLabel': 'Nettobetrag',
+      'mobileLabel': 'Handy',
+      'challanDetails': 'Lieferscheindetails',
+      'challanNoLabel': 'Lieferschein-Nr.',
+      'loadingChallanDetails': 'Lieferscheindetails werden geladen...',
+      'failedToLoadDetails': 'Details konnten nicht geladen werden',
+      'showSelectionCheckboxes': 'Auswahl-Checkboxen anzeigen',
+      'enableCheckboxesHelp': 'Checkboxen aktivieren, um Felder fuer Ablehnungsgruende auszuwaehlen',
+      'rejectRemarkTitle': 'Ablehnungsgrund',
+      'reject': 'Ablehnen',
+      'approve': 'Genehmigen',
+      'pleaseSelectFieldOrReason': 'Bitte mindestens ein Feld waehlen oder einen Ablehnungsgrund eingeben',
+      'basicInformation': 'Grundinformationen',
+      'pricingDetails': 'Preisdetails',
+      'discountsAndOffers': 'Rabatte & Angebote',
+      'discountTitle': 'Rabatt',
+      'rtoDetails': 'RTO-Details',
+      'taxDetails': 'Steuerdetails',
+      'insuranceDetails': 'Versicherungsdetails',
+      'financialDetails': 'Finanzdetails',
+      'customerInformation': 'Kundeninformationen',
+      'rejectChallan': 'Lieferschein ablehnen',
+      'checkedFieldInfo': 'Markierte Felder werden unten hinzugefuegt. Sie koennen vor dem Ablehnen bearbeiten:',
+      'rejectRemarkHint': 'Ablehnungsgrund (automatisch aus markierten Feldern)...',
+    },
+  };
   bool _loading = true;
   String? _error;
   Map<String, dynamic>? _data;
@@ -179,6 +245,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return _buildSectionsFromData(_data!, l10n);
   }
 
+  String _t(String key) {
+    final code = Localizations.localeOf(context).languageCode;
+    return _uiText[code]?[key] ?? _uiText['en']![key] ?? key;
+  }
+
   List<_SectionDef> _buildSectionsFromData(
     Map<String, dynamic> d,
     AppLocalizations l10n,
@@ -196,7 +267,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return [
       _SectionDef(
         title: basic,
-        summary: _summary('${l10n.customerLabel}: ${_formatValue(d['customername'])}'),
+        summary: _summary('${_t('customerLabel')}: ${_formatValue(d['customername'])}'),
         icon: Icons.info_outline_rounded,
         iconColor: const Color(0xFF3B82F6),
         fields: [
@@ -219,7 +290,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: pricing,
-        summary: _summary('${l10n.exShowroomLabel}: ${_formatValue(d['ExshowRoomPrice'])}'),
+        summary: _summary('${_t('exShowroomLabel')}: ${_formatValue(d['ExshowRoomPrice'])}'),
         icon: Icons.attach_money_rounded,
         iconColor: const Color(0xFF10B981),
         fields: [
@@ -252,7 +323,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: discounts,
-        summary: _summary('${l10n.corporateLabel}: ${_formatValue(d['Corporateyn'])}'),
+        summary: _summary('${_t('corporateLabel')}: ${_formatValue(d['Corporateyn'])}'),
         icon: Icons.local_offer_rounded,
         iconColor: const Color(0xFFF59E0B),
         fields: [
@@ -304,7 +375,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: discount,
-        summary: _summary('${l10n.subtotalLabel}: ${_formatValue(d['subtotal'])}'),
+        summary: _summary('${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}'),
         icon: Icons.discount_rounded,
         iconColor: const Color(0xFFEC4899),
         fields: [
@@ -324,7 +395,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: rto,
-        summary: _summary('${l10n.rtoAmountLabel}: ${_formatValue(d['RTOAmount'])}'),
+        summary: _summary('${_t('rtoAmountLabel')}: ${_formatValue(d['RTOAmount'])}'),
         icon: Icons.directions_car_rounded,
         iconColor: const Color(0xFF8B5CF6),
         fields: [
@@ -348,7 +419,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: tax,
-        summary: _summary('${l10n.subtotalLabel}: ${_formatValue(d['subtotal'])}'),
+        summary: _summary('${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}'),
         icon: Icons.receipt_rounded,
         iconColor: const Color(0xFFEC4899),
         fields: [
@@ -364,7 +435,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: insurance,
-        summary: _summary('${l10n.insuranceAmtLabel}: ${_formatValue(d['insamt'])}'),
+        summary: _summary('${_t('insuranceAmtLabel')}: ${_formatValue(d['insamt'])}'),
         icon: Icons.security_rounded,
         iconColor: const Color(0xFF06B6D4),
         fields: [
@@ -430,7 +501,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: financial,
-        summary: _summary('${l10n.netAmountLabel}: ${_formatValue(d['netamount'])}'),
+        summary: _summary('${_t('netAmountLabel')}: ${_formatValue(d['netamount'])}'),
         icon: Icons.account_balance_rounded,
         iconColor: const Color(0xFFEF4444),
         fields: [
@@ -475,7 +546,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: customer,
-        summary: _summary('${l10n.mobileLabel}: ${_formatValue(d['mobileno'])}'),
+        summary: _summary('${_t('mobileLabel')}: ${_formatValue(d['mobileno'])}'),
         icon: Icons.person_rounded,
         iconColor: const Color(0xFF6366F1),
         fields: [
@@ -564,7 +635,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.challanDetails,
+                      _t('challanDetails'),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
@@ -573,7 +644,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       ),
                     ),
                     Text(
-                      '${l10n.challanNoLabel}: ${widget.challanNo}',
+                      '${_t('challanNoLabel')}: ${widget.challanNo}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
@@ -629,7 +700,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           ),
           SizedBox(height: 18),
           Text(
-            l10n.loadingChallanDetails,
+            _t('loadingChallanDetails'),
             style: TextStyle(
               fontSize: 14,
               color: _textMid,
@@ -663,7 +734,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              l10n.failedToLoadDetails,
+              _t('failedToLoadDetails'),
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
@@ -760,7 +831,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      l10n.showSelectionCheckboxes,
+                      _t('showSelectionCheckboxes'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -768,7 +839,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       ),
                     ),
                     Text(
-                      l10n.enableCheckboxesHelp,
+                      _t('enableCheckboxesHelp'),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -855,7 +926,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                '${l10n.rejectRemarkTitle} (${_checkedRejectFields.length} field${_checkedRejectFields.length == 1 ? '' : 's'})',
+                '${_t('rejectRemarkTitle')} (${_checkedRejectFields.length} field${_checkedRejectFields.length == 1 ? '' : 's'})',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -883,6 +954,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     required _SectionDef section,
     required bool showDivider,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final isExpanded = _expandedSections.contains(section.title);
 
     final hasCriticalField = section.fields.any((f) => f.critical);
@@ -1063,7 +1135,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(l10n.reject),
+                    : Text(_t('reject')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEF4444),
                   foregroundColor: Colors.white,
@@ -1090,7 +1162,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : Text(l10n.approve),
+                    : Text(_t('approve')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
                   foregroundColor: Colors.white,
@@ -1156,7 +1228,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         remarkController: _rejectRemarkController,
         onSyncFromChecks: _syncRejectRemark,
         hasCheckedFields: _checkedRejectFields.isNotEmpty,
-        l10n: l10n,
+        rejectChallanText: _t('rejectChallan'),
+        checkedFieldInfoText: _t('checkedFieldInfo'),
+        rejectRemarkHintText: _t('rejectRemarkHint'),
+        rejectText: _t('reject'),
+        pleaseSelectFieldOrReasonText: _t('pleaseSelectFieldOrReason'),
+        cancelText: l10n.cancel,
       ),
     );
 
@@ -1169,7 +1246,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            l10n.pleaseSelectFieldOrReason,
+            _t('pleaseSelectFieldOrReason'),
           ),
           backgroundColor: Color(0xFFEF4444),
         ),
@@ -1222,23 +1299,23 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   String _localizedSectionTitle(AppLocalizations l10n, String titleKey) {
     switch (titleKey) {
       case 'Basic Information':
-        return l10n.basicInformation;
+        return _t('basicInformation');
       case 'Pricing Details':
-        return l10n.pricingDetails;
+        return _t('pricingDetails');
       case 'Discounts & Offers':
-        return l10n.discountsAndOffers;
+        return _t('discountsAndOffers');
       case 'Discount':
-        return l10n.discountTitle;
+        return _t('discountTitle');
       case 'RTO Details':
-        return l10n.rtoDetails;
+        return _t('rtoDetails');
       case 'Tax Details':
-        return l10n.taxDetails;
+        return _t('taxDetails');
       case 'Insurance Details':
-        return l10n.insuranceDetails;
+        return _t('insuranceDetails');
       case 'Financial Details':
-        return l10n.financialDetails;
+        return _t('financialDetails');
       case 'Customer Information':
-        return l10n.customerInformation;
+        return _t('customerInformation');
       default:
         return titleKey;
     }
@@ -1436,13 +1513,23 @@ class _RejectDialog extends StatefulWidget {
   final TextEditingController remarkController;
   final VoidCallback onSyncFromChecks;
   final bool hasCheckedFields;
-  final AppLocalizations l10n;
+  final String rejectChallanText;
+  final String checkedFieldInfoText;
+  final String rejectRemarkHintText;
+  final String rejectText;
+  final String pleaseSelectFieldOrReasonText;
+  final String cancelText;
 
   const _RejectDialog({
     required this.remarkController,
     required this.onSyncFromChecks,
     required this.hasCheckedFields,
-    required this.l10n,
+    required this.rejectChallanText,
+    required this.checkedFieldInfoText,
+    required this.rejectRemarkHintText,
+    required this.rejectText,
+    required this.pleaseSelectFieldOrReasonText,
+    required this.cancelText,
   });
 
   @override
@@ -1471,7 +1558,7 @@ class _RejectDialogState extends State<_RejectDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            widget.l10n.pleaseSelectFieldOrReason,
+            widget.pleaseSelectFieldOrReasonText,
           ),
           backgroundColor: Color(0xFFEF4444),
         ),
@@ -1491,7 +1578,7 @@ class _RejectDialogState extends State<_RejectDialog> {
           const Icon(Icons.warning_rounded, color: Color(0xFFEF4444)),
           const SizedBox(width: 12),
           Text(
-            widget.l10n.rejectChallan,
+            widget.rejectChallanText,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
           ),
         ],
@@ -1501,7 +1588,7 @@ class _RejectDialogState extends State<_RejectDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.l10n.checkedFieldInfo,
+            widget.checkedFieldInfoText,
             style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 16),
@@ -1510,7 +1597,7 @@ class _RejectDialogState extends State<_RejectDialog> {
             maxLines: 5,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: widget.l10n.rejectRemarkHint,
+              hintText: widget.rejectRemarkHintText,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -1523,7 +1610,7 @@ class _RejectDialogState extends State<_RejectDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: Text(widget.l10n.cancel),
+          child: Text(widget.cancelText),
         ),
         ElevatedButton(
           onPressed: _submit,
@@ -1531,7 +1618,7 @@ class _RejectDialogState extends State<_RejectDialog> {
             backgroundColor: const Color(0xFFEF4444),
             foregroundColor: Colors.white,
           ),
-          child: Text(widget.l10n.reject),
+          child: Text(widget.rejectText),
         ),
       ],
     );
