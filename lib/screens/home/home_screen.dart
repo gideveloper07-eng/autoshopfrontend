@@ -6,7 +6,7 @@ import '../../services/api_service.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
 import '../notification/notification_screen.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import '../settings/settings_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 
@@ -389,6 +389,41 @@ Stack(
       ),
   ],
 ),
+
+    // SETTINGS BUTTON
+    GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SettingsScreen(),
+          ),
+        );
+      },
+
+      child: Container(
+        width: 38,
+        height: 38,
+
+        margin: const EdgeInsets.only(
+          right: 10,
+        ),
+
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.35),
+          ),
+        ),
+
+        child: const Icon(
+          Icons.settings_rounded,
+          color: Colors.white,
+          size: 18,
+        ),
+      ),
+    ),
 
     // LOGOUT BUTTON
     GestureDetector(
