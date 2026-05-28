@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../l10n/app_localizations.dart';
 import 'challan_edit_details_screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
@@ -39,15 +40,15 @@ List<Map<String, dynamic>> _filteredRows = [];
   static const Color _gridBorder = Color(0xFFC7D2FE);
   static const Color _gridHeaderBorder = Color(0xFF93C5FD);
 
-  List<_ColDef> get _columns {
+  List<_ColDef> _columns(AppLocalizations l10n) {
     return [
       _ColDef(
         key: _dateFilter == 'challan' ? 'date' : 'exdate',
-        label: _dateFilter == 'challan' ? 'Challan Date' : 'Expected Delivery Date',
+        label: _dateFilter == 'challan' ? l10n.challanDate : l10n.expectedDeliveryDate,
         flex: 3,
       ),
-      const _ColDef(key: 'sp_468', label: 'Challan No', flex: 3),
-      const _ColDef(key: 'sp_469', label: 'Customer Name', flex: 5),
+      _ColDef(key: 'sp_468', label: l10n.challanNo, flex: 3),
+      _ColDef(key: 'sp_469', label: l10n.customerName, flex: 5),
     ];
   }
 
@@ -242,26 +243,28 @@ Future<void> _stopListening() async {
 }
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: _bg,
       body: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(l10n),
           Expanded(
             child: _loading
-                ? _buildLoader()
+                ? _buildLoader(l10n)
                 : _error != null
-                    ? _buildError()
+                    ? _buildError(l10n)
                     : _rows.isEmpty
-                        ? _buildEmpty()
-                        : _buildGrid(),
+                        ? _buildEmpty(l10n)
+                        : _buildGrid(l10n),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalizations l10n) {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -326,13 +329,13 @@ Future<void> _stopListening() async {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "Challan",
-                      style: TextStyle(
+                      l10n.challan,
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -340,8 +343,8 @@ Future<void> _stopListening() async {
                       ),
                     ),
                     Text(
-                      "Pending Challan",
-                      style: TextStyle(
+                      l10n.pendingChallan,
+                      style: const TextStyle(
                         fontSize: 12,
                         color: Colors.white70,
                         letterSpacing: 0.2,
@@ -381,7 +384,7 @@ Future<void> _stopListening() async {
     );
   }
 
-  Widget _buildLoader() {
+  Widget _buildLoader(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -396,9 +399,9 @@ Future<void> _stopListening() async {
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
-            "Loading challans...",
-            style: TextStyle(
+          Text(
+            l10n.loadingChallans,
+            style: const TextStyle(
               fontSize: 14,
               color: _textMid,
               fontWeight: FontWeight.w500,
@@ -409,7 +412,7 @@ Future<void> _stopListening() async {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -430,9 +433,9 @@ Future<void> _stopListening() async {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              "Failed to load challans",
-              style: TextStyle(
+            Text(
+              l10n.failedToLoadChallans,
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: _textDark,
@@ -451,7 +454,7 @@ Future<void> _stopListening() async {
             ElevatedButton.icon(
               onPressed: _loadData,
               icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text("Retry"),
+              label: Text(l10n.retry),
               style: ElevatedButton.styleFrom(
                 backgroundColor: _primary,
                 foregroundColor: Colors.white,
@@ -471,7 +474,7 @@ Future<void> _stopListening() async {
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -490,9 +493,9 @@ Future<void> _stopListening() async {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
-            "No challans found",
-            style: TextStyle(
+          Text(
+            l10n.noChallansFound,
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: _textMid,
@@ -503,7 +506,7 @@ Future<void> _stopListening() async {
     );
   }
 
-  Widget _buildGrid() {
+  Widget _buildGrid(AppLocalizations l10n) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: Column(
@@ -514,14 +517,13 @@ Future<void> _stopListening() async {
               children: [
                 _StatChip(
                   icon: Icons.receipt_long_rounded,
-                  label:
-                      "${_rows.length} Record${_rows.length == 1 ? '' : 's'}",
+                  label: l10n.records(_rows.length, _rows.length == 1 ? '' : 's'),
                   color: _primary,
                 ),
                 const Spacer(),
                 _StatChip(
                   icon: Icons.calendar_today_rounded,
-                  label: "Pending Challan",
+                  label: l10n.pendingChallan,
                   color: const Color(0xFF0891B2),
                 ),
               ],
@@ -624,9 +626,9 @@ Future<void> _stopListening() async {
                     color: _textMid,
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    "Show Date:",
-                    style: TextStyle(
+                  Text(
+                    l10n.showDate,
+                    style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: _textMid,
@@ -637,7 +639,7 @@ Future<void> _stopListening() async {
                     child: Row(
                       children: [
                         _FilterChip(
-                          label: "Challan Date",
+                          label: l10n.challanDate,
                           isSelected: _dateFilter == 'challan',
                           onTap: () {
                             if (_dateFilter != 'challan') {
@@ -650,7 +652,7 @@ Future<void> _stopListening() async {
                         ),
                         const SizedBox(width: 8),
                         _FilterChip(
-                          label: "Expected Delivery",
+                          label: l10n.expectedDelivery,
                           isSelected: _dateFilter == 'expected',
                           onTap: () {
                             if (_dateFilter != 'expected') {
@@ -691,7 +693,7 @@ Future<void> _stopListening() async {
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
-                    _buildTableHeader(),
+                    _buildTableHeader(l10n),
                     Expanded(
                       child: _buildTableRows(),
                     ),
@@ -705,7 +707,8 @@ Future<void> _stopListening() async {
     );
   }
 
-  Widget _buildTableHeader() {
+  Widget _buildTableHeader(AppLocalizations l10n) {
+    final columns = _columns(l10n);
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
@@ -723,9 +726,9 @@ Future<void> _stopListening() async {
       ),
       child: Row(
         children: [
-          for (var i = 0; i < _columns.length; i++)
+          for (var i = 0; i < columns.length; i++)
             Expanded(
-              flex: _columns[i].flex,
+              flex: columns[i].flex,
               child: Container(
                 decoration: const BoxDecoration(
                   border: Border(
@@ -741,7 +744,7 @@ Future<void> _stopListening() async {
                     vertical: 13,
                   ),
                   child: Text(
-                    _columns[i].label,
+                    columns[i].label,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -751,17 +754,17 @@ Future<void> _stopListening() async {
                 ),
               ),
             ),
-          const SizedBox(
+          SizedBox(
             width: 72,
             child: Padding(
-              padding: EdgeInsets.symmetric(
+              padding: const EdgeInsets.symmetric(
                 horizontal: 8,
                 vertical: 13,
               ),
               child: Text(
-                "Action",
+                l10n.action,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white70,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
@@ -775,6 +778,9 @@ Future<void> _stopListening() async {
   }
 
   Widget _buildTableRows() {
+    final l10n = AppLocalizations.of(context)!;
+    final columns = _columns(l10n);
+    
     return ListView.separated(
      itemCount: _filteredRows.length,
       separatorBuilder: (_, __) {
@@ -789,10 +795,11 @@ Future<void> _stopListening() async {
 
         return _DataRow(
           row: row,
-          columns: _columns,
+          columns: columns,
           isEven: index % 2 == 0,
           cellFn: _cell,
           onEdit: () => _onEdit(row),
+          editLabel: l10n.edit,
         );
       },
     );
@@ -853,6 +860,7 @@ class _DataRow extends StatelessWidget {
   final bool isEven;
   final String Function(Map<String, dynamic>, String) cellFn;
   final VoidCallback onEdit;
+  final String editLabel;
 
   const _DataRow({
     required this.row,
@@ -860,6 +868,7 @@ class _DataRow extends StatelessWidget {
     required this.isEven,
     required this.cellFn,
     required this.onEdit,
+    required this.editLabel,
   });
 
   @override
@@ -965,18 +974,18 @@ class _DataRow extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.edit_rounded,
                           size: 12,
                           color: Colors.white,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: 4),
                         Text(
-                          "Edit",
-                          style: TextStyle(
+                          editLabel,
+                          style: const TextStyle(
                             fontSize: 11,
                             color: Colors.white,
                             fontWeight: FontWeight.w600,

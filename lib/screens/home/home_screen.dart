@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../l10n/app_localizations.dart';
 //import '../../services/notification_service.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
@@ -175,6 +176,7 @@ Future<void> loadUnreadCount() async {
   }
 
 Future<void> _logout() async {
+  final l10n = AppLocalizations.of(context)!;
 
   final confirm = await showDialog<bool>(
     context: context,
@@ -182,17 +184,17 @@ Future<void> _logout() async {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      title: const Text(
-        "Logout",
-        style: TextStyle(fontWeight: FontWeight.bold),
+      title: Text(
+        l10n.logout,
+        style: const TextStyle(fontWeight: FontWeight.bold),
       ),
-      content: const Text(
-        "Are you sure you want to logout?",
+      content: Text(
+        l10n.confirmLogout,
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text("Cancel"),
+          child: Text(l10n.cancel),
         ),
         ElevatedButton(
           onPressed: () => Navigator.pop(context, true),
@@ -203,7 +205,7 @@ Future<void> _logout() async {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text("Logout"),
+          child: Text(l10n.logout),
         ),
       ],
     ),
