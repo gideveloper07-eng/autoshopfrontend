@@ -22,9 +22,13 @@ String databaseName = "";
 String companyName = "";
 String utg = "";  
 
-static const Color kRed      = Color(0xFF1565C0); // Blue
-static const Color kRedLight = Color(0xFF42A5F5); // Light Blue
-static const Color kRedDark  = Color(0xFF0D47A1); // Dark Blue
+static const Color kBlue      = Color(0xFF1565C0);
+static const Color kBlueLight = Color(0xFF42A5F5);
+static const Color kBlueDark  = Color(0xFF0D47A1);
+static const Color kBlueDeep  = Color(0xFF0A2E5C);
+static const Color kNavy      = Color(0xFF071426);
+static const Color kNavySoft  = Color(0xFF0E2542);
+static const Color kSteel     = Color(0xFFB9C7D9);
 
   @override
   void initState() {
@@ -70,7 +74,7 @@ companyName =
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Invalid Company Code"),
-          backgroundColor: kRedDark,
+          backgroundColor: kBlueDark,
         ),
       );
       return;
@@ -151,7 +155,7 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(msg),
-            backgroundColor: kRedDark,
+            backgroundColor: kBlueDark,
           ),
         );
       }
@@ -161,209 +165,304 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F2),
-      body: Column(
-        children: [
-          // ── TOP BANNER ─────────────────────────────────────────────────
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 36),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [kRedDark, kRed, kRedLight],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Car icon in circle
-                Container(
-                  width: 120, height: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.6), width: 3),
-                  ),
-                  child: const Icon(
-                    Icons.directions_car_rounded,
-                    size: 65,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                const Text(
-                  "MY AUTOSHOP",
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 3,
-                  ),
-                ),
-              ],
-            ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [kNavy, kNavySoft, Color(0xFFE6EBF2)],
+            stops: [0.0, 0.52, 0.52],
           ),
-
-          // ── FORM CARD ──────────────────────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -90,
+              left: -60,
+              child: _bgGlow(220, Colors.white.withOpacity(0.05)),
+            ),
+            Positioned(
+              top: 120,
+              right: -80,
+              child: _bgGlow(250, Colors.white.withOpacity(0.04)),
+            ),
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: MediaQuery.of(context).size.height - 36,
                   ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Company Code
-                        _label("Company Code"),
-                        const SizedBox(height: 6),
-                        Focus(
-                          onFocusChange: (hasFocus) {
-                            if (!hasFocus) _validateCompany();
-                          },
-                          child: TextFormField(
-                            controller: companyCodeCtrl,
-                            validator: (v) => (v == null || v.trim().isEmpty)
-                                ? "Company code is required" : null,
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
-                            decoration: InputDecoration(
-                              hintText: "Enter company code",
-                              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                              prefixIcon: const Icon(Icons.business_outlined, color: kRed, size: 20),
-                              suffixIcon: isValidatingCode
-                                  ? const Padding(
-                                      padding: EdgeInsets.all(12),
-                                      child: SizedBox(
-                                        width: 16, height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: kRed,
-                                        ),
-                                      ),
-                                    )
-                                  : companyValid == true
-                                      ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
-                                      : companyValid == false
-                                          ? const Icon(Icons.cancel, color: Colors.red, size: 20)
-                                          : null,
-                              filled: true,
-                              fillColor: const Color(0xFFFAFAFA),
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: companyValid == false
-                                      ? Colors.red
-                                      : companyValid == true
-                                          ? Colors.green
-                                          : const Color(0xFFE0E0E0),
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(
-                                  color: companyValid == false
-                                      ? Colors.red
-                                      : companyValid == true
-                                          ? Colors.green
-                                          : const Color(0xFFE0E0E0),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: kRed, width: 1.5),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (companyValid == false)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 4, left: 4),
-                            child: Text(
-                              "Company code not found",
-                              style: TextStyle(color: Colors.red, fontSize: 12),
-                            ),
-                          ),
-                        const SizedBox(height: 16),
-
-                        // User ID
-                        _label("User ID"),
-                        const SizedBox(height: 6),
-                        _field(
-                          ctrl:      userIdCtrl,
-                          hint:      "Enter your user ID",
-                          icon:      Icons.person_outline,
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? "User ID is required" : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Password
-                        _label("Password"),
-                        const SizedBox(height: 6),
-                        _passwordField(),
-                        const SizedBox(height: 24),
-
-                        // Login button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : _login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kRed,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: isLoading
-                                ? const SizedBox(
-                                    width: 22, height: 22,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2.5,
-                                    ),
-                                  )
-                                : const Text(
-                                    "Login",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                          ),
-                        ),
-                      ],
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildTopHero(),
+                          const SizedBox(height: 20),
+                          _buildLoginCard(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bgGlow(double size, Color color) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+      ),
+    );
+  }
+
+  Widget _buildTopHero() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 30),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0A1F38), Color(0xFF11335B), Color(0xFF1E4E82)],
+        ),
+        border: Border.all(color: Colors.white24, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.36),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
           ),
         ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 100,
+            height: 100,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(color: Colors.white.withOpacity(0.34), width: 1.2),
+            ),
+            child: const Icon(
+              Icons.directions_car_filled_rounded,
+              size: 56,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            "MY AUTOSHOP",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.1,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Precision Service Management",
+            style: TextStyle(
+              fontSize: 14,
+              color: kSteel,
+              letterSpacing: 0.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoginCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 26),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.93),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withOpacity(0.85)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 26,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Welcome Back",
+              style: TextStyle(
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF10253F),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              "Login to manage your automobile operations",
+              style: TextStyle(
+                fontSize: 13,
+                color: Color(0xFF4D6178),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 18),
+            _label("Company Code"),
+            const SizedBox(height: 6),
+            Focus(
+              onFocusChange: (hasFocus) {
+                if (!hasFocus) _validateCompany();
+              },
+              child: TextFormField(
+                controller: companyCodeCtrl,
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? "Company code is required"
+                    : null,
+                style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
+                decoration: InputDecoration(
+                  hintText: "Enter company code",
+                  hintStyle: TextStyle(color: const Color(0xFF73839A), fontSize: 13),
+                  prefixIcon: const Icon(Icons.business_outlined, color: kBlue, size: 20),
+                  suffixIcon: isValidatingCode
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+                          ),
+                        )
+                      : companyValid == true
+                          ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
+                          : companyValid == false
+                              ? const Icon(Icons.cancel, color: Colors.red, size: 20)
+                              : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF3F7FC),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: companyValid == false
+                          ? Colors.red
+                          : companyValid == true
+                              ? Colors.green
+                              : const Color(0xFFD6E3F0),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: companyValid == false
+                          ? Colors.red
+                          : companyValid == true
+                              ? Colors.green
+                              : const Color(0xFFD6E3F0),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kBlue, width: 1.8),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Colors.red),
+                  ),
+                ),
+              ),
+            ),
+            if (companyValid == false)
+              const Padding(
+                padding: EdgeInsets.only(top: 4, left: 4),
+                child: Text(
+                  "Company code not found",
+                  style: TextStyle(color: Colors.red, fontSize: 12),
+                ),
+              ),
+            const SizedBox(height: 16),
+            _label("User ID"),
+            const SizedBox(height: 6),
+            _field(
+              ctrl: userIdCtrl,
+              hint: "Enter your user ID",
+              icon: Icons.person_outline,
+              validator: (v) => (v == null || v.trim().isEmpty) ? "User ID is required" : null,
+            ),
+            const SizedBox(height: 16),
+            _label("Password"),
+            const SizedBox(height: 6),
+            _passwordField(),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF0D2746), Color(0xFF1A4474), Color(0xFF2B6DB2)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.26),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    shadowColor: Colors.transparent,
+                    disabledBackgroundColor: Colors.transparent,
+                    backgroundColor: Colors.transparent,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          "LOGIN",
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -389,26 +488,26 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
       style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-        prefixIcon: Icon(icon, color: kRed, size: 20),
+        hintStyle: const TextStyle(color: Color(0xFF73839A), fontSize: 13),
+        prefixIcon: Icon(icon, color: kBlue, size: 20),
         filled: true,
-        fillColor: const Color(0xFFFAFAFA),
+        fillColor: const Color(0xFFF3F7FC),
         contentPadding:
             const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kRed, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kBlue, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
       ),
@@ -424,9 +523,9 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
       style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
       decoration: InputDecoration(
         hintText: "Enter your password",
-        hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+        hintStyle: const TextStyle(color: Color(0xFF73839A), fontSize: 13),
         prefixIcon:
-            const Icon(Icons.lock_outline, color: kRed, size: 20),
+            const Icon(Icons.lock_outline, color: kBlue, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off : Icons.visibility,
@@ -436,23 +535,23 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
           onPressed: () => setState(() => obscure = !obscure),
         ),
         filled: true,
-        fillColor: const Color(0xFFFAFAFA),
+        fillColor: const Color(0xFFF3F7FC),
         contentPadding:
             const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kRed, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kBlue, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
         ),
       ),
