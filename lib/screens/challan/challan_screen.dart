@@ -875,19 +875,22 @@ Future<void> _stopListening() async {
               ),
             ),
           SizedBox(
-            width: 72,
+            width: 112,
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 8,
                 vertical: 13,
               ),
-              child: Text(
-                l10n.action,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  l10n.action,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ),
@@ -1059,7 +1062,7 @@ class _DataRow extends StatelessWidget {
             );
           }),
           SizedBox(
-            width: 72,
+            width: 112,
             child: Container(
               decoration: const BoxDecoration(
                 border: Border(
@@ -1094,24 +1097,29 @@ class _DataRow extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.edit_rounded,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          editLabel,
-                          style: const TextStyle(
-                            fontSize: 11,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.edit_rounded,
+                            size: 12,
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Text(
+                            editLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
