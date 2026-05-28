@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import '../l10n/app_localizations.dart';
 
 import 'package:google_fonts/google_fonts.dart';
-
 import 'package:firebase_core/firebase_core.dart';
 
+import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 
@@ -60,7 +63,12 @@ void main() async {
     print(e);
   }
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -69,12 +77,35 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
 
     return MaterialApp(
 
       debugShowCheckedModeBanner: false,
 
       title: 'MyAutoShop',
+      
+      // Localization configuration
+      locale: languageProvider.locale,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: LanguageProvider.supportedLocales,
+      localeResolutionCallback: (locale, supportedLocales) {
+        // Check if the current device locale is supported
+        if (locale != null) {
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale.languageCode) {
+              return supportedLocale;
+            }
+          }
+        }
+        // Return English as default
+        return const Locale('en');
+      },
 
       theme: ThemeData(
 

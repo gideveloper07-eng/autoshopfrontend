@@ -1,0 +1,251 @@
+{
+  "@@locale": "en",
+  
+  "appTitle": "MyAutoShop",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  
+  "login": "Login",
+  "@login": {
+    "description": "Login button text"
+  },
+  
+  "companyCode": "Company Code",
+  "@companyCode": {
+    "description": "Company code field label"
+  },
+  
+  "userId": "User ID",
+  "@userId": {
+    "description": "User ID field label"
+  },
+  
+  "password": "Password",
+  "@password": {
+    "description": "Password field label"
+  },
+  
+  "invalidCompanyCode": "Invalid Company Code",
+  "@invalidCompanyCode": {
+    "description": "Error message for invalid company code"
+  },
+  
+  "pleaseEnterCompanyCode": "Please enter company code",
+  "@pleaseEnterCompanyCode": {
+    "description": "Validation message for company code"
+  },
+  
+  "pleaseEnterUserId": "Please enter user ID",
+  "@pleaseEnterUserId": {
+    "description": "Validation message for user ID"
+  },
+  
+  "pleaseEnterPassword": "Please enter password",
+  "@pleaseEnterPassword": {
+    "description": "Validation message for password"
+  },
+  
+  "loginFailed": "Login Failed",
+  "@loginFailed": {
+    "description": "Login failure message"
+  },
+  
+  "loginSuccess": "Login Successful",
+  "@loginSuccess": {
+    "description": "Login success message"
+  },
+  
+  "challan": "Challan",
+  "@challan": {
+    "description": "Challan screen title"
+  },
+  
+  "pendingChallan": "Pending Challan",
+  "@pendingChallan": {
+    "description": "Pending challan subtitle"
+  },
+  
+  "retailIncentive": "Retail Incentive",
+  "@retailIncentive": {
+    "description": "Retail incentive label"
+  },
+  
+  "loadingChallans": "Loading challans...",
+  "@loadingChallans": {
+    "description": "Loading message for challans"
+  },
+  
+  "failedToLoadChallans": "Failed to load challans",
+  "@failedToLoadChallans": {
+    "description": "Error message when challans fail to load"
+  },
+  
+  "noChallansFound": "No challans found",
+  "@noChallansFound": {
+    "description": "Empty state message"
+  },
+  
+  "pullToRefresh": "Pull to refresh or check back later",
+  "@pullToRefresh": {
+    "description": "Empty state instruction"
+  },
+  
+  "date": "Date",
+  "@date": {
+    "description": "Date column header"
+  },
+  
+  "challanDate": "Challan Date",
+  "@challanDate": {
+    "description": "Challan date column header"
+  },
+  
+  "expectedDeliveryDate": "Expected Delivery Date",
+  "@expectedDeliveryDate": {
+    "description": "Expected delivery date column header"
+  },
+  
+  "challanNo": "Challan No",
+  "@challanNo": {
+    "description": "Challan number column header"
+  },
+  
+  "customerName": "Customer Name",
+  "@customerName": {
+    "description": "Customer name column header"
+  },
+  
+  "action": "Action",
+  "@action": {
+    "description": "Action column header"
+  },
+  
+  "edit": "Edit",
+  "@edit": {
+    "description": "Edit button text"
+  },
+  
+  "save": "Save",
+  "@save": {
+    "description": "Save button text"
+  },
+  
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Cancel button text"
+  },
+  
+  "retry": "Retry",
+  "@retry": {
+    "description": "Retry button text"
+  },
+  
+  "refresh": "Refresh",
+  "@refresh": {
+    "description": "Refresh button text"
+  },
+  
+  "showDate": "Show Date:",
+  "@showDate": {
+    "description": "Filter label for date selection"
+  },
+  
+  "expectedDelivery": "Expected Delivery",
+  "@expectedDelivery": {
+    "description": "Expected delivery filter option"
+  },
+  
+  "records": "{count} Record{plural}",
+  "@records": {
+    "description": "Record count label",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "plural": {
+        "type": "String"
+      }
+    }
+  },
+  
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  
+  "language": "Language",
+  "@language": {
+    "description": "Language setting label"
+  },
+  
+  "selectLanguage": "Select Language",
+  "@selectLanguage": {
+    "description": "Language selection dialog title"
+  },
+  
+  "languageChanged": "Language changed successfully",
+  "@languageChanged": {
+    "description": "Language change success message"
+  },
+  
+  "home": "Home",
+  "@home": {
+    "description": "Home screen title"
+  },
+  
+  "notifications": "Notifications",
+  "@notifications": {
+    "description": "Notifications screen title"
+  },
+  
+  "profile": "Profile",
+  "@profile": {
+    "description": "Profile screen title"
+  },
+  
+  "logout": "Logout",
+  "@logout": {
+    "description": "Logout button text"
+  },
+  
+  "confirmLogout": "Are you sure you want to logout?",
+  "@confirmLogout": {
+    "description": "Logout confirmation message"
+  },
+  
+  "yes": "Yes",
+  "@yes": {
+    "description": "Yes button text"
+  },
+  
+  "no": "No",
+  "@no": {
+    "description": "No button text"
+  },
+  
+  "error": "Error",
+  "@error": {
+    "description": "Error label"
+  },
+  
+  "success": "Success",
+  "@success": {
+    "description": "Success label"
+  },
+  
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading message"
+  },
+  
+  "serverError": "Server Error",
+  "@serverError": {
+    "description": "Server error message"
+  },
+  
+  "networkError": "Network Error. Please check your connection.",
+  "@networkError": {
+    "description": "Network error message"
+  }
+}
