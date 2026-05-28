@@ -9,7 +9,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => '我的汽车店';
 
   @override
   String get login => '登录';
@@ -18,13 +18,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get companyCode => '公司代码';
 
   @override
-  String get userId => '用户身份';
+  String get userId => '用户ID';
 
   @override
   String get password => '密码';
 
   @override
-  String get invalidCompanyCode => '公司代码无效';
+  String get invalidCompanyCode => '无效的公司代码';
 
   @override
   String get pleaseEnterCompanyCode => '请输入公司代码';
@@ -42,49 +42,49 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginSuccess => '登录成功';
 
   @override
-  String get challan => '查兰';
+  String get challan => '送货单';
 
   @override
-  String get pendingChallan => '待查兰';
+  String get pendingChallan => '待处理送货单';
 
   @override
   String get retailIncentive => '零售激励';
 
   @override
-  String get loadingChallans => '加载中...';
+  String get loadingChallans => '正在加载送货单...';
 
   @override
-  String get failedToLoadChallans => '加载查兰失败';
+  String get failedToLoadChallans => '加载送货单失败';
 
   @override
-  String get noChallansFound => '没有找到查兰';
+  String get noChallansFound => '未找到送货单';
 
   @override
-  String get pullToRefresh => '拉动刷新或稍后再回来查看';
+  String get pullToRefresh => '下拉刷新或稍后查看';
 
   @override
   String get date => '日期';
 
   @override
-  String get challanDate => '查兰伊达';
+  String get challanDate => '送货单日期';
 
   @override
   String get expectedDeliveryDate => '预计交货日期';
 
   @override
-  String get challanNo => '查兰诺';
+  String get challanNo => '送货单号';
 
   @override
-  String get customerName => '客户名称';
+  String get customerName => '客户姓名';
 
   @override
-  String get action => '行动';
+  String get action => '操作';
 
   @override
   String get edit => '编辑';
 
   @override
-  String get save => '节省';
+  String get save => '保存';
 
   @override
   String get cancel => '取消';
@@ -96,14 +96,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get refresh => '刷新';
 
   @override
-  String get showDate => '演出日期：';
+  String get showDate => '显示日期：';
 
   @override
-  String get expectedDelivery => '预计交付';
+  String get expectedDelivery => '预计交货';
 
   @override
   String records(int count, String plural) {
-    return '$count 记录$plural';
+    return '$count条记录$plural';
   }
 
   @override
@@ -116,28 +116,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get selectLanguage => '选择语言';
 
   @override
-  String get languageChanged => '语言更改成功';
+  String get languageChanged => '语言已成功更改';
 
   @override
-  String get home => '家';
+  String get home => '主页';
 
   @override
   String get notifications => '通知';
 
   @override
-  String get profile => '轮廓';
+  String get profile => '个人资料';
 
   @override
-  String get logout => '退出';
+  String get logout => '登出';
 
   @override
-  String get confirmLogout => '您确定要退出吗？';
+  String get confirmLogout => '您确定要登出吗？';
 
   @override
-  String get yes => '是的';
+  String get yes => '是';
 
   @override
-  String get no => '不';
+  String get no => '否';
 
   @override
   String get error => '错误';

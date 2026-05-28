@@ -9,19 +9,19 @@ class AppLocalizationsKn extends AppLocalizations {
   AppLocalizationsKn([String locale = 'kn']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'ಮೈಆಟೋಶಾಪ್';
 
   @override
-  String get login => 'ಲಾಗಿನ್ ಮಾಡಿ';
+  String get login => 'ಲಾಗಿನ್';
 
   @override
   String get companyCode => 'ಕಂಪನಿ ಕೋಡ್';
 
   @override
-  String get userId => 'ಬಳಕೆದಾರ ID';
+  String get userId => 'ಯೂಸರ್ ಐಡಿ';
 
   @override
-  String get password => 'ಪಾಸ್ವರ್ಡ್';
+  String get password => 'ಪಾಸ್‌ವರ್ಡ್';
 
   @override
   String get invalidCompanyCode => 'ಅಮಾನ್ಯ ಕಂಪನಿ ಕೋಡ್';
@@ -30,7 +30,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get pleaseEnterCompanyCode => 'ದಯವಿಟ್ಟು ಕಂಪನಿ ಕೋಡ್ ನಮೂದಿಸಿ';
 
   @override
-  String get pleaseEnterUserId => 'ದಯವಿಟ್ಟು ಬಳಕೆದಾರ ID ನಮೂದಿಸಿ';
+  String get pleaseEnterUserId => 'ದಯವಿಟ್ಟು ಯೂಸರ್ ಐಡಿ ನಮೂದಿಸಿ';
 
   @override
   String get pleaseEnterPassword => 'ದಯವಿಟ್ಟು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ';
@@ -42,37 +42,37 @@ class AppLocalizationsKn extends AppLocalizations {
   String get loginSuccess => 'ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ';
 
   @override
-  String get challan => 'ಚಲನ್';
+  String get challan => 'ಚಲಾನ್';
 
   @override
-  String get pendingChallan => 'ಚಲನ್ ಬಾಕಿ ಇದೆ';
+  String get pendingChallan => 'ಬಾಕಿ ಚಲಾನ್';
 
   @override
   String get retailIncentive => 'ಚಿಲ್ಲರೆ ಪ್ರೋತ್ಸಾಹ';
 
   @override
-  String get loadingChallans => 'ಚಲನ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...';
+  String get loadingChallans => 'ಚಲಾನ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...';
 
   @override
-  String get failedToLoadChallans => 'ಚಲನ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ';
+  String get failedToLoadChallans => 'ಚಲಾನ್‌ಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ';
 
   @override
-  String get noChallansFound => 'ಯಾವುದೇ ಚಲನ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ';
+  String get noChallansFound => 'ಯಾವುದೇ ಚಲಾನ್‌ಗಳು ಕಂಡುಬಂದಿಲ್ಲ';
 
   @override
-  String get pullToRefresh => 'ರಿಫ್ರೆಶ್ ಮಾಡಲು ಎಳೆಯಿರಿ ಅಥವಾ ನಂತರ ಮತ್ತೆ ಪರಿಶೀಲಿಸಿ';
+  String get pullToRefresh => 'ರಿಫ್ರೆಶ್ ಮಾಡಲು ಎಳೆಯಿರಿ ಅಥವಾ ನಂತರ ಪರಿಶೀಲಿಸಿ';
 
   @override
   String get date => 'ದಿನಾಂಕ';
 
   @override
-  String get challanDate => 'ಚಲನ್ ದಿನಾಂಕ';
+  String get challanDate => 'ಚಲಾನ್ ದಿನಾಂಕ';
 
   @override
   String get expectedDeliveryDate => 'ನಿರೀಕ್ಷಿತ ವಿತರಣಾ ದಿನಾಂಕ';
 
   @override
-  String get challanNo => 'ಚಲನ್ ನಂ';
+  String get challanNo => 'ಚಲಾನ್ ಸಂಖ್ಯೆ';
 
   @override
   String get customerName => 'ಗ್ರಾಹಕರ ಹೆಸರು';
@@ -81,7 +81,7 @@ class AppLocalizationsKn extends AppLocalizations {
   String get action => 'ಕ್ರಿಯೆ';
 
   @override
-  String get edit => 'ಸಂಪಾದಿಸು';
+  String get edit => 'ಸಂಪಾದಿಸಿ';
 
   @override
   String get save => 'ಉಳಿಸಿ';
@@ -90,13 +90,13 @@ class AppLocalizationsKn extends AppLocalizations {
   String get cancel => 'ರದ್ದುಮಾಡಿ';
 
   @override
-  String get retry => 'ಮರುಪ್ರಯತ್ನಿಸಿ';
+  String get retry => 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ';
 
   @override
-  String get refresh => 'ರಿಫ್ರೆಶ್ ಮಾಡಿ';
+  String get refresh => 'ರಿಫ್ರೆಶ್';
 
   @override
-  String get showDate => 'ಪ್ರದರ್ಶನ ದಿನಾಂಕ:';
+  String get showDate => 'ದಿನಾಂಕ ತೋರಿಸಿ:';
 
   @override
   String get expectedDelivery => 'ನಿರೀಕ್ಷಿತ ವಿತರಣೆ';
@@ -128,16 +128,16 @@ class AppLocalizationsKn extends AppLocalizations {
   String get profile => 'ಪ್ರೊಫೈಲ್';
 
   @override
-  String get logout => 'ಲಾಗ್ಔಟ್';
+  String get logout => 'ಲಾಗೌಟ್';
 
   @override
-  String get confirmLogout => 'ನೀವು ಲಾಗ್ಔಟ್ ಮಾಡಲು ಖಚಿತವಾಗಿ ಬಯಸುವಿರಾ?';
+  String get confirmLogout => 'ನೀವು ಖಚಿತವಾಗಿ ಲಾಗೌಟ್ ಮಾಡಲು ಬಯಸುವಿರಾ?';
 
   @override
   String get yes => 'ಹೌದು';
 
   @override
-  String get no => 'ಸಂ';
+  String get no => 'ಇಲ್ಲ';
 
   @override
   String get error => 'ದೋಷ';
@@ -152,5 +152,6 @@ class AppLocalizationsKn extends AppLocalizations {
   String get serverError => 'ಸರ್ವರ್ ದೋಷ';
 
   @override
-  String get networkError => 'ನೆಟ್‌ವರ್ಕ್ ದೋಷ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.';
+  String get networkError =>
+      'ನೆಟ್‌ವರ್ಕ್ ದೋಷ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ.';
 }

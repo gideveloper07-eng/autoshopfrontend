@@ -9,10 +9,10 @@ class AppLocalizationsDe extends AppLocalizations {
   AppLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'MeinAutoShop';
 
   @override
-  String get login => 'Login';
+  String get login => 'Anmelden';
 
   @override
   String get companyCode => 'Firmencode';
@@ -27,52 +27,52 @@ class AppLocalizationsDe extends AppLocalizations {
   String get invalidCompanyCode => 'Ungültiger Firmencode';
 
   @override
-  String get pleaseEnterCompanyCode => 'Bitte geben Sie den Firmencode ein';
+  String get pleaseEnterCompanyCode => 'Bitte Firmencode eingeben';
 
   @override
-  String get pleaseEnterUserId => 'Bitte geben Sie die Benutzer-ID ein';
+  String get pleaseEnterUserId => 'Bitte Benutzer-ID eingeben';
 
   @override
-  String get pleaseEnterPassword => 'Bitte geben Sie das Passwort ein';
+  String get pleaseEnterPassword => 'Bitte Passwort eingeben';
 
   @override
-  String get loginFailed => 'Fehler bei der Anmeldung';
+  String get loginFailed => 'Anmeldung fehlgeschlagen';
 
   @override
   String get loginSuccess => 'Anmeldung erfolgreich';
 
   @override
-  String get challan => 'Challan';
+  String get challan => 'Lieferschein';
 
   @override
-  String get pendingChallan => 'Ausstehende Challan';
+  String get pendingChallan => 'Ausstehender Lieferschein';
 
   @override
-  String get retailIncentive => 'Anreiz für den Einzelhandel';
+  String get retailIncentive => 'Einzelhandelsanreiz';
 
   @override
-  String get loadingChallans => 'Lade Challans...';
+  String get loadingChallans => 'Lieferscheine werden geladen...';
 
   @override
-  String get failedToLoadChallans => 'Challans konnten nicht geladen werden';
+  String get failedToLoadChallans => 'Laden der Lieferscheine fehlgeschlagen';
 
   @override
-  String get noChallansFound => 'Keine Challans gefunden';
+  String get noChallansFound => 'Keine Lieferscheine gefunden';
 
   @override
-  String get pullToRefresh => 'Zum Aktualisieren ziehen oder später noch einmal vorbeischauen';
+  String get pullToRefresh => 'Zum Aktualisieren ziehen oder später überprüfen';
 
   @override
   String get date => 'Datum';
 
   @override
-  String get challanDate => 'Challan-Datum';
+  String get challanDate => 'Lieferscheindatum';
 
   @override
-  String get expectedDeliveryDate => 'Voraussichtlicher Liefertermin';
+  String get expectedDeliveryDate => 'Voraussichtliches Lieferdatum';
 
   @override
-  String get challanNo => 'Challan Nr';
+  String get challanNo => 'Lieferscheinnummer';
 
   @override
   String get customerName => 'Kundenname';
@@ -87,7 +87,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get save => 'Speichern';
 
   @override
-  String get cancel => 'Stornieren';
+  String get cancel => 'Abbrechen';
 
   @override
   String get retry => 'Wiederholen';
@@ -96,10 +96,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get refresh => 'Aktualisieren';
 
   @override
-  String get showDate => 'Showdatum:';
+  String get showDate => 'Datum anzeigen:';
 
   @override
-  String get expectedDelivery => 'Lieferung voraussichtlich';
+  String get expectedDelivery => 'Voraussichtliche Lieferung';
 
   @override
   String records(int count, String plural) {
@@ -113,13 +113,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get language => 'Sprache';
 
   @override
-  String get selectLanguage => 'Wählen Sie Sprache aus';
+  String get selectLanguage => 'Sprache auswählen';
 
   @override
-  String get languageChanged => 'Die Sprache wurde erfolgreich geändert';
+  String get languageChanged => 'Sprache erfolgreich geändert';
 
   @override
-  String get home => 'Heim';
+  String get home => 'Startseite';
 
   @override
   String get notifications => 'Benachrichtigungen';
@@ -131,13 +131,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get logout => 'Abmelden';
 
   @override
-  String get confirmLogout => 'Sind Sie sicher, dass Sie sich abmelden möchten?';
+  String get confirmLogout => 'Möchten Sie sich wirklich abmelden?';
 
   @override
   String get yes => 'Ja';
 
   @override
-  String get no => 'NEIN';
+  String get no => 'Nein';
 
   @override
   String get error => 'Fehler';
@@ -146,11 +146,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get success => 'Erfolg';
 
   @override
-  String get loading => 'Laden...';
+  String get loading => 'Wird geladen...';
 
   @override
   String get serverError => 'Serverfehler';
 
   @override
-  String get networkError => 'Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.';
+  String get networkError =>
+      'Netzwerkfehler. Bitte überprüfen Sie Ihre Verbindung.';
 }

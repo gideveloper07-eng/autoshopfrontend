@@ -153,4 +153,94 @@ class AppLocalizationsTh extends AppLocalizations {
 
   @override
   String get networkError => 'ข้อผิดพลาดของเครือข่าย กรุณาตรวจสอบการเชื่อมต่อของคุณ';
+
+  @override
+  String get challanDetails => 'รายละเอียดชาลัน';
+
+  @override
+  String get challanNoLabel => 'ชาลัน เลขที่';
+
+  @override
+  String get loadingChallanDetails => 'กำลังโหลดรายละเอียด chalan...';
+
+  @override
+  String get failedToLoadDetails => 'โหลดรายละเอียดไม่สำเร็จ';
+
+  @override
+  String get showSelectionCheckboxes => 'แสดงช่องทำเครื่องหมายการเลือก';
+
+  @override
+  String get enableCheckboxesHelp => 'เปิดใช้งานช่องทำเครื่องหมายเพื่อเลือกช่องสำหรับหมายเหตุการปฏิเสธ';
+
+  @override
+  String get basicInformation => 'ข้อมูลพื้นฐาน';
+
+  @override
+  String get pricingDetails => 'รายละเอียดราคา';
+
+  @override
+  String get discountsAndOffers => 'ส่วนลดและข้อเสนอ';
+
+  @override
+  String get discountTitle => 'การลดราคา';
+
+  @override
+  String get rtoDetails => 'รายละเอียด RTO';
+
+  @override
+  String get taxDetails => 'รายละเอียดภาษี';
+
+  @override
+  String get insuranceDetails => 'รายละเอียดการประกันภัย';
+
+  @override
+  String get financialDetails => 'รายละเอียดทางการเงิน';
+
+  @override
+  String get customerInformation => 'ข้อมูลลูกค้า';
+
+  @override
+  String get customerLabel => 'ลูกค้า';
+
+  @override
+  String get exShowroomLabel => 'อดีตโชว์รูม';
+
+  @override
+  String get corporateLabel => 'องค์กร';
+
+  @override
+  String get subtotalLabel => 'ผลรวมย่อย';
+
+  @override
+  String get rtoAmountLabel => 'จำนวนเงิน RTO';
+
+  @override
+  String get insuranceAmtLabel => 'เบี้ยประกันภัย';
+
+  @override
+  String get netAmountLabel => 'จำนวนเงินสุทธิ';
+
+  @override
+  String get mobileLabel => 'มือถือ';
+
+  @override
+  String get rejectRemarkTitle => 'ปฏิเสธข้อสังเกต';
+
+  @override
+  String get checkedFieldInfo => 'ช่องที่เลือกจะถูกเพิ่มด้านล่าง คุณสามารถแก้ไขได้ก่อนที่จะปฏิเสธ:';
+
+  @override
+  String get rejectRemarkHint => 'ปฏิเสธหมายเหตุ (กรอกอัตโนมัติจากช่องที่เลือก)...';
+
+  @override
+  String get rejectChallan => 'ปฏิเสธชาลัน';
+
+  @override
+  String get approve => 'อนุมัติ';
+
+  @override
+  String get reject => 'ปฏิเสธ';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'โปรดตรวจสอบอย่างน้อยหนึ่งช่องหรือป้อนเหตุผลในการปฏิเสธ';
 }

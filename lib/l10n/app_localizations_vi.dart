@@ -153,4 +153,94 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get networkError => 'Lỗi mạng. Vui lòng kiểm tra kết nối của bạn.';
+
+  @override
+  String get challanDetails => 'Chi tiết Challan';
+
+  @override
+  String get challanNoLabel => 'Challan Không';
+
+  @override
+  String get loadingChallanDetails => 'Đang tải chi tiết challan...';
+
+  @override
+  String get failedToLoadDetails => 'Không thể tải chi tiết';
+
+  @override
+  String get showSelectionCheckboxes => 'Hiển thị hộp kiểm lựa chọn';
+
+  @override
+  String get enableCheckboxesHelp => 'Bật hộp kiểm để chọn các trường cho nhận xét từ chối';
+
+  @override
+  String get basicInformation => 'Thông tin cơ bản';
+
+  @override
+  String get pricingDetails => 'Chi tiết giá cả';
+
+  @override
+  String get discountsAndOffers => 'Giảm giá & Ưu đãi';
+
+  @override
+  String get discountTitle => 'Giảm giá';
+
+  @override
+  String get rtoDetails => 'Chi tiết RTO';
+
+  @override
+  String get taxDetails => 'Chi tiết thuế';
+
+  @override
+  String get insuranceDetails => 'Chi tiết bảo hiểm';
+
+  @override
+  String get financialDetails => 'Chi tiết tài chính';
+
+  @override
+  String get customerInformation => 'Thông tin khách hàng';
+
+  @override
+  String get customerLabel => 'Khách hàng';
+
+  @override
+  String get exShowroomLabel => 'Phòng trưng bày cũ';
+
+  @override
+  String get corporateLabel => 'Công ty';
+
+  @override
+  String get subtotalLabel => 'Tổng phụ';
+
+  @override
+  String get rtoAmountLabel => 'Số tiền RTO';
+
+  @override
+  String get insuranceAmtLabel => 'Số tiền bảo hiểm';
+
+  @override
+  String get netAmountLabel => 'Số tiền ròng';
+
+  @override
+  String get mobileLabel => 'Điện thoại di động';
+
+  @override
+  String get rejectRemarkTitle => 'Từ chối nhận xét';
+
+  @override
+  String get checkedFieldInfo => 'Các trường được kiểm tra sẽ được thêm vào bên dưới. Bạn có thể chỉnh sửa trước khi từ chối:';
+
+  @override
+  String get rejectRemarkHint => 'Từ chối nhận xét (tự động điền từ các trường đã chọn)...';
+
+  @override
+  String get rejectChallan => 'Từ chối Challan';
+
+  @override
+  String get approve => 'Chấp thuận';
+
+  @override
+  String get reject => 'Từ chối';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Vui lòng chọn ít nhất một trường hoặc nhập lý do từ chối';
 }

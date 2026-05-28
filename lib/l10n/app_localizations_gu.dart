@@ -9,16 +9,16 @@ class AppLocalizationsGu extends AppLocalizations {
   AppLocalizationsGu([String locale = 'gu']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'માયઓટોશોપ';
 
   @override
-  String get login => 'લૉગિન કરો';
+  String get login => 'લોગિન';
 
   @override
   String get companyCode => 'કંપની કોડ';
 
   @override
-  String get userId => 'વપરાશકર્તા ID';
+  String get userId => 'યુઝર આઈડી';
 
   @override
   String get password => 'પાસવર્ડ';
@@ -30,28 +30,28 @@ class AppLocalizationsGu extends AppLocalizations {
   String get pleaseEnterCompanyCode => 'કૃપા કરીને કંપની કોડ દાખલ કરો';
 
   @override
-  String get pleaseEnterUserId => 'કૃપા કરીને વપરાશકર્તા ID દાખલ કરો';
+  String get pleaseEnterUserId => 'કૃપા કરીને યુઝર આઈડી દાખલ કરો';
 
   @override
   String get pleaseEnterPassword => 'કૃપા કરીને પાસવર્ડ દાખલ કરો';
 
   @override
-  String get loginFailed => 'લૉગિન નિષ્ફળ થયું';
+  String get loginFailed => 'લોગિન નિષ્ફળ';
 
   @override
-  String get loginSuccess => 'લૉગિન સફળ';
+  String get loginSuccess => 'લોગિન સફળ';
 
   @override
   String get challan => 'ચલણ';
 
   @override
-  String get pendingChallan => 'પેન્ડિંગ ચલણ';
+  String get pendingChallan => 'બાકી ચલણ';
 
   @override
-  String get retailIncentive => 'છૂટક પ્રોત્સાહન';
+  String get retailIncentive => 'રિટેલ પ્રોત્સાહન';
 
   @override
-  String get loadingChallans => 'ચલણો લોડ કરી રહ્યાં છીએ...';
+  String get loadingChallans => 'ચલણ લોડ થઈ રહ્યા છે...';
 
   @override
   String get failedToLoadChallans => 'ચલણ લોડ કરવામાં નિષ્ફળ';
@@ -60,7 +60,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get noChallansFound => 'કોઈ ચલણ મળ્યા નથી';
 
   @override
-  String get pullToRefresh => 'તાજું કરવા માટે ખેંચો અથવા પછીથી પાછા તપાસો';
+  String get pullToRefresh => 'રિફ્રેશ કરવા માટે ખેંચો અથવા પછીથી તપાસો';
 
   @override
   String get date => 'તારીખ';
@@ -72,7 +72,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get expectedDeliveryDate => 'અપેક્ષિત ડિલિવરી તારીખ';
 
   @override
-  String get challanNo => 'ચલણ નં';
+  String get challanNo => 'ચલણ નંબર';
 
   @override
   String get customerName => 'ગ્રાહકનું નામ';
@@ -93,7 +93,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get retry => 'ફરી પ્રયાસ કરો';
 
   @override
-  String get refresh => 'તાજું કરો';
+  String get refresh => 'રિફ્રેશ';
 
   @override
   String get showDate => 'તારીખ બતાવો:';
@@ -119,7 +119,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get languageChanged => 'ભાષા સફળતાપૂર્વક બદલાઈ';
 
   @override
-  String get home => 'ઘર';
+  String get home => 'હોમ';
 
   @override
   String get notifications => 'સૂચનાઓ';
@@ -146,7 +146,7 @@ class AppLocalizationsGu extends AppLocalizations {
   String get success => 'સફળતા';
 
   @override
-  String get loading => 'લોડ કરી રહ્યું છે...';
+  String get loading => 'લોડ થઈ રહ્યું છે...';
 
   @override
   String get serverError => 'સર્વર ભૂલ';

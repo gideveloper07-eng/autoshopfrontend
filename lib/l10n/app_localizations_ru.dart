@@ -9,10 +9,10 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'МойАвтоМагазин';
 
   @override
-  String get login => 'Авторизоваться';
+  String get login => 'Войти';
 
   @override
   String get companyCode => 'Код компании';
@@ -30,7 +30,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get pleaseEnterCompanyCode => 'Пожалуйста, введите код компании';
 
   @override
-  String get pleaseEnterUserId => 'Пожалуйста, введите идентификатор пользователя';
+  String get pleaseEnterUserId => 'Пожалуйста, введите ID пользователя';
 
   @override
   String get pleaseEnterPassword => 'Пожалуйста, введите пароль';
@@ -39,40 +39,40 @@ class AppLocalizationsRu extends AppLocalizations {
   String get loginFailed => 'Ошибка входа';
 
   @override
-  String get loginSuccess => 'Вход успешен';
+  String get loginSuccess => 'Вход выполнен успешно';
 
   @override
-  String get challan => 'Чаллан';
+  String get challan => 'Накладная';
 
   @override
-  String get pendingChallan => 'В ожидании Чаллана';
+  String get pendingChallan => 'Ожидающая накладная';
 
   @override
-  String get retailIncentive => 'Розничная Стимулирование';
+  String get retailIncentive => 'Розничное поощрение';
 
   @override
-  String get loadingChallans => 'Загрузка шаланов...';
+  String get loadingChallans => 'Загрузка накладных...';
 
   @override
-  String get failedToLoadChallans => 'Не удалось загрузить шаланы';
+  String get failedToLoadChallans => 'Не удалось загрузить накладные';
 
   @override
-  String get noChallansFound => 'Чаланы не найдены';
+  String get noChallansFound => 'Накладные не найдены';
 
   @override
-  String get pullToRefresh => 'Потяните, чтобы обновить или зайдите позже.';
+  String get pullToRefresh => 'Потяните для обновления или проверьте позже';
 
   @override
   String get date => 'Дата';
 
   @override
-  String get challanDate => 'Дата Чалана';
+  String get challanDate => 'Дата накладной';
 
   @override
   String get expectedDeliveryDate => 'Ожидаемая дата доставки';
 
   @override
-  String get challanNo => 'Чаллан Нет';
+  String get challanNo => 'Номер накладной';
 
   @override
   String get customerName => 'Имя клиента';
@@ -84,26 +84,26 @@ class AppLocalizationsRu extends AppLocalizations {
   String get edit => 'Редактировать';
 
   @override
-  String get save => 'Сохранять';
+  String get save => 'Сохранить';
 
   @override
   String get cancel => 'Отмена';
 
   @override
-  String get retry => 'Повторить попытку';
+  String get retry => 'Повторить';
 
   @override
   String get refresh => 'Обновить';
 
   @override
-  String get showDate => 'Дата показа:';
+  String get showDate => 'Показать дату:';
 
   @override
   String get expectedDelivery => 'Ожидаемая доставка';
 
   @override
   String records(int count, String plural) {
-    return '$count Запись$plural';
+    return '$count запись$plural';
   }
 
   @override
@@ -113,13 +113,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get language => 'Язык';
 
   @override
-  String get selectLanguage => 'Выберите язык';
+  String get selectLanguage => 'Выбрать язык';
 
   @override
   String get languageChanged => 'Язык успешно изменен';
 
   @override
-  String get home => 'Дом';
+  String get home => 'Главная';
 
   @override
   String get notifications => 'Уведомления';
@@ -128,10 +128,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get profile => 'Профиль';
 
   @override
-  String get logout => 'Выход из системы';
+  String get logout => 'Выйти';
 
   @override
-  String get confirmLogout => 'Вы уверены, что хотите выйти из системы?';
+  String get confirmLogout => 'Вы уверены, что хотите выйти?';
 
   @override
   String get yes => 'Да';
@@ -152,5 +152,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get serverError => 'Ошибка сервера';
 
   @override
-  String get networkError => 'Сетевая ошибка. Пожалуйста, проверьте ваше соединение.';
+  String get networkError =>
+      'Ошибка сети. Пожалуйста, проверьте ваше соединение.';
 }

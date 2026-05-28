@@ -153,4 +153,94 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get networkError => 'Ağ Hatası. Lütfen bağlantınızı kontrol edin.';
+
+  @override
+  String get challanDetails => 'Challan Detayları';
+
+  @override
+  String get challanNoLabel => 'Hayır';
+
+  @override
+  String get loadingChallanDetails => 'Challan ayrıntıları yükleniyor...';
+
+  @override
+  String get failedToLoadDetails => 'Ayrıntılar yüklenemedi';
+
+  @override
+  String get showSelectionCheckboxes => 'Seçim Onay Kutularını Göster';
+
+  @override
+  String get enableCheckboxesHelp => 'Reddetme açıklamalarına ilişkin alanları seçmek için onay kutularını etkinleştirin';
+
+  @override
+  String get basicInformation => 'Temel Bilgiler';
+
+  @override
+  String get pricingDetails => 'Fiyatlandırma Ayrıntıları';
+
+  @override
+  String get discountsAndOffers => 'İndirimler ve Teklifler';
+
+  @override
+  String get discountTitle => 'İndirim';
+
+  @override
+  String get rtoDetails => 'RTO Ayrıntıları';
+
+  @override
+  String get taxDetails => 'Vergi Ayrıntıları';
+
+  @override
+  String get insuranceDetails => 'Sigorta Detayları';
+
+  @override
+  String get financialDetails => 'Finansal Detaylar';
+
+  @override
+  String get customerInformation => 'Müşteri Bilgileri';
+
+  @override
+  String get customerLabel => 'Müşteri';
+
+  @override
+  String get exShowroomLabel => 'Eski Showroom';
+
+  @override
+  String get corporateLabel => 'Kurumsal';
+
+  @override
+  String get subtotalLabel => 'Ara toplam';
+
+  @override
+  String get rtoAmountLabel => 'RTO Tutarı';
+
+  @override
+  String get insuranceAmtLabel => 'Sigorta Tutarı';
+
+  @override
+  String get netAmountLabel => 'Net Tutar';
+
+  @override
+  String get mobileLabel => 'Mobil';
+
+  @override
+  String get rejectRemarkTitle => 'Açıklamayı reddet';
+
+  @override
+  String get checkedFieldInfo => 'İşaretli alanlar aşağıya eklenmiştir. Reddetmeden önce düzenleyebilirsiniz:';
+
+  @override
+  String get rejectRemarkHint => 'Açıklamayı reddet (işaretli alanlardan otomatik olarak doldurulur)...';
+
+  @override
+  String get rejectChallan => 'Challan\'ı reddet';
+
+  @override
+  String get approve => 'Onaylamak';
+
+  @override
+  String get reject => 'Reddetmek';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Lütfen en az bir alanı işaretleyin veya bir ret nedeni girin';
 }

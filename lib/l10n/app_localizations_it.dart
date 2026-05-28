@@ -153,4 +153,94 @@ class AppLocalizationsIt extends AppLocalizations {
 
   @override
   String get networkError => 'Errore di rete. Per favore controlla la tua connessione.';
+
+  @override
+  String get challanDetails => 'Dettagli Challan';
+
+  @override
+  String get challanNoLabel => 'Challan no';
+
+  @override
+  String get loadingChallanDetails => 'Caricamento dettagli sfida...';
+
+  @override
+  String get failedToLoadDetails => 'Impossibile caricare i dettagli';
+
+  @override
+  String get showSelectionCheckboxes => 'Mostra caselle di controllo di selezione';
+
+  @override
+  String get enableCheckboxesHelp => 'Abilita le caselle di controllo per selezionare i campi per i commenti di rifiuto';
+
+  @override
+  String get basicInformation => 'Informazioni di base';
+
+  @override
+  String get pricingDetails => 'Dettagli sui prezzi';
+
+  @override
+  String get discountsAndOffers => 'Sconti e offerte';
+
+  @override
+  String get discountTitle => 'Sconto';
+
+  @override
+  String get rtoDetails => 'Dettagli RTO';
+
+  @override
+  String get taxDetails => 'Dettagli fiscali';
+
+  @override
+  String get insuranceDetails => 'Dettagli dell\'assicurazione';
+
+  @override
+  String get financialDetails => 'Dettagli finanziari';
+
+  @override
+  String get customerInformation => 'Informazioni sul cliente';
+
+  @override
+  String get customerLabel => 'Cliente';
+
+  @override
+  String get exShowroomLabel => 'Ex Showroom';
+
+  @override
+  String get corporateLabel => 'Aziendale';
+
+  @override
+  String get subtotalLabel => 'Totale parziale';
+
+  @override
+  String get rtoAmountLabel => 'Importo RTO';
+
+  @override
+  String get insuranceAmtLabel => 'Amt. Assicurazione';
+
+  @override
+  String get netAmountLabel => 'Importo netto';
+
+  @override
+  String get mobileLabel => 'Mobile';
+
+  @override
+  String get rejectRemarkTitle => 'Rifiuta l\'osservazione';
+
+  @override
+  String get checkedFieldInfo => 'I campi selezionati vengono aggiunti di seguito. Puoi modificare prima di rifiutare:';
+
+  @override
+  String get rejectRemarkHint => 'Rifiuta commento (compilato automaticamente dai campi selezionati)...';
+
+  @override
+  String get rejectChallan => 'Rifiuta Challan';
+
+  @override
+  String get approve => 'Approvare';
+
+  @override
+  String get reject => 'Rifiutare';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Seleziona almeno un campo o inserisci il motivo del rifiuto';
 }

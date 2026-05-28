@@ -9,13 +9,13 @@ class AppLocalizationsUr extends AppLocalizations {
   AppLocalizationsUr([String locale = 'ur']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'مائی آٹو شاپ';
 
   @override
   String get login => 'لاگ ان';
 
   @override
-  String get companyCode => 'کمپنی کا کوڈ';
+  String get companyCode => 'کمپنی کوڈ';
 
   @override
   String get userId => 'یوزر آئی ڈی';
@@ -27,16 +27,16 @@ class AppLocalizationsUr extends AppLocalizations {
   String get invalidCompanyCode => 'غلط کمپنی کوڈ';
 
   @override
-  String get pleaseEnterCompanyCode => 'براہ کرم کمپنی کا کوڈ درج کریں۔';
+  String get pleaseEnterCompanyCode => 'براہ کرم کمپنی کوڈ درج کریں';
 
   @override
-  String get pleaseEnterUserId => 'براہ کرم صارف کی شناخت درج کریں۔';
+  String get pleaseEnterUserId => 'براہ کرم یوزر آئی ڈی درج کریں';
 
   @override
-  String get pleaseEnterPassword => 'براہ کرم پاس ورڈ درج کریں۔';
+  String get pleaseEnterPassword => 'براہ کرم پاس ورڈ درج کریں';
 
   @override
-  String get loginFailed => 'لاگ ان ناکام ہو گیا۔';
+  String get loginFailed => 'لاگ ان ناکام';
 
   @override
   String get loginSuccess => 'لاگ ان کامیاب';
@@ -48,7 +48,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get pendingChallan => 'زیر التواء چالان';
 
   @override
-  String get retailIncentive => 'خوردہ ترغیب';
+  String get retailIncentive => 'ریٹیل ترغیب';
 
   @override
   String get loadingChallans => 'چالان لوڈ ہو رہے ہیں...';
@@ -60,7 +60,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get noChallansFound => 'کوئی چالان نہیں ملا';
 
   @override
-  String get pullToRefresh => 'ریفریش کرنے کے لیے کھینچیں یا بعد میں دوبارہ چیک کریں۔';
+  String get pullToRefresh => 'تازہ کرنے کے لیے کھینچیں یا بعد میں چیک کریں';
 
   @override
   String get date => 'تاریخ';
@@ -69,7 +69,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get challanDate => 'چالان کی تاریخ';
 
   @override
-  String get expectedDeliveryDate => 'متوقع ترسیل کی تاریخ';
+  String get expectedDeliveryDate => 'متوقع ڈیلیوری کی تاریخ';
 
   @override
   String get challanNo => 'چالان نمبر';
@@ -78,28 +78,28 @@ class AppLocalizationsUr extends AppLocalizations {
   String get customerName => 'گاہک کا نام';
 
   @override
-  String get action => 'ایکشن';
+  String get action => 'عمل';
 
   @override
-  String get edit => 'ترمیم کریں۔';
+  String get edit => 'ترمیم';
 
   @override
-  String get save => 'محفوظ کریں۔';
+  String get save => 'محفوظ کریں';
 
   @override
-  String get cancel => 'منسوخ کریں۔';
+  String get cancel => 'منسوخ کریں';
 
   @override
-  String get retry => 'دوبارہ کوشش کریں۔';
+  String get retry => 'دوبارہ کوشش کریں';
 
   @override
-  String get refresh => 'ریفریش کریں۔';
+  String get refresh => 'تازہ کریں';
 
   @override
   String get showDate => 'تاریخ دکھائیں:';
 
   @override
-  String get expectedDelivery => 'متوقع ترسیل';
+  String get expectedDelivery => 'متوقع ڈیلیوری';
 
   @override
   String records(int count, String plural) {
@@ -113,13 +113,13 @@ class AppLocalizationsUr extends AppLocalizations {
   String get language => 'زبان';
 
   @override
-  String get selectLanguage => 'زبان منتخب کریں۔';
+  String get selectLanguage => 'زبان منتخب کریں';
 
   @override
-  String get languageChanged => 'زبان کامیابی سے تبدیل ہو گئی۔';
+  String get languageChanged => 'زبان کامیابی سے تبدیل ہو گئی';
 
   @override
-  String get home => 'گھر';
+  String get home => 'ہوم';
 
   @override
   String get notifications => 'اطلاعات';
@@ -134,7 +134,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get confirmLogout => 'کیا آپ واقعی لاگ آؤٹ کرنا چاہتے ہیں؟';
 
   @override
-  String get yes => 'جی ہاں';
+  String get yes => 'ہاں';
 
   @override
   String get no => 'نہیں';
@@ -149,7 +149,7 @@ class AppLocalizationsUr extends AppLocalizations {
   String get loading => 'لوڈ ہو رہا ہے...';
 
   @override
-  String get serverError => 'سرور کی خرابی۔';
+  String get serverError => 'سرور کی خرابی';
 
   @override
   String get networkError => 'نیٹ ورک کی خرابی۔ براہ کرم اپنا کنکشن چیک کریں۔';

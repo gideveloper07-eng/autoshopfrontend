@@ -9,13 +9,13 @@ class AppLocalizationsPt extends AppLocalizations {
   AppLocalizationsPt([String locale = 'pt']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'MeuAutoShop';
 
   @override
-  String get login => 'Conecte-se';
+  String get login => 'Entrar';
 
   @override
-  String get companyCode => 'Código da Empresa';
+  String get companyCode => 'Código da empresa';
 
   @override
   String get userId => 'ID do usuário';
@@ -27,13 +27,13 @@ class AppLocalizationsPt extends AppLocalizations {
   String get invalidCompanyCode => 'Código da empresa inválido';
 
   @override
-  String get pleaseEnterCompanyCode => 'Por favor insira o código da empresa';
+  String get pleaseEnterCompanyCode => 'Por favor, insira o código da empresa';
 
   @override
-  String get pleaseEnterUserId => 'Por favor insira o ID do usuário';
+  String get pleaseEnterUserId => 'Por favor, insira o ID do usuário';
 
   @override
-  String get pleaseEnterPassword => 'Por favor insira a senha';
+  String get pleaseEnterPassword => 'Por favor, insira a senha';
 
   @override
   String get loginFailed => 'Falha no login';
@@ -42,37 +42,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loginSuccess => 'Login bem-sucedido';
 
   @override
-  String get challan => 'Challan';
+  String get challan => 'Nota de entrega';
 
   @override
-  String get pendingChallan => 'Challan pendente';
+  String get pendingChallan => 'Nota pendente';
 
   @override
-  String get retailIncentive => 'Incentivo ao Varejo';
+  String get retailIncentive => 'Incentivo de varejo';
 
   @override
-  String get loadingChallans => 'Carregando desafios...';
+  String get loadingChallans => 'Carregando notas...';
 
   @override
-  String get failedToLoadChallans => 'Falha ao carregar desafios';
+  String get failedToLoadChallans => 'Falha ao carregar notas';
 
   @override
-  String get noChallansFound => 'Nenhum desafio encontrado';
+  String get noChallansFound => 'Nenhuma nota encontrada';
 
   @override
-  String get pullToRefresh => 'Puxe para atualizar ou verifique novamente mais tarde';
+  String get pullToRefresh => 'Puxe para atualizar ou verifique mais tarde';
 
   @override
   String get date => 'Data';
 
   @override
-  String get challanDate => 'Data do Challan';
+  String get challanDate => 'Data da nota';
 
   @override
   String get expectedDeliveryDate => 'Data de entrega prevista';
 
   @override
-  String get challanNo => 'Challan Não';
+  String get challanNo => 'Número da nota';
 
   @override
   String get customerName => 'Nome do cliente';
@@ -96,30 +96,30 @@ class AppLocalizationsPt extends AppLocalizations {
   String get refresh => 'Atualizar';
 
   @override
-  String get showDate => 'Data de exibição:';
+  String get showDate => 'Mostrar data:';
 
   @override
-  String get expectedDelivery => 'Entrega Esperada';
+  String get expectedDelivery => 'Entrega prevista';
 
   @override
   String records(int count, String plural) {
-    return '$count Registro$plural';
+    return '$count registro$plural';
   }
 
   @override
   String get settings => 'Configurações';
 
   @override
-  String get language => 'Linguagem';
+  String get language => 'Idioma';
 
   @override
-  String get selectLanguage => 'Selecione o idioma';
+  String get selectLanguage => 'Selecionar idioma';
 
   @override
   String get languageChanged => 'Idioma alterado com sucesso';
 
   @override
-  String get home => 'Lar';
+  String get home => 'Início';
 
   @override
   String get notifications => 'Notificações';
@@ -149,7 +149,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get loading => 'Carregando...';
 
   @override
-  String get serverError => 'Erro no servidor';
+  String get serverError => 'Erro do servidor';
 
   @override
   String get networkError => 'Erro de rede. Por favor, verifique sua conexão.';

@@ -4,42 +4,42 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for Punjabi (`pa`).
+/// The translations for Panjabi Punjabi (`pa`).
 class AppLocalizationsPa extends AppLocalizations {
   AppLocalizationsPa([String locale = 'pa']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'ਮਾਈਆਟੋਸ਼ਾਪ';
 
   @override
-  String get login => 'ਲਾਗਿਨ';
+  String get login => 'ਲਾਗਇਨ';
 
   @override
   String get companyCode => 'ਕੰਪਨੀ ਕੋਡ';
 
   @override
-  String get userId => 'ਯੂਜਰ ਆਈਡੀ';
+  String get userId => 'ਯੂਜ਼ਰ ਆਈਡੀ';
 
   @override
   String get password => 'ਪਾਸਵਰਡ';
 
   @override
-  String get invalidCompanyCode => 'ਅਵੈਧ ਕੰਪਨੀ ਕੋਡ';
+  String get invalidCompanyCode => 'ਗਲਤ ਕੰਪਨੀ ਕੋਡ';
 
   @override
   String get pleaseEnterCompanyCode => 'ਕਿਰਪਾ ਕਰਕੇ ਕੰਪਨੀ ਕੋਡ ਦਾਖਲ ਕਰੋ';
 
   @override
-  String get pleaseEnterUserId => 'ਕਿਰਪਾ ਕਰਕੇ ਉਪਭੋਗਤਾ ID ਦਾਖਲ ਕਰੋ';
+  String get pleaseEnterUserId => 'ਕਿਰਪਾ ਕਰਕੇ ਯੂਜ਼ਰ ਆਈਡੀ ਦਾਖਲ ਕਰੋ';
 
   @override
   String get pleaseEnterPassword => 'ਕਿਰਪਾ ਕਰਕੇ ਪਾਸਵਰਡ ਦਾਖਲ ਕਰੋ';
 
   @override
-  String get loginFailed => 'ਲਾਗਿਨ ਅਸਫਲ ਰਿਹਾ';
+  String get loginFailed => 'ਲਾਗਇਨ ਅਸਫਲ';
 
   @override
-  String get loginSuccess => 'ਲੌਗਇਨ ਸਫਲ';
+  String get loginSuccess => 'ਲਾਗਇਨ ਸਫਲ';
 
   @override
   String get challan => 'ਚਲਾਨ';
@@ -48,10 +48,10 @@ class AppLocalizationsPa extends AppLocalizations {
   String get pendingChallan => 'ਬਕਾਇਆ ਚਲਾਨ';
 
   @override
-  String get retailIncentive => 'ਪ੍ਰਚੂਨ ਪ੍ਰੋਤਸਾਹਨ';
+  String get retailIncentive => 'ਰਿਟੇਲ ਪ੍ਰੋਤਸਾਹਨ';
 
   @override
-  String get loadingChallans => 'ਚਲਾਨ ਲੋਡ ਕੀਤੇ ਜਾ ਰਹੇ ਹਨ...';
+  String get loadingChallans => 'ਚਲਾਨ ਲੋਡ ਹੋ ਰਹੇ ਹਨ...';
 
   @override
   String get failedToLoadChallans => 'ਚਲਾਨ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ';
@@ -60,19 +60,19 @@ class AppLocalizationsPa extends AppLocalizations {
   String get noChallansFound => 'ਕੋਈ ਚਲਾਨ ਨਹੀਂ ਮਿਲਿਆ';
 
   @override
-  String get pullToRefresh => 'ਤਾਜ਼ਾ ਕਰਨ ਲਈ ਖਿੱਚੋ ਜਾਂ ਬਾਅਦ ਵਿੱਚ ਦੁਬਾਰਾ ਜਾਂਚ ਕਰੋ';
+  String get pullToRefresh => 'ਤਾਜ਼ਾ ਕਰਨ ਲਈ ਖਿੱਚੋ ਜਾਂ ਬਾਅਦ ਵਿੱਚ ਜਾਂਚ ਕਰੋ';
 
   @override
-  String get date => 'ਮਿਤੀ';
+  String get date => 'ਤਾਰੀਖ';
 
   @override
-  String get challanDate => 'ਚਲਾਨ ਦੀ ਮਿਤੀ';
+  String get challanDate => 'ਚਲਾਨ ਤਾਰੀਖ';
 
   @override
-  String get expectedDeliveryDate => 'ਸੰਭਾਵਿਤ ਡਿਲਿਵਰੀ ਮਿਤੀ';
+  String get expectedDeliveryDate => 'ਅਨੁਮਾਨਿਤ ਡਿਲੀਵਰੀ ਤਾਰੀਖ';
 
   @override
-  String get challanNo => 'ਚਲਾਨ ਨੰ';
+  String get challanNo => 'ਚਲਾਨ ਨੰਬਰ';
 
   @override
   String get customerName => 'ਗਾਹਕ ਦਾ ਨਾਮ';
@@ -96,10 +96,10 @@ class AppLocalizationsPa extends AppLocalizations {
   String get refresh => 'ਤਾਜ਼ਾ ਕਰੋ';
 
   @override
-  String get showDate => 'ਮਿਤੀ ਦਿਖਾਓ:';
+  String get showDate => 'ਤਾਰੀਖ ਦਿਖਾਓ:';
 
   @override
-  String get expectedDelivery => 'ਉਮੀਦ ਕੀਤੀ ਡਿਲਿਵਰੀ';
+  String get expectedDelivery => 'ਅਨੁਮਾਨਿਤ ਡਿਲੀਵਰੀ';
 
   @override
   String records(int count, String plural) {
@@ -119,7 +119,7 @@ class AppLocalizationsPa extends AppLocalizations {
   String get languageChanged => 'ਭਾਸ਼ਾ ਸਫਲਤਾਪੂਰਵਕ ਬਦਲੀ ਗਈ';
 
   @override
-  String get home => 'ਘਰ';
+  String get home => 'ਹੋਮ';
 
   @override
   String get notifications => 'ਸੂਚਨਾਵਾਂ';
@@ -131,13 +131,13 @@ class AppLocalizationsPa extends AppLocalizations {
   String get logout => 'ਲਾਗਆਉਟ';
 
   @override
-  String get confirmLogout => 'ਕੀ ਤੁਸੀਂ ਯਕੀਨੀ ਤੌਰ \'ਤੇ ਲੌਗਆਊਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?';
+  String get confirmLogout => 'ਕੀ ਤੁਸੀਂ ਯਕੀਨੀ ਤੌਰ \'ਤੇ ਲਾਗਆਉਟ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?';
 
   @override
   String get yes => 'ਹਾਂ';
 
   @override
-  String get no => 'ਨੰ';
+  String get no => 'ਨਹੀਂ';
 
   @override
   String get error => 'ਗਲਤੀ';
@@ -146,11 +146,11 @@ class AppLocalizationsPa extends AppLocalizations {
   String get success => 'ਸਫਲਤਾ';
 
   @override
-  String get loading => 'ਲੋਡ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ...';
+  String get loading => 'ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...';
 
   @override
-  String get serverError => 'ਸਰਵਰ ਗੜਬੜ';
+  String get serverError => 'ਸਰਵਰ ਗਲਤੀ';
 
   @override
-  String get networkError => 'ਨੈੱਟਵਰਕ ਗੜਬੜ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੇ ਕਨੈਕਸ਼ਨ ਦੀ ਜਾਂਚ ਕਰੋ।';
+  String get networkError => 'ਨੈੱਟਵਰਕ ਗਲਤੀ। ਕਿਰਪਾ ਕਰਕੇ ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ।';
 }

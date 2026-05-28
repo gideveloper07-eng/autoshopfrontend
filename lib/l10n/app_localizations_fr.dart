@@ -9,70 +9,70 @@ class AppLocalizationsFr extends AppLocalizations {
   AppLocalizationsFr([String locale = 'fr']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'MonAutoShop';
 
   @override
-  String get login => 'Se connecter';
+  String get login => 'Connexion';
 
   @override
-  String get companyCode => 'Code des sociétés';
+  String get companyCode => 'Code entreprise';
 
   @override
-  String get userId => 'ID de l\'utilisateur';
+  String get userId => 'ID utilisateur';
 
   @override
   String get password => 'Mot de passe';
 
   @override
-  String get invalidCompanyCode => 'Code d\'entreprise invalide';
+  String get invalidCompanyCode => 'Code entreprise invalide';
 
   @override
-  String get pleaseEnterCompanyCode => 'Veuillez saisir le code de l\'entreprise';
+  String get pleaseEnterCompanyCode => 'Veuillez entrer le code entreprise';
 
   @override
-  String get pleaseEnterUserId => 'Veuillez saisir votre identifiant utilisateur';
+  String get pleaseEnterUserId => 'Veuillez entrer l\'ID utilisateur';
 
   @override
   String get pleaseEnterPassword => 'Veuillez entrer le mot de passe';
 
   @override
-  String get loginFailed => 'La connexion a échoué';
+  String get loginFailed => 'Échec de la connexion';
 
   @override
   String get loginSuccess => 'Connexion réussie';
 
   @override
-  String get challan => 'Challan';
+  String get challan => 'Bon de livraison';
 
   @override
-  String get pendingChallan => 'En attendant Challan';
+  String get pendingChallan => 'Bon en attente';
 
   @override
-  String get retailIncentive => 'Incitatif au commerce de détail';
+  String get retailIncentive => 'Incitation au détail';
 
   @override
-  String get loadingChallans => 'Chargement des défis...';
+  String get loadingChallans => 'Chargement des bons...';
 
   @override
-  String get failedToLoadChallans => 'Échec du chargement des challans';
+  String get failedToLoadChallans => 'Échec du chargement des bons';
 
   @override
-  String get noChallansFound => 'Aucun challan trouvé';
+  String get noChallansFound => 'Aucun bon trouvé';
 
   @override
-  String get pullToRefresh => 'Tirez pour actualiser ou revenir plus tard';
+  String get pullToRefresh => 'Tirez pour actualiser ou vérifiez plus tard';
 
   @override
   String get date => 'Date';
 
   @override
-  String get challanDate => 'Date de Challan';
+  String get challanDate => 'Date du bon';
 
   @override
   String get expectedDeliveryDate => 'Date de livraison prévue';
 
   @override
-  String get challanNo => 'Challan Non';
+  String get challanNo => 'Numéro de bon';
 
   @override
   String get customerName => 'Nom du client';
@@ -84,7 +84,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get edit => 'Modifier';
 
   @override
-  String get save => 'Sauvegarder';
+  String get save => 'Enregistrer';
 
   @override
   String get cancel => 'Annuler';
@@ -93,17 +93,17 @@ class AppLocalizationsFr extends AppLocalizations {
   String get retry => 'Réessayer';
 
   @override
-  String get refresh => 'Rafraîchir';
+  String get refresh => 'Actualiser';
 
   @override
-  String get showDate => 'Date du spectacle :';
+  String get showDate => 'Afficher la date:';
 
   @override
   String get expectedDelivery => 'Livraison prévue';
 
   @override
   String records(int count, String plural) {
-    return '$count Enregistrer$plural';
+    return '$count enregistrement$plural';
   }
 
   @override
@@ -113,13 +113,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get language => 'Langue';
 
   @override
-  String get selectLanguage => 'Sélectionnez la langue';
+  String get selectLanguage => 'Sélectionner la langue';
 
   @override
-  String get languageChanged => 'La langue a changé avec succès';
+  String get languageChanged => 'Langue modifiée avec succès';
 
   @override
-  String get home => 'Maison';
+  String get home => 'Accueil';
 
   @override
   String get notifications => 'Notifications';
@@ -131,7 +131,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get logout => 'Déconnexion';
 
   @override
-  String get confirmLogout => 'Êtes-vous sûr de vouloir vous déconnecter ?';
+  String get confirmLogout => 'Êtes-vous sûr de vouloir vous déconnecter?';
 
   @override
   String get yes => 'Oui';
@@ -149,8 +149,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get loading => 'Chargement...';
 
   @override
-  String get serverError => 'Erreur de serveur';
+  String get serverError => 'Erreur serveur';
 
   @override
-  String get networkError => 'Erreur réseau. Veuillez vérifier votre connexion.';
+  String get networkError =>
+      'Erreur réseau. Veuillez vérifier votre connexion.';
 }

@@ -153,4 +153,94 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get networkError => 'Kesalahan Jaringan. Silakan periksa koneksi Anda.';
+
+  @override
+  String get challanDetails => 'Detail Challan';
+
+  @override
+  String get challanNoLabel => 'Challan No';
+
+  @override
+  String get loadingChallanDetails => 'Memuat detail challan...';
+
+  @override
+  String get failedToLoadDetails => 'Gagal memuat detail';
+
+  @override
+  String get showSelectionCheckboxes => 'Tampilkan Kotak Centang Pilihan';
+
+  @override
+  String get enableCheckboxesHelp => 'Aktifkan kotak centang untuk memilih bidang komentar penolakan';
+
+  @override
+  String get basicInformation => 'Informasi Dasar';
+
+  @override
+  String get pricingDetails => 'Detail Harga';
+
+  @override
+  String get discountsAndOffers => 'Diskon & Penawaran';
+
+  @override
+  String get discountTitle => 'Diskon';
+
+  @override
+  String get rtoDetails => 'Detail RTO';
+
+  @override
+  String get taxDetails => 'Detail Pajak';
+
+  @override
+  String get insuranceDetails => 'Detail Asuransi';
+
+  @override
+  String get financialDetails => 'Detail Keuangan';
+
+  @override
+  String get customerInformation => 'Informasi Pelanggan';
+
+  @override
+  String get customerLabel => 'Pelanggan';
+
+  @override
+  String get exShowroomLabel => 'Bekas Showroom';
+
+  @override
+  String get corporateLabel => 'Perusahaan';
+
+  @override
+  String get subtotalLabel => 'Subtotal';
+
+  @override
+  String get rtoAmountLabel => 'Jumlah RTO';
+
+  @override
+  String get insuranceAmtLabel => 'Asuransi Amt';
+
+  @override
+  String get netAmountLabel => 'Jumlah Bersih';
+
+  @override
+  String get mobileLabel => 'Seluler';
+
+  @override
+  String get rejectRemarkTitle => 'Tolak komentar';
+
+  @override
+  String get checkedFieldInfo => 'Bidang yang dicentang ditambahkan di bawah. Anda dapat mengedit sebelum menolak:';
+
+  @override
+  String get rejectRemarkHint => 'Tolak komentar (diisi otomatis dari kolom yang dicentang)...';
+
+  @override
+  String get rejectChallan => 'Tolak Challan';
+
+  @override
+  String get approve => 'Menyetujui';
+
+  @override
+  String get reject => 'Menolak';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Silakan periksa setidaknya satu bidang atau masukkan alasan penolakan';
 }

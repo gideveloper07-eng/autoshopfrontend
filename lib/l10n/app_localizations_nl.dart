@@ -153,4 +153,94 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get networkError => 'Netwerkfout. Controleer uw verbinding.';
+
+  @override
+  String get challanDetails => 'Challan-details';
+
+  @override
+  String get challanNoLabel => 'Challan Nee';
+
+  @override
+  String get loadingChallanDetails => 'Challan-details laden...';
+
+  @override
+  String get failedToLoadDetails => 'Kan details niet laden';
+
+  @override
+  String get showSelectionCheckboxes => 'Selectievakjes tonen';
+
+  @override
+  String get enableCheckboxesHelp => 'Schakel selectievakjes in om velden voor afwijzingsopmerkingen te selecteren';
+
+  @override
+  String get basicInformation => 'Basisinformatie';
+
+  @override
+  String get pricingDetails => 'Prijsdetails';
+
+  @override
+  String get discountsAndOffers => 'Kortingen en aanbiedingen';
+
+  @override
+  String get discountTitle => 'Korting';
+
+  @override
+  String get rtoDetails => 'RTO-details';
+
+  @override
+  String get taxDetails => 'Belastinggegevens';
+
+  @override
+  String get insuranceDetails => 'Verzekeringsgegevens';
+
+  @override
+  String get financialDetails => 'Financiële details';
+
+  @override
+  String get customerInformation => 'Klantinformatie';
+
+  @override
+  String get customerLabel => 'Klant';
+
+  @override
+  String get exShowroomLabel => 'Ex-showroom';
+
+  @override
+  String get corporateLabel => 'Zakelijk';
+
+  @override
+  String get subtotalLabel => 'Subtotaal';
+
+  @override
+  String get rtoAmountLabel => 'RTO-bedrag';
+
+  @override
+  String get insuranceAmtLabel => 'Verzekering Amt';
+
+  @override
+  String get netAmountLabel => 'Netto bedrag';
+
+  @override
+  String get mobileLabel => 'Mobiel';
+
+  @override
+  String get rejectRemarkTitle => 'Opmerking afwijzen';
+
+  @override
+  String get checkedFieldInfo => 'Hieronder zijn de aangevinkte velden toegevoegd. U kunt het volgende bewerken voordat u het afwijst:';
+
+  @override
+  String get rejectRemarkHint => 'Opmerking afwijzen (automatisch ingevuld uit aangevinkte velden)...';
+
+  @override
+  String get rejectChallan => 'Challan afwijzen';
+
+  @override
+  String get approve => 'Goedkeuren';
+
+  @override
+  String get reject => 'Afwijzen';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Vink minimaal één veld aan of voer een afwijzingsreden in';
 }

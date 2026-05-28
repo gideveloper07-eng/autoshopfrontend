@@ -9,7 +9,7 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'ماي أوتو شوب';
 
   @override
   String get login => 'تسجيل الدخول';
@@ -24,7 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get password => 'كلمة المرور';
 
   @override
-  String get invalidCompanyCode => 'رمز الشركة غير صالح';
+  String get invalidCompanyCode => 'رمز شركة غير صالح';
 
   @override
   String get pleaseEnterCompanyCode => 'الرجاء إدخال رمز الشركة';
@@ -42,61 +42,61 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loginSuccess => 'تم تسجيل الدخول بنجاح';
 
   @override
-  String get challan => 'تشالان';
+  String get challan => 'فاتورة';
 
   @override
-  String get pendingChallan => 'في انتظار تشالان';
+  String get pendingChallan => 'فاتورة معلقة';
 
   @override
-  String get retailIncentive => 'حوافز التجزئة';
+  String get retailIncentive => 'حافز التجزئة';
 
   @override
-  String get loadingChallans => 'جارٍ تحميل المسابقات...';
+  String get loadingChallans => 'جاري تحميل الفواتير...';
 
   @override
-  String get failedToLoadChallans => 'فشل تحميل التحدي';
+  String get failedToLoadChallans => 'فشل تحميل الفواتير';
 
   @override
-  String get noChallansFound => 'لم يتم العثور على شالانس';
+  String get noChallansFound => 'لم يتم العثور على فواتير';
 
   @override
-  String get pullToRefresh => 'اسحب للتحديث أو تحقق مرة أخرى لاحقًا';
+  String get pullToRefresh => 'اسحب للتحديث أو تحقق لاحقًا';
 
   @override
-  String get date => 'تاريخ';
+  String get date => 'التاريخ';
 
   @override
-  String get challanDate => 'تاريخ تشالان';
+  String get challanDate => 'تاريخ الفاتورة';
 
   @override
   String get expectedDeliveryDate => 'تاريخ التسليم المتوقع';
 
   @override
-  String get challanNo => 'رقم تشالان';
+  String get challanNo => 'رقم الفاتورة';
 
   @override
   String get customerName => 'اسم العميل';
 
   @override
-  String get action => 'فعل';
+  String get action => 'إجراء';
 
   @override
-  String get edit => 'يحرر';
+  String get edit => 'تعديل';
 
   @override
-  String get save => 'يحفظ';
+  String get save => 'حفظ';
 
   @override
-  String get cancel => 'يلغي';
+  String get cancel => 'إلغاء';
 
   @override
-  String get retry => 'أعد المحاولة';
+  String get retry => 'إعادة المحاولة';
 
   @override
-  String get refresh => 'ينعش';
+  String get refresh => 'تحديث';
 
   @override
-  String get showDate => 'تاريخ العرض:';
+  String get showDate => 'إظهار التاريخ:';
 
   @override
   String get expectedDelivery => 'التسليم المتوقع';
@@ -107,10 +107,10 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get settings => 'إعدادات';
+  String get settings => 'الإعدادات';
 
   @override
-  String get language => 'لغة';
+  String get language => 'اللغة';
 
   @override
   String get selectLanguage => 'اختر اللغة';
@@ -119,13 +119,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get languageChanged => 'تم تغيير اللغة بنجاح';
 
   @override
-  String get home => 'بيت';
+  String get home => 'الرئيسية';
 
   @override
-  String get notifications => 'إشعارات';
+  String get notifications => 'الإشعارات';
 
   @override
-  String get profile => 'حساب تعريفي';
+  String get profile => 'الملف الشخصي';
 
   @override
   String get logout => 'تسجيل الخروج';
@@ -146,11 +146,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get success => 'نجاح';
 
   @override
-  String get loading => 'تحميل...';
+  String get loading => 'جاري التحميل...';
 
   @override
   String get serverError => 'خطأ في الخادم';
 
   @override
-  String get networkError => 'خطأ في الشبكة. يرجى التحقق من الاتصال الخاص بك.';
+  String get networkError => 'خطأ في الشبكة. يرجى التحقق من اتصالك.';
 }

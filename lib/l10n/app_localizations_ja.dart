@@ -9,7 +9,7 @@ class AppLocalizationsJa extends AppLocalizations {
   AppLocalizationsJa([String locale = 'ja']) : super(locale);
 
   @override
-  String get appTitle => 'MyAutoShop';
+  String get appTitle => 'マイオートショップ';
 
   @override
   String get login => 'ログイン';
@@ -36,43 +36,43 @@ class AppLocalizationsJa extends AppLocalizations {
   String get pleaseEnterPassword => 'パスワードを入力してください';
 
   @override
-  String get loginFailed => 'ログインに失敗しました';
+  String get loginFailed => 'ログイン失敗';
 
   @override
   String get loginSuccess => 'ログイン成功';
 
   @override
-  String get challan => 'シャラン';
+  String get challan => '納品書';
 
   @override
-  String get pendingChallan => '保留中のシャラン';
+  String get pendingChallan => '保留中の納品書';
 
   @override
   String get retailIncentive => '小売インセンティブ';
 
   @override
-  String get loadingChallans => 'シャランを読み込んでいます...';
+  String get loadingChallans => '納品書を読み込んでいます...';
 
   @override
-  String get failedToLoadChallans => 'シャランのロードに失敗しました';
+  String get failedToLoadChallans => '納品書の読み込みに失敗しました';
 
   @override
-  String get noChallansFound => 'シャランが見つかりません';
+  String get noChallansFound => '納品書が見つかりません';
 
   @override
-  String get pullToRefresh => 'プルして更新するか、後でもう一度確認してください';
+  String get pullToRefresh => '引っ張って更新するか、後で確認してください';
 
   @override
   String get date => '日付';
 
   @override
-  String get challanDate => 'シャランデート';
+  String get challanDate => '納品書の日付';
 
   @override
-  String get expectedDeliveryDate => '配達予定日';
+  String get expectedDeliveryDate => '予定配送日';
 
   @override
-  String get challanNo => 'チャラン・ノー';
+  String get challanNo => '納品書番号';
 
   @override
   String get customerName => '顧客名';
@@ -90,20 +90,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cancel => 'キャンセル';
 
   @override
-  String get retry => 'リトライ';
+  String get retry => '再試行';
 
   @override
-  String get refresh => 'リフレッシュ';
+  String get refresh => '更新';
 
   @override
-  String get showDate => 'ショーの日付:';
+  String get showDate => '日付を表示：';
 
   @override
-  String get expectedDelivery => '配達予定日';
+  String get expectedDelivery => '予定配送';
 
   @override
   String records(int count, String plural) {
-    return '$count 記録$plural';
+    return '$count件のレコード$plural';
   }
 
   @override
@@ -113,13 +113,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get language => '言語';
 
   @override
-  String get selectLanguage => '言語の選択';
+  String get selectLanguage => '言語を選択';
 
   @override
   String get languageChanged => '言語が正常に変更されました';
 
   @override
-  String get home => '家';
+  String get home => 'ホーム';
 
   @override
   String get notifications => '通知';
@@ -131,7 +131,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get logout => 'ログアウト';
 
   @override
-  String get confirmLogout => 'ログアウトしてもよろしいですか?';
+  String get confirmLogout => '本当にログアウトしますか？';
 
   @override
   String get yes => 'はい';

@@ -153,4 +153,94 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get networkError => 'Błąd sieci. Sprawdź swoje połączenie.';
+
+  @override
+  String get challanDetails => 'Szczegóły Challana';
+
+  @override
+  String get challanNoLabel => 'Chalan nr';
+
+  @override
+  String get loadingChallanDetails => 'Ładowanie szczegółów challanu...';
+
+  @override
+  String get failedToLoadDetails => 'Nie udało się załadować szczegółów';
+
+  @override
+  String get showSelectionCheckboxes => 'Pokaż pola wyboru';
+
+  @override
+  String get enableCheckboxesHelp => 'Włącz pola wyboru, aby wybrać pola dla uwag o odrzuceniu';
+
+  @override
+  String get basicInformation => 'Podstawowe informacje';
+
+  @override
+  String get pricingDetails => 'Szczegóły cenowe';
+
+  @override
+  String get discountsAndOffers => 'Rabaty i oferty';
+
+  @override
+  String get discountTitle => 'Rabat';
+
+  @override
+  String get rtoDetails => 'Szczegóły RTO';
+
+  @override
+  String get taxDetails => 'Szczegóły podatku';
+
+  @override
+  String get insuranceDetails => 'Szczegóły ubezpieczenia';
+
+  @override
+  String get financialDetails => 'Szczegóły finansowe';
+
+  @override
+  String get customerInformation => 'Informacje o kliencie';
+
+  @override
+  String get customerLabel => 'Klient';
+
+  @override
+  String get exShowroomLabel => 'Były salon';
+
+  @override
+  String get corporateLabel => 'Zbiorowy';
+
+  @override
+  String get subtotalLabel => 'Suma częściowa';
+
+  @override
+  String get rtoAmountLabel => 'Kwota RTO';
+
+  @override
+  String get insuranceAmtLabel => 'Wysokość ubezpieczenia';
+
+  @override
+  String get netAmountLabel => 'Kwota netto';
+
+  @override
+  String get mobileLabel => 'Przenośny';
+
+  @override
+  String get rejectRemarkTitle => 'Odrzuć uwagę';
+
+  @override
+  String get checkedFieldInfo => 'Zaznaczone pola zostały dodane poniżej. Możesz edytować przed odrzuceniem:';
+
+  @override
+  String get rejectRemarkHint => 'Odrzuć uwagę (uzupełniana automatycznie z zaznaczonych pól)...';
+
+  @override
+  String get rejectChallan => 'Odrzuć Challana';
+
+  @override
+  String get approve => 'Zatwierdzić';
+
+  @override
+  String get reject => 'Odrzucić';
+
+  @override
+  String get pleaseSelectFieldOrReason => 'Proszę zaznaczyć przynajmniej jedno pole lub podać powód odrzucenia';
 }
