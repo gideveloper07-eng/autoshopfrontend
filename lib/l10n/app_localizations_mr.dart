@@ -9,16 +9,16 @@ class AppLocalizationsMr extends AppLocalizations {
   AppLocalizationsMr([String locale = 'mr']) : super(locale);
 
   @override
-  String get appTitle => 'माईऑटोशॉप';
+  String get appTitle => 'MyAutoShop';
 
   @override
-  String get login => 'लॉगिन';
+  String get login => 'लॉगिन करा';
 
   @override
   String get companyCode => 'कंपनी कोड';
 
   @override
-  String get userId => 'यूजर आयडी';
+  String get userId => 'वापरकर्ता आयडी';
 
   @override
   String get password => 'पासवर्ड';
@@ -30,10 +30,10 @@ class AppLocalizationsMr extends AppLocalizations {
   String get pleaseEnterCompanyCode => 'कृपया कंपनी कोड प्रविष्ट करा';
 
   @override
-  String get pleaseEnterUserId => 'कृपया यूजर आयडी प्रविष्ट करा';
+  String get pleaseEnterUserId => 'कृपया वापरकर्ता आयडी प्रविष्ट करा';
 
   @override
-  String get pleaseEnterPassword => 'कृपया पासवर्ड प्रविष्ट करा';
+  String get pleaseEnterPassword => 'कृपया पासवर्ड टाका';
 
   @override
   String get loginFailed => 'लॉगिन अयशस्वी';
@@ -45,34 +45,34 @@ class AppLocalizationsMr extends AppLocalizations {
   String get challan => 'चलन';
 
   @override
-  String get pendingChallan => 'प्रलंबित चलन';
+  String get pendingChallan => 'चलन प्रलंबित';
 
   @override
   String get retailIncentive => 'किरकोळ प्रोत्साहन';
 
   @override
-  String get loadingChallans => 'चलन लोड होत आहेत...';
+  String get loadingChallans => 'चलन लोड करत आहे...';
 
   @override
   String get failedToLoadChallans => 'चलन लोड करण्यात अयशस्वी';
 
   @override
-  String get noChallansFound => 'चलन सापडले नाहीत';
+  String get noChallansFound => 'चलन आढळले नाही';
 
   @override
-  String get pullToRefresh => 'रिफ्रेश करण्यासाठी खेचा किंवा नंतर तपासा';
+  String get pullToRefresh => 'रिफ्रेश करण्यासाठी खेचा किंवा नंतर परत तपासा';
 
   @override
   String get date => 'तारीख';
 
   @override
-  String get challanDate => 'चलन तारीख';
+  String get challanDate => 'चलनाची तारीख';
 
   @override
   String get expectedDeliveryDate => 'अपेक्षित वितरण तारीख';
 
   @override
-  String get challanNo => 'चलन क्रमांक';
+  String get challanNo => 'चलन क्र';
 
   @override
   String get customerName => 'ग्राहकाचे नाव';
@@ -93,7 +93,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get retry => 'पुन्हा प्रयत्न करा';
 
   @override
-  String get refresh => 'रिफ्रेश';
+  String get refresh => 'रिफ्रेश करा';
 
   @override
   String get showDate => 'तारीख दाखवा:';
@@ -119,7 +119,7 @@ class AppLocalizationsMr extends AppLocalizations {
   String get languageChanged => 'भाषा यशस्वीरित्या बदलली';
 
   @override
-  String get home => 'होम';
+  String get home => 'घर';
 
   @override
   String get notifications => 'सूचना';
@@ -128,11 +128,10 @@ class AppLocalizationsMr extends AppLocalizations {
   String get profile => 'प्रोफाइल';
 
   @override
-  String get logout => 'लॉगआउट';
+  String get logout => 'लॉगआउट करा';
 
   @override
-  String get confirmLogout =>
-      'तुम्हाला खात्री आहे की तुम्ही लॉगआउट करू इच्छिता?';
+  String get confirmLogout => 'तुमची खात्री आहे की तुम्ही लॉगआउट करू इच्छिता?';
 
   @override
   String get yes => 'होय';
@@ -147,11 +146,11 @@ class AppLocalizationsMr extends AppLocalizations {
   String get success => 'यश';
 
   @override
-  String get loading => 'लोड होत आहे...';
+  String get loading => 'लोड करत आहे...';
 
   @override
   String get serverError => 'सर्व्हर त्रुटी';
 
   @override
-  String get networkError => 'नेटवर्क त्रुटी. कृपया तुमचे कनेक्शन तपासा.';
+  String get networkError => 'नेटवर्क एरर. कृपया तुमचे कनेक्शन तपासा.';
 }

@@ -1,0 +1,156 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
+import 'app_localizations.dart';
+
+// ignore_for_file: type=lint
+
+/// The translations for Bengali (`bn`).
+class AppLocalizationsBn extends AppLocalizations {
+  AppLocalizationsBn([String locale = 'bn']) : super(locale);
+
+  @override
+  String get appTitle => 'MyAutoShop';
+
+  @override
+  String get login => 'লগইন করুন';
+
+  @override
+  String get companyCode => 'কোম্পানির কোড';
+
+  @override
+  String get userId => 'ইউজার আইডি';
+
+  @override
+  String get password => 'পাসওয়ার্ড';
+
+  @override
+  String get invalidCompanyCode => 'অবৈধ কোম্পানি কোড';
+
+  @override
+  String get pleaseEnterCompanyCode => 'কোম্পানির কোড লিখুন';
+
+  @override
+  String get pleaseEnterUserId => 'অনুগ্রহ করে ইউজার আইডি লিখুন';
+
+  @override
+  String get pleaseEnterPassword => 'পাসওয়ার্ড লিখুন';
+
+  @override
+  String get loginFailed => 'লগইন ব্যর্থ হয়েছে৷';
+
+  @override
+  String get loginSuccess => 'লগইন সফল';
+
+  @override
+  String get challan => 'চালান';
+
+  @override
+  String get pendingChallan => 'বিচারাধীন চালান';
+
+  @override
+  String get retailIncentive => 'খুচরা ইনসেনটিভ';
+
+  @override
+  String get loadingChallans => 'চালান লোড হচ্ছে...';
+
+  @override
+  String get failedToLoadChallans => 'চালান লোড করতে ব্যর্থ হয়েছে৷';
+
+  @override
+  String get noChallansFound => 'কোনো চালান পাওয়া যায়নি';
+
+  @override
+  String get pullToRefresh => 'রিফ্রেশ করতে টানুন বা পরে আবার চেক করুন';
+
+  @override
+  String get date => 'তারিখ';
+
+  @override
+  String get challanDate => 'চালান তারিখ';
+
+  @override
+  String get expectedDeliveryDate => 'প্রত্যাশিত ডেলিভারি তারিখ';
+
+  @override
+  String get challanNo => 'চালান নং';
+
+  @override
+  String get customerName => 'গ্রাহকের নাম';
+
+  @override
+  String get action => 'অ্যাকশন';
+
+  @override
+  String get edit => 'সম্পাদনা করুন';
+
+  @override
+  String get save => 'সংরক্ষণ করুন';
+
+  @override
+  String get cancel => 'বাতিল করুন';
+
+  @override
+  String get retry => 'আবার চেষ্টা করুন';
+
+  @override
+  String get refresh => 'রিফ্রেশ';
+
+  @override
+  String get showDate => 'তারিখ দেখান:';
+
+  @override
+  String get expectedDelivery => 'প্রত্যাশিত ডেলিভারি';
+
+  @override
+  String records(int count, String plural) {
+    return '$count রেকর্ড$plural';
+  }
+
+  @override
+  String get settings => 'সেটিংস';
+
+  @override
+  String get language => 'ভাষা';
+
+  @override
+  String get selectLanguage => 'ভাষা নির্বাচন করুন';
+
+  @override
+  String get languageChanged => 'ভাষা সফলভাবে পরিবর্তিত হয়েছে';
+
+  @override
+  String get home => 'বাড়ি';
+
+  @override
+  String get notifications => 'বিজ্ঞপ্তি';
+
+  @override
+  String get profile => 'প্রোফাইল';
+
+  @override
+  String get logout => 'লগআউট';
+
+  @override
+  String get confirmLogout => 'আপনি কি নিশ্চিত আপনি লগআউট করতে চান?';
+
+  @override
+  String get yes => 'হ্যাঁ';
+
+  @override
+  String get no => 'না';
+
+  @override
+  String get error => 'ত্রুটি';
+
+  @override
+  String get success => 'সফলতা';
+
+  @override
+  String get loading => 'লোড হচ্ছে...';
+
+  @override
+  String get serverError => 'সার্ভার ত্রুটি';
+
+  @override
+  String get networkError => 'নেটওয়ার্ক ত্রুটি৷ আপনার সংযোগ পরীক্ষা করুন.';
+}

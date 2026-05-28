@@ -4,15 +4,15 @@ import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
 
-/// The translations for Spanish Castilian (`es`).
+/// The translations for Spanish (`es`).
 class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'MiAutoTienda';
+  String get appTitle => 'MyAutoShop';
 
   @override
-  String get login => 'Iniciar sesión';
+  String get login => 'Acceso';
 
   @override
   String get companyCode => 'Código de empresa';
@@ -24,10 +24,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get password => 'Contraseña';
 
   @override
-  String get invalidCompanyCode => 'Código de empresa inválido';
+  String get invalidCompanyCode => 'Código de empresa no válido';
 
   @override
-  String get pleaseEnterCompanyCode => 'Por favor ingrese el código de empresa';
+  String get pleaseEnterCompanyCode => 'Por favor introduzca el código de la empresa';
 
   @override
   String get pleaseEnterUserId => 'Por favor ingrese el ID de usuario';
@@ -36,43 +36,43 @@ class AppLocalizationsEs extends AppLocalizations {
   String get pleaseEnterPassword => 'Por favor ingrese la contraseña';
 
   @override
-  String get loginFailed => 'Inicio de sesión fallido';
+  String get loginFailed => 'Error de inicio de sesion';
 
   @override
-  String get loginSuccess => 'Inicio de sesión exitoso';
+  String get loginSuccess => 'Iniciar sesión exitosamente';
 
   @override
-  String get challan => 'Factura';
+  String get challan => 'Chalán';
 
   @override
-  String get pendingChallan => 'Factura pendiente';
+  String get pendingChallan => 'Pendiente Challan';
 
   @override
-  String get retailIncentive => 'Incentivo minorista';
+  String get retailIncentive => 'Incentivo al por menor';
 
   @override
-  String get loadingChallans => 'Cargando facturas...';
+  String get loadingChallans => 'Cargando challans...';
 
   @override
-  String get failedToLoadChallans => 'Error al cargar facturas';
+  String get failedToLoadChallans => 'No se pudo cargar challans';
 
   @override
-  String get noChallansFound => 'No se encontraron facturas';
+  String get noChallansFound => 'No se encontró challan';
 
   @override
-  String get pullToRefresh => 'Desliza para actualizar o vuelve más tarde';
+  String get pullToRefresh => 'Tira para actualizar o vuelve a consultar más tarde';
 
   @override
   String get date => 'Fecha';
 
   @override
-  String get challanDate => 'Fecha de factura';
+  String get challanDate => 'Fecha Challan';
 
   @override
-  String get expectedDeliveryDate => 'Fecha de entrega esperada';
+  String get expectedDeliveryDate => 'Fecha de entrega prevista';
 
   @override
-  String get challanNo => 'Número de factura';
+  String get challanNo => 'Challan No';
 
   @override
   String get customerName => 'Nombre del cliente';
@@ -84,16 +84,16 @@ class AppLocalizationsEs extends AppLocalizations {
   String get edit => 'Editar';
 
   @override
-  String get save => 'Guardar';
+  String get save => 'Ahorrar';
 
   @override
   String get cancel => 'Cancelar';
 
   @override
-  String get retry => 'Reintentar';
+  String get retry => 'Rever';
 
   @override
-  String get refresh => 'Actualizar';
+  String get refresh => 'Refrescar';
 
   @override
   String get showDate => 'Mostrar fecha:';
@@ -107,7 +107,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get settings => 'Configuración';
+  String get settings => 'Ajustes';
 
   @override
   String get language => 'Idioma';
@@ -116,10 +116,10 @@ class AppLocalizationsEs extends AppLocalizations {
   String get selectLanguage => 'Seleccionar idioma';
 
   @override
-  String get languageChanged => 'Idioma cambiado exitosamente';
+  String get languageChanged => 'El idioma cambió exitosamente';
 
   @override
-  String get home => 'Inicio';
+  String get home => 'Hogar';
 
   @override
   String get notifications => 'Notificaciones';
@@ -131,7 +131,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get logout => 'Cerrar sesión';
 
   @override
-  String get confirmLogout => '¿Estás seguro de que quieres cerrar sesión?';
+  String get confirmLogout => '¿Está seguro de que desea cerrar sesión?';
 
   @override
   String get yes => 'Sí';
@@ -152,5 +152,5 @@ class AppLocalizationsEs extends AppLocalizations {
   String get serverError => 'Error del servidor';
 
   @override
-  String get networkError => 'Error de red. Por favor verifica tu conexión.';
+  String get networkError => 'Error de red. Por favor verifique su conexión.';
 }
