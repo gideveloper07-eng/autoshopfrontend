@@ -463,7 +463,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             gradient: [
                               const Color(0xFF071426),
                               const Color(0xFF0E2542),
-                              const Color(0xFF0A2E5C),
+                              const Color(0xFF42A5F5),
                             ],
                             accentColor: const Color(0xFF82B1FF),
                             onTap: () {

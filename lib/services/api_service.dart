@@ -8,13 +8,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "https://autoshop-ekvt.onrender.com";
+  static const String baseUrl = "https://api.myautoshop365.com";
 
   static const _storage = FlutterSecureStorage(
-    webOptions: WebOptions(
-      dbName: 'autoshop_db',
-      publicKey: 'as_key_2024',
-    ),
+    webOptions: WebOptions(dbName: 'autoshop_db', publicKey: 'as_key_2024'),
   );
 
   // ───────────────── TOKEN ─────────────────
@@ -22,11 +19,9 @@ class ApiService {
   static Future<void> saveToken(String t) =>
       _storage.write(key: "token", value: t);
 
-  static Future<String?> getToken() =>
-      _storage.read(key: "token");
+  static Future<String?> getToken() => _storage.read(key: "token");
 
-  static Future<void> clearToken() =>
-      _storage.delete(key: "token");
+  static Future<void> clearToken() => _storage.delete(key: "token");
 
   // ───────────────── SESSION ─────────────────
 
@@ -51,8 +46,8 @@ class ApiService {
   }
 
   static Future<String?> getUTG() async {
-  return await _storage.read(key: "utg");
-}
+    return await _storage.read(key: "utg");
+  }
 
   static Future<Map<String, String>?> getUserSession() async {
     final token = await _storage.read(key: "token");
@@ -65,15 +60,12 @@ class ApiService {
       "utg": await _storage.read(key: "utg") ?? "",
       "userName": await _storage.read(key: "userName") ?? "",
       "userEmail": await _storage.read(key: "userEmail") ?? "",
-      "databaseName":
-          await _storage.read(key: "databaseName") ?? "",
-      "companyCode":
-          await _storage.read(key: "companyCode") ?? "",
+      "databaseName": await _storage.read(key: "databaseName") ?? "",
+      "companyCode": await _storage.read(key: "companyCode") ?? "",
     };
   }
 
-  static Future<String?> getUserId() =>
-      _storage.read(key: "userId");
+  static Future<String?> getUserId() => _storage.read(key: "userId");
 
   static Future<String> getClientIp() async {
     try {
@@ -108,11 +100,8 @@ class ApiService {
     return {};
   }
 
-  static Future<void> saveNotifiedPendingChallanIds(Set<String> ids) =>
-      _storage.write(
-        key: "notifiedPendingChallanIds",
-        value: jsonEncode(ids.toList()),
-      );
+  static Future<void> saveNotifiedPendingChallanIds(Set<String> ids) => _storage
+      .write(key: "notifiedPendingChallanIds", value: jsonEncode(ids.toList()));
 
   static Future<void> clearSession() async {
     await Future.wait([
@@ -140,7 +129,8 @@ class ApiService {
           return storedId;
         }
         // Generate a new unique ID for this browser
-        final newId = "web_${DateTime.now().millisecondsSinceEpoch}_${_randomSuffix()}";
+        final newId =
+            "web_${DateTime.now().millisecondsSinceEpoch}_${_randomSuffix()}";
         await _storage.write(key: "device_id", value: newId);
         return newId;
       }
@@ -166,13 +156,10 @@ class ApiService {
       return "fallback_${DateTime.now().millisecondsSinceEpoch}";
     }
   }
- // ───────────────── NOTIFICATIONS ─────────────────
+  // ───────────────── NOTIFICATIONS ─────────────────
 
-  static Future<List<Map<String, dynamic>>>
-  getNotifications() async {
-
+  static Future<List<Map<String, dynamic>>> getNotifications() async {
     try {
-
       final token = await getToken();
 
       if (token == null || token.isEmpty) {
@@ -180,10 +167,7 @@ class ApiService {
       }
 
       final res = await http.get(
-
-        Uri.parse(
-          "$baseUrl/api/notifications",
-        ),
+        Uri.parse("$baseUrl/api/notifications"),
 
         headers: {
           "Content-Type": "application/json",
@@ -193,37 +177,27 @@ class ApiService {
 
       print("NOTIFICATION RESPONSE:");
       print(res.body);
-print("NOTIFICATION STATUS:");
-print(res.statusCode);
+      print("NOTIFICATION STATUS:");
+      print(res.statusCode);
 
-print("NOTIFICATION BODY:");
-print(res.body);
+      print("NOTIFICATION BODY:");
+      print(res.body);
       if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
 
-        final body =
-            jsonDecode(res.body);
-
-        if (
-            body["success"] == true &&
-            body["data"] is List
-        ) {
-
-          return List<Map<String, dynamic>>
-              .from(body["data"]);
+        if (body["success"] == true && body["data"] is List) {
+          return List<Map<String, dynamic>>.from(body["data"]);
         }
       }
 
       return [];
-
     } catch (e) {
-
-      print(
-        "GET NOTIFICATIONS ERROR: $e"
-      );
+      print("GET NOTIFICATIONS ERROR: $e");
 
       return [];
     }
   }
+
   static String _randomSuffix() {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     final rand = DateTime.now().microsecondsSinceEpoch;
@@ -268,19 +242,17 @@ print(res.body);
   // ───────────────── VALIDATE COMPANY ─────────────────
 
   static Future<Map<String, dynamic>> validateCompany(
-      String companyCode) async {
+    String companyCode,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/api/validate-company'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'companyCode': companyCode,
-        }),
+        body: jsonEncode({'companyCode': companyCode}),
       );
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body)
-            as Map<String, dynamic>;
+        return jsonDecode(response.body) as Map<String, dynamic>;
       }
 
       return <String, dynamic>{};
@@ -289,29 +261,37 @@ print(res.body);
       return <String, dynamic>{};
     }
   }
-// ───────────────── CHALLAN ─────────────────
+  // ───────────────── CHALLAN ─────────────────
 
   /// Fetches Retail Incentive challans from the stored procedure.
   /// dateType: 'challan' (default) for Challan Date, 'expected' for Expected Delivery Date
   /// Returns a list of maps with keys: date or exdate, sp_468, sp_469
-  static Future<List<Map<String, dynamic>>> getChallanRetailIncentive({String dateType = 'challan'}) async {
+  static Future<List<Map<String, dynamic>>> getChallanRetailIncentive({
+    String dateType = 'challan',
+  }) async {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) return [];
 
-      final res = await http.get(
-        Uri.parse("$baseUrl/api/challan/retail-incentive?dateType=$dateType"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/retail-incentive?dateType=$dateType",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
         if (body['success'] == true && body['data'] is List) {
           return List<Map<String, dynamic>>.from(
-            (body['data'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            (body['data'] as List).map(
+              (e) => Map<String, dynamic>.from(e as Map),
+            ),
           );
         }
       }
@@ -325,7 +305,9 @@ print(res.body);
   /// Fetches complete challan details for editing
   /// Calls the stored procedure with @what = 'Edit' and @sp_462
   /// Returns a map with all challan fields
-  static Future<Map<String, dynamic>?> getChallanEditDetails(String sp462) async {
+  static Future<Map<String, dynamic>?> getChallanEditDetails(
+    String sp462,
+  ) async {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) {
@@ -336,13 +318,15 @@ print(res.body);
       final url = "$baseUrl/api/challan/edit/$sp462";
       print("🌐 CHALLAN EDIT: Calling $url");
 
-      final res = await http.get(
-        Uri.parse(url),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
 
       print("📡 CHALLAN EDIT: Status ${res.statusCode}");
       print("📦 CHALLAN EDIT: Body ${res.body}");
@@ -381,7 +365,9 @@ print(res.body);
 
   /// Approves a challan by calling the stored procedure with @what = 'approve'
   /// Returns success message
-  static Future<Map<String, dynamic>> approveChallan(Map<String, dynamic> challanData) async {
+  static Future<Map<String, dynamic>> approveChallan(
+    Map<String, dynamic> challanData,
+  ) async {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) {
@@ -390,16 +376,20 @@ print(res.body);
 
       final url = "$baseUrl/api/challan/approve";
       print("✅ CHALLAN APPROVE: Calling $url");
-      print("📦 CHALLAN APPROVE: Data keys: ${challanData.keys.take(10).toList()}");
+      print(
+        "📦 CHALLAN APPROVE: Data keys: ${challanData.keys.take(10).toList()}",
+      );
 
-      final res = await http.post(
-        Uri.parse(url),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode(challanData),
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(challanData),
+          )
+          .timeout(const Duration(seconds: 30));
 
       print("📡 CHALLAN APPROVE: Status ${res.statusCode}");
       print("📦 CHALLAN APPROVE: Response ${res.body}");
@@ -450,16 +440,20 @@ print(res.body);
 
       final url = "$baseUrl/api/challan/reject";
       print("❌ CHALLAN REJECT: Calling $url");
-      print("📦 CHALLAN REJECT: Data keys: ${dataWithRemark.keys.take(10).toList()}");
+      print(
+        "📦 CHALLAN REJECT: Data keys: ${dataWithRemark.keys.take(10).toList()}",
+      );
 
-      final res = await http.post(
-        Uri.parse(url),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode(dataWithRemark),
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(dataWithRemark),
+          )
+          .timeout(const Duration(seconds: 30));
 
       print("📡 CHALLAN REJECT: Status ${res.statusCode}");
       print("📦 CHALLAN REJECT: Response ${res.body}");
@@ -493,22 +487,18 @@ print(res.body);
   }
 
   static Future<void> logout(String token) async {
-
-  try {
-
-    await http.post(
-      Uri.parse("$baseUrl/api/auth/logout"),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-  } catch (e) {
-
-    print("LOGOUT API ERROR: $e");
+    try {
+      await http.post(
+        Uri.parse("$baseUrl/api/auth/logout"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+    } catch (e) {
+      print("LOGOUT API ERROR: $e");
+    }
   }
-}
   // ───────────────── LOGIN ─────────────────
 
   static Future<Map?> login({
@@ -526,18 +516,18 @@ print(res.body);
         print("DEVICE ID: $deviceId");
       }
 
-      final res = await http.post(
-        Uri.parse("$baseUrl/api/auth/login"),
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: jsonEncode({
-          "databaseName": databaseName,
-          "userId": userId,
-          "password": password,
-          "deviceId": deviceId,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/auth/login"),
+            headers: {"Content-Type": "application/json"},
+            body: jsonEncode({
+              "databaseName": databaseName,
+              "userId": userId,
+              "password": password,
+              "deviceId": deviceId,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
 
       if (kIsWeb) {
         print("LOGIN STATUS: ${res.statusCode}");
@@ -550,32 +540,24 @@ print(res.body);
 
         return {
           "success": false,
-          "message": data['message'] ??
-              "This account is already logged in on another device"
+          "message":
+              data['message'] ??
+              "This account is already logged in on another device",
         };
       }
 
       // SUCCESS
-      if (res.statusCode == 200 &&
-          !res.body.trim().startsWith('<')) {
-
+      if (res.statusCode == 200 && !res.body.trim().startsWith('<')) {
         final data = jsonDecode(res.body);
 
         if (data['token'] != null) {
-
           await saveUserSession(
             token: data['token'],
-            userId:
-                data['userId']?.toString() ?? userId,
-            utg:
-                data['utg']?.toString() ?? "",
-            userName:
-                data['name']?.toString() ?? userId,
-            userEmail:
-                data['email']?.toString() ?? "",
-            databaseName:
-                data['databaseName']?.toString() ??
-                    databaseName,
+            userId: data['userId']?.toString() ?? userId,
+            utg: data['utg']?.toString() ?? "",
+            userName: data['name']?.toString() ?? userId,
+            userEmail: data['email']?.toString() ?? "",
+            databaseName: data['databaseName']?.toString() ?? databaseName,
             companyCode: "",
           );
         }
@@ -584,137 +566,89 @@ print(res.body);
       }
 
       // INVALID LOGIN
-      return {
-        "success": false,
-        "message": "Invalid User ID or Password"
-      };
-
+      return {"success": false, "message": "Invalid User ID or Password"};
     } catch (e) {
-
       print("LOGIN ERROR: $e");
 
-      return {
-        "success": false,
-        "message": e.toString(),
-      };
+      return {"success": false, "message": e.toString()};
     }
   }
 
-  static Future<int>
-getUnreadNotificationCount() async {
+  static Future<int> getUnreadNotificationCount() async {
+    try {
+      final token = await getToken();
 
-  try {
+      if (token == null || token.isEmpty) {
+        return 0;
+      }
 
-    final token = await getToken();
+      final res = await http.get(
+        Uri.parse("$baseUrl/api/notifications/unread-count"),
 
-    if (token == null || token.isEmpty) {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+      print("UNREAD STATUS:");
+      print(res.statusCode);
+
+      print("UNREAD BODY:");
+      print(res.body);
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+
+        return body["unread_count"] ?? 0;
+      }
+
+      return 0;
+    } catch (e) {
+      print("UNREAD COUNT ERROR: $e");
+
       return 0;
     }
+  }
 
-    final res = await http.get(
+  static Future<void> markNotificationAsRead(String id) async {
+    try {
+      final token = await getToken();
 
-      Uri.parse(
-        "$baseUrl/api/notifications/unread-count",
-      ),
+      if (token == null) return;
 
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-print("UNREAD STATUS:");
-print(res.statusCode);
+      await http.post(
+        Uri.parse("$baseUrl/api/notifications/read/$id"),
 
-print("UNREAD BODY:");
-print(res.body);
-    if (res.statusCode == 200) {
-
-      final body =
-          jsonDecode(res.body);
-
-      return body["unread_count"] ?? 0;
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+    } catch (e) {
+      print("MARK READ ERROR: $e");
     }
-
-    return 0;
-
-  } catch (e) {
-
-    print(
-      "UNREAD COUNT ERROR: $e"
-    );
-
-    return 0;
   }
-}
 
-static Future<void>
-markNotificationAsRead(
-  String id,
-) async {
+  static Future<void> saveFCMToken(String fcmToken) async {
+    try {
+      final token = await getToken();
 
-  try {
+      if (token == null) return;
 
-    final token = await getToken();
+      await http.post(
+        Uri.parse("$baseUrl/api/auth/save-fcm-token"),
 
-    if (token == null) return;
+        headers: {
+          "Content-Type": "application/json",
 
-    await http.post(
+          "Authorization": "Bearer $token",
+        },
 
-      Uri.parse(
-        "$baseUrl/api/notifications/read/$id",
-      ),
+        body: jsonEncode({"token": fcmToken}),
+      );
 
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer $token",
-      },
-    );
-
-  } catch (e) {
-
-    print(
-      "MARK READ ERROR: $e"
-    );
+      print("FCM TOKEN SAVED");
+    } catch (e) {
+      print("SAVE FCM TOKEN ERROR: $e");
+    }
   }
-}
-
-static Future<void>
-saveFCMToken(String fcmToken) async {
-
-  try {
-
-    final token = await getToken();
-
-    if (token == null) return;
-
-    await http.post(
-
-      Uri.parse(
-        "$baseUrl/api/auth/save-fcm-token",
-      ),
-
-      headers: {
-
-        "Content-Type":
-            "application/json",
-
-        "Authorization":
-            "Bearer $token",
-      },
-
-      body: jsonEncode({
-        "token": fcmToken,
-      }),
-    );
-
-    print("FCM TOKEN SAVED");
-
-  } catch (e) {
-
-    print(
-      "SAVE FCM TOKEN ERROR: $e"
-    );
-  }
-}
-
 }
