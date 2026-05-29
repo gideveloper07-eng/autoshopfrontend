@@ -18,8 +18,8 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
 
-static const Color kRed     = Color(0xFF1565C0); // Blue
-static const Color kRedDark = Color(0xFF0D47A1); // Dark Blue
+  static const Color kRed = Color(0xFF071426); // Blue
+  static const Color kRedDark = Color(0xFF0E2542); // Dark Blue
 
   @override
   void initState() {
@@ -48,7 +48,7 @@ static const Color kRedDark = Color(0xFF0D47A1); // Dark Blue
         context,
         MaterialPageRoute(
           builder: (_) => HomeScreen(
-            userName:  session['userName']  ?? session['userId'] ?? 'User',
+            userName: session['userName'] ?? session['userId'] ?? 'User',
             userEmail: session['userEmail'] ?? '',
           ),
         ),

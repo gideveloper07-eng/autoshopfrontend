@@ -48,11 +48,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Loading challan details...',
       'failedToLoadDetails': 'Failed to load details',
       'showSelectionCheckboxes': 'Show Selection Checkboxes',
-      'enableCheckboxesHelp': 'Enable checkboxes to select fields for rejection remarks',
+      'enableCheckboxesHelp':
+          'Enable checkboxes to select fields for rejection remarks',
       'rejectRemarkTitle': 'Reject remark',
       'reject': 'Reject',
       'approve': 'Approve',
-      'pleaseSelectFieldOrReason': 'Please check at least one field or enter a rejection reason',
+      'pleaseSelectFieldOrReason':
+          'Please check at least one field or enter a rejection reason',
       'basicInformation': 'Basic Information',
       'pricingDetails': 'Pricing Details',
       'discountsAndOffers': 'Discounts & Offers',
@@ -63,7 +65,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Financial Details',
       'customerInformation': 'Customer Information',
       'rejectChallan': 'Reject Challan',
-      'checkedFieldInfo': 'Checked fields are added below. You can edit before rejecting:',
+      'checkedFieldInfo':
+          'Checked fields are added below. You can edit before rejecting:',
       'rejectRemarkHint': 'Reject remark (auto-filled from checked fields)...',
     },
     'ar': {
@@ -80,11 +83,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'جارٍ تحميل تفاصيل التحدي...',
       'failedToLoadDetails': 'فشل تحميل التفاصيل',
       'showSelectionCheckboxes': 'إظهار خانات اختيار التحديد',
-      'enableCheckboxesHelp': 'قم بتمكين مربعات الاختيار لتحديد الحقول لملاحظات الرفض',
+      'enableCheckboxesHelp':
+          'قم بتمكين مربعات الاختيار لتحديد الحقول لملاحظات الرفض',
       'rejectRemarkTitle': 'رفض الملاحظة',
       'reject': 'يرفض',
       'approve': 'يعتمد',
-      'pleaseSelectFieldOrReason': 'يرجى التحقق من حقل واحد على الأقل أو إدخال سبب الرفض',
+      'pleaseSelectFieldOrReason':
+          'يرجى التحقق من حقل واحد على الأقل أو إدخال سبب الرفض',
       'basicInformation': 'المعلومات الأساسية',
       'pricingDetails': 'تفاصيل التسعير',
       'discountsAndOffers': 'الخصومات والعروض',
@@ -95,8 +100,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'التفاصيل المالية',
       'customerInformation': 'معلومات العملاء',
       'rejectChallan': 'رفض تشالان',
-      'checkedFieldInfo': 'تتم إضافة الحقول المحددة أدناه. يمكنك التعديل قبل الرفض:',
-      'rejectRemarkHint': 'رفض الملاحظة (يتم ملؤها تلقائيًا من الحقول المحددة)...',
+      'checkedFieldInfo':
+          'تتم إضافة الحقول المحددة أدناه. يمكنك التعديل قبل الرفض:',
+      'rejectRemarkHint':
+          'رفض الملاحظة (يتم ملؤها تلقائيًا من الحقول المحددة)...',
     },
     'as': {
       'customerLabel': 'গ্ৰাহক',
@@ -112,11 +119,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'লোডিং challan বিবরণ...',
       'failedToLoadDetails': 'বিৱৰণ লোড কৰাত ব্যৰ্থ',
       'showSelectionCheckboxes': 'নিৰ্বাচন চেকবাকচসমূহ দেখুৱাওক',
-      'enableCheckboxesHelp': 'প্ৰত্যাখ্যান মন্তব্যসমূহৰ বাবে ক্ষেত্ৰসমূহ নিৰ্ব্বাচন কৰিবলে চেকবাক্সসমূহ সামৰ্থবান কৰক',
+      'enableCheckboxesHelp':
+          'প্ৰত্যাখ্যান মন্তব্যসমূহৰ বাবে ক্ষেত্ৰসমূহ নিৰ্ব্বাচন কৰিবলে চেকবাক্সসমূহ সামৰ্থবান কৰক',
       'rejectRemarkTitle': 'মন্তব্য নাকচ কৰক',
       'reject': 'প্ৰত্যাখ্যান',
       'approve': 'অনুমোদন',
-      'pleaseSelectFieldOrReason': 'অনুগ্ৰহ কৰি অন্ততঃ এটা ক্ষেত্ৰ পৰীক্ষা কৰক বা প্ৰত্যাখ্যানৰ কাৰণ দিয়ক',
+      'pleaseSelectFieldOrReason':
+          'অনুগ্ৰহ কৰি অন্ততঃ এটা ক্ষেত্ৰ পৰীক্ষা কৰক বা প্ৰত্যাখ্যানৰ কাৰণ দিয়ক',
       'basicInformation': 'মৌলিক তথ্য',
       'pricingDetails': 'মূল্য নিৰ্ধাৰণৰ বিৱৰণ',
       'discountsAndOffers': 'ৰেহাই আৰু অফাৰ',
@@ -127,8 +136,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'বিত্তীয় বিৱৰণ',
       'customerInformation': 'গ্ৰাহকৰ তথ্য',
       'rejectChallan': 'চালানক নাকচ কৰক',
-      'checkedFieldInfo': 'পৰীক্ষা কৰা ক্ষেত্ৰসমূহ তলত যোগ কৰা হৈছে। আপুনি নাকচ কৰাৰ আগতে সম্পাদনা কৰিব পাৰে:',
-      'rejectRemarkHint': 'মন্তব্য নাকচ কৰক (নিৰীক্ষণ কৰা ক্ষেত্ৰসমূহৰ পৰা স্বয়ংক্ৰিয়ভাৱে পূৰণ কৰা হৈছে)...',
+      'checkedFieldInfo':
+          'পৰীক্ষা কৰা ক্ষেত্ৰসমূহ তলত যোগ কৰা হৈছে। আপুনি নাকচ কৰাৰ আগতে সম্পাদনা কৰিব পাৰে:',
+      'rejectRemarkHint':
+          'মন্তব্য নাকচ কৰক (নিৰীক্ষণ কৰা ক্ষেত্ৰসমূহৰ পৰা স্বয়ংক্ৰিয়ভাৱে পূৰণ কৰা হৈছে)...',
     },
     'bn': {
       'customerLabel': 'গ্রাহক',
@@ -144,11 +155,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'চালানের বিশদ বিবরণ লোড হচ্ছে...',
       'failedToLoadDetails': 'বিশদ লোড করতে ব্যর্থ হয়েছে৷',
       'showSelectionCheckboxes': 'নির্বাচন চেকবক্স দেখান',
-      'enableCheckboxesHelp': 'প্রত্যাখ্যান মন্তব্যের জন্য ক্ষেত্র নির্বাচন করতে চেকবক্স সক্রিয় করুন',
+      'enableCheckboxesHelp':
+          'প্রত্যাখ্যান মন্তব্যের জন্য ক্ষেত্র নির্বাচন করতে চেকবক্স সক্রিয় করুন',
       'rejectRemarkTitle': 'মন্তব্য প্রত্যাখ্যান করুন',
       'reject': 'প্রত্যাখ্যান করুন',
       'approve': 'অনুমোদন করুন',
-      'pleaseSelectFieldOrReason': 'অন্তত একটি ক্ষেত্র চেক করুন বা একটি প্রত্যাখ্যান কারণ লিখুন',
+      'pleaseSelectFieldOrReason':
+          'অন্তত একটি ক্ষেত্র চেক করুন বা একটি প্রত্যাখ্যান কারণ লিখুন',
       'basicInformation': 'মৌলিক তথ্য',
       'pricingDetails': 'মূল্য বিবরণ',
       'discountsAndOffers': 'ডিসকাউন্ট এবং অফার',
@@ -159,8 +172,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'আর্থিক বিবরণ',
       'customerInformation': 'গ্রাহক তথ্য',
       'rejectChallan': 'চালান প্রত্যাখ্যান করুন',
-      'checkedFieldInfo': 'চেক করা ক্ষেত্র নিচে যোগ করা হয়. আপনি প্রত্যাখ্যান করার আগে সম্পাদনা করতে পারেন:',
-      'rejectRemarkHint': 'মন্তব্য প্রত্যাখ্যান করুন (চেক করা ক্ষেত্র থেকে স্বয়ংক্রিয়ভাবে পূর্ণ)...',
+      'checkedFieldInfo':
+          'চেক করা ক্ষেত্র নিচে যোগ করা হয়. আপনি প্রত্যাখ্যান করার আগে সম্পাদনা করতে পারেন:',
+      'rejectRemarkHint':
+          'মন্তব্য প্রত্যাখ্যান করুন (চেক করা ক্ষেত্র থেকে স্বয়ংক্রিয়ভাবে পূর্ণ)...',
     },
     'de': {
       'customerLabel': 'Kunde',
@@ -176,11 +191,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Challan-Details werden geladen...',
       'failedToLoadDetails': 'Details konnten nicht geladen werden',
       'showSelectionCheckboxes': 'Auswahl-Kontrollkästchen anzeigen',
-      'enableCheckboxesHelp': 'Aktivieren Sie Kontrollkästchen, um Felder für Ablehnungsbemerkungen auszuwählen',
+      'enableCheckboxesHelp':
+          'Aktivieren Sie Kontrollkästchen, um Felder für Ablehnungsbemerkungen auszuwählen',
       'rejectRemarkTitle': 'Bemerkung ablehnen',
       'reject': 'Ablehnen',
       'approve': 'Genehmigen',
-      'pleaseSelectFieldOrReason': 'Bitte überprüfen Sie mindestens ein Feld oder geben Sie einen Ablehnungsgrund ein',
+      'pleaseSelectFieldOrReason':
+          'Bitte überprüfen Sie mindestens ein Feld oder geben Sie einen Ablehnungsgrund ein',
       'basicInformation': 'Grundlegende Informationen',
       'pricingDetails': 'Preisdetails',
       'discountsAndOffers': 'Rabatte und Angebote',
@@ -191,8 +208,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Finanzielle Details',
       'customerInformation': 'Kundeninformationen',
       'rejectChallan': 'Challan ablehnen',
-      'checkedFieldInfo': 'Abgehakte Felder werden unten hinzugefügt. Sie können Folgendes bearbeiten, bevor Sie es ablehnen:',
-      'rejectRemarkHint': 'Bemerkung ablehnen (wird automatisch aus aktivierten Feldern ausgefüllt)...',
+      'checkedFieldInfo':
+          'Abgehakte Felder werden unten hinzugefügt. Sie können Folgendes bearbeiten, bevor Sie es ablehnen:',
+      'rejectRemarkHint':
+          'Bemerkung ablehnen (wird automatisch aus aktivierten Feldern ausgefüllt)...',
     },
     'es': {
       'customerLabel': 'Cliente',
@@ -208,11 +227,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Cargando detalles de Challan...',
       'failedToLoadDetails': 'No se pudieron cargar los detalles',
       'showSelectionCheckboxes': 'Mostrar casillas de selección',
-      'enableCheckboxesHelp': 'Habilite las casillas de verificación para seleccionar campos para comentarios de rechazo',
+      'enableCheckboxesHelp':
+          'Habilite las casillas de verificación para seleccionar campos para comentarios de rechazo',
       'rejectRemarkTitle': 'Rechazar comentario',
       'reject': 'Rechazar',
       'approve': 'Aprobar',
-      'pleaseSelectFieldOrReason': 'Por favor marque al menos un campo o ingrese un motivo de rechazo',
+      'pleaseSelectFieldOrReason':
+          'Por favor marque al menos un campo o ingrese un motivo de rechazo',
       'basicInformation': 'Información básica',
       'pricingDetails': 'Detalles de precios',
       'discountsAndOffers': 'Descuentos y ofertas',
@@ -223,8 +244,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Detalles financieros',
       'customerInformation': 'Información del cliente',
       'rejectChallan': 'Rechazar Challan',
-      'checkedFieldInfo': 'Los campos marcados se agregan a continuación. Puedes editar antes de rechazar:',
-      'rejectRemarkHint': 'Rechazar comentario (completado automáticamente a partir de campos marcados)...',
+      'checkedFieldInfo':
+          'Los campos marcados se agregan a continuación. Puedes editar antes de rechazar:',
+      'rejectRemarkHint':
+          'Rechazar comentario (completado automáticamente a partir de campos marcados)...',
     },
     'fr': {
       'customerLabel': 'Client',
@@ -240,11 +263,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Chargement des détails de Challan...',
       'failedToLoadDetails': 'Échec du chargement des détails',
       'showSelectionCheckboxes': 'Afficher les cases à cocher de sélection',
-      'enableCheckboxesHelp': 'Activez les cases à cocher pour sélectionner les champs pour les remarques de rejet',
+      'enableCheckboxesHelp':
+          'Activez les cases à cocher pour sélectionner les champs pour les remarques de rejet',
       'rejectRemarkTitle': 'Rejeter la remarque',
       'reject': 'Rejeter',
       'approve': 'Approuver',
-      'pleaseSelectFieldOrReason': 'Veuillez cocher au moins un champ ou saisir un motif de refus',
+      'pleaseSelectFieldOrReason':
+          'Veuillez cocher au moins un champ ou saisir un motif de refus',
       'basicInformation': 'Informations de base',
       'pricingDetails': 'Détails des prix',
       'discountsAndOffers': 'Réductions et offres',
@@ -255,8 +280,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Détails financiers',
       'customerInformation': 'Informations client',
       'rejectChallan': 'Rejeter Challan',
-      'checkedFieldInfo': 'Les champs cochés sont ajoutés ci-dessous. Vous pouvez modifier avant de rejeter :',
-      'rejectRemarkHint': 'Rejeter la remarque (remplie automatiquement à partir des champs cochés)...',
+      'checkedFieldInfo':
+          'Les champs cochés sont ajoutés ci-dessous. Vous pouvez modifier avant de rejeter :',
+      'rejectRemarkHint':
+          'Rejeter la remarque (remplie automatiquement à partir des champs cochés)...',
     },
     'gu': {
       'customerLabel': 'ગ્રાહક',
@@ -272,11 +299,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'ચલનની વિગતો લોડ કરી રહ્યું છે...',
       'failedToLoadDetails': 'વિગતો લોડ કરવામાં નિષ્ફળ',
       'showSelectionCheckboxes': 'પસંદગી ચેકબોક્સ બતાવો',
-      'enableCheckboxesHelp': 'અસ્વીકાર ટિપ્પણી માટે ફીલ્ડ્સ પસંદ કરવા માટે ચેકબોક્સ સક્ષમ કરો',
+      'enableCheckboxesHelp':
+          'અસ્વીકાર ટિપ્પણી માટે ફીલ્ડ્સ પસંદ કરવા માટે ચેકબોક્સ સક્ષમ કરો',
       'rejectRemarkTitle': 'ટિપ્પણીને નકારી કાઢો',
       'reject': 'અસ્વીકાર કરો',
       'approve': 'મંજૂર',
-      'pleaseSelectFieldOrReason': 'કૃપા કરીને ઓછામાં ઓછું એક ફીલ્ડ તપાસો અથવા અસ્વીકારનું કારણ દાખલ કરો',
+      'pleaseSelectFieldOrReason':
+          'કૃપા કરીને ઓછામાં ઓછું એક ફીલ્ડ તપાસો અથવા અસ્વીકારનું કારણ દાખલ કરો',
       'basicInformation': 'મૂળભૂત માહિતી',
       'pricingDetails': 'કિંમતની વિગતો',
       'discountsAndOffers': 'ડિસ્કાઉન્ટ અને ઑફર્સ',
@@ -287,7 +316,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'નાણાકીય વિગતો',
       'customerInformation': 'ગ્રાહક માહિતી',
       'rejectChallan': 'ચલણ નકારી કાઢો',
-      'checkedFieldInfo': 'ચેક કરેલ ફીલ્ડ્સ નીચે ઉમેરવામાં આવ્યા છે. તમે નકારતા પહેલા સંપાદિત કરી શકો છો:',
+      'checkedFieldInfo':
+          'ચેક કરેલ ફીલ્ડ્સ નીચે ઉમેરવામાં આવ્યા છે. તમે નકારતા પહેલા સંપાદિત કરી શકો છો:',
       'rejectRemarkHint': 'ટિપ્પણીને નકારો (ચેક કરેલ ફીલ્ડમાંથી સ્વતઃ ભરેલ)...',
     },
     'hi': {
@@ -304,11 +334,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'चालान विवरण लोड हो रहा है...',
       'failedToLoadDetails': 'विवरण लोड करने में विफल',
       'showSelectionCheckboxes': 'चयन चेकबॉक्स दिखाएँ',
-      'enableCheckboxesHelp': 'अस्वीकृति टिप्पणियों के लिए फ़ील्ड का चयन करने के लिए चेकबॉक्स सक्षम करें',
+      'enableCheckboxesHelp':
+          'अस्वीकृति टिप्पणियों के लिए फ़ील्ड का चयन करने के लिए चेकबॉक्स सक्षम करें',
       'rejectRemarkTitle': 'टिप्पणी अस्वीकार करें',
       'reject': 'अस्वीकार करना',
       'approve': 'मंज़ूरी देना',
-      'pleaseSelectFieldOrReason': 'कृपया कम से कम एक फ़ील्ड जांचें या अस्वीकृति का कारण दर्ज करें',
+      'pleaseSelectFieldOrReason':
+          'कृपया कम से कम एक फ़ील्ड जांचें या अस्वीकृति का कारण दर्ज करें',
       'basicInformation': 'मूल जानकारी',
       'pricingDetails': 'मूल्य निर्धारण विवरण',
       'discountsAndOffers': 'छूट और ऑफर',
@@ -319,8 +351,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'वित्तीय विवरण',
       'customerInformation': 'ग्राहक सूचना',
       'rejectChallan': 'चालान अस्वीकार करें',
-      'checkedFieldInfo': 'चेक किए गए फ़ील्ड नीचे जोड़े गए हैं. आप अस्वीकार करने से पहले संपादित कर सकते हैं:',
-      'rejectRemarkHint': 'टिप्पणी अस्वीकार करें (चेक किए गए फ़ील्ड से स्वतः भरा हुआ)...',
+      'checkedFieldInfo':
+          'चेक किए गए फ़ील्ड नीचे जोड़े गए हैं. आप अस्वीकार करने से पहले संपादित कर सकते हैं:',
+      'rejectRemarkHint':
+          'टिप्पणी अस्वीकार करें (चेक किए गए फ़ील्ड से स्वतः भरा हुआ)...',
     },
     'id': {
       'customerLabel': 'Pelanggan',
@@ -336,11 +370,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Memuat detail challan...',
       'failedToLoadDetails': 'Gagal memuat detail',
       'showSelectionCheckboxes': 'Tampilkan Kotak Centang Pilihan',
-      'enableCheckboxesHelp': 'Aktifkan kotak centang untuk memilih bidang komentar penolakan',
+      'enableCheckboxesHelp':
+          'Aktifkan kotak centang untuk memilih bidang komentar penolakan',
       'rejectRemarkTitle': 'Tolak komentar',
       'reject': 'Menolak',
       'approve': 'Menyetujui',
-      'pleaseSelectFieldOrReason': 'Silakan periksa setidaknya satu bidang atau masukkan alasan penolakan',
+      'pleaseSelectFieldOrReason':
+          'Silakan periksa setidaknya satu bidang atau masukkan alasan penolakan',
       'basicInformation': 'Informasi Dasar',
       'pricingDetails': 'Detail Harga',
       'discountsAndOffers': 'Diskon & Penawaran',
@@ -351,8 +387,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Detail Keuangan',
       'customerInformation': 'Informasi Pelanggan',
       'rejectChallan': 'Tolak Challan',
-      'checkedFieldInfo': 'Bidang yang dicentang ditambahkan di bawah. Anda dapat mengedit sebelum menolak:',
-      'rejectRemarkHint': 'Tolak komentar (diisi otomatis dari kolom yang dicentang)...',
+      'checkedFieldInfo':
+          'Bidang yang dicentang ditambahkan di bawah. Anda dapat mengedit sebelum menolak:',
+      'rejectRemarkHint':
+          'Tolak komentar (diisi otomatis dari kolom yang dicentang)...',
     },
     'it': {
       'customerLabel': 'Cliente',
@@ -368,11 +406,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Caricamento dettagli sfida...',
       'failedToLoadDetails': 'Impossibile caricare i dettagli',
       'showSelectionCheckboxes': 'Mostra caselle di controllo di selezione',
-      'enableCheckboxesHelp': 'Abilita le caselle di controllo per selezionare i campi per i commenti di rifiuto',
+      'enableCheckboxesHelp':
+          'Abilita le caselle di controllo per selezionare i campi per i commenti di rifiuto',
       'rejectRemarkTitle': 'Rifiuta l\'osservazione',
       'reject': 'Rifiutare',
       'approve': 'Approvare',
-      'pleaseSelectFieldOrReason': 'Seleziona almeno un campo o inserisci il motivo del rifiuto',
+      'pleaseSelectFieldOrReason':
+          'Seleziona almeno un campo o inserisci il motivo del rifiuto',
       'basicInformation': 'Informazioni di base',
       'pricingDetails': 'Dettagli sui prezzi',
       'discountsAndOffers': 'Sconti e offerte',
@@ -383,8 +423,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Dettagli finanziari',
       'customerInformation': 'Informazioni sul cliente',
       'rejectChallan': 'Rifiuta Challan',
-      'checkedFieldInfo': 'I campi selezionati vengono aggiunti di seguito. Puoi modificare prima di rifiutare:',
-      'rejectRemarkHint': 'Rifiuta commento (compilato automaticamente dai campi selezionati)...',
+      'checkedFieldInfo':
+          'I campi selezionati vengono aggiunti di seguito. Puoi modificare prima di rifiutare:',
+      'rejectRemarkHint':
+          'Rifiuta commento (compilato automaticamente dai campi selezionati)...',
     },
     'ja': {
       'customerLabel': 'お客様',
@@ -432,11 +474,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'ಚಲನ್ ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...',
       'failedToLoadDetails': 'ವಿವರಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ವಿಫಲವಾಗಿದೆ',
       'showSelectionCheckboxes': 'ಆಯ್ಕೆ ಚೆಕ್‌ಬಾಕ್ಸ್‌ಗಳನ್ನು ತೋರಿಸಿ',
-      'enableCheckboxesHelp': 'ನಿರಾಕರಣೆ ಟೀಕೆಗಳಿಗಾಗಿ ಕ್ಷೇತ್ರಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಲು ಚೆಕ್‌ಬಾಕ್ಸ್‌ಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ',
+      'enableCheckboxesHelp':
+          'ನಿರಾಕರಣೆ ಟೀಕೆಗಳಿಗಾಗಿ ಕ್ಷೇತ್ರಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಲು ಚೆಕ್‌ಬಾಕ್ಸ್‌ಗಳನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ',
       'rejectRemarkTitle': 'ಟೀಕೆಯನ್ನು ತಿರಸ್ಕರಿಸಿ',
       'reject': 'ತಿರಸ್ಕರಿಸಿ',
       'approve': 'ಅನುಮೋದಿಸಿ',
-      'pleaseSelectFieldOrReason': 'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಕ್ಷೇತ್ರವನ್ನಾದರೂ ಪರಿಶೀಲಿಸಿ ಅಥವಾ ನಿರಾಕರಣೆಯ ಕಾರಣವನ್ನು ನಮೂದಿಸಿ',
+      'pleaseSelectFieldOrReason':
+          'ದಯವಿಟ್ಟು ಕನಿಷ್ಠ ಒಂದು ಕ್ಷೇತ್ರವನ್ನಾದರೂ ಪರಿಶೀಲಿಸಿ ಅಥವಾ ನಿರಾಕರಣೆಯ ಕಾರಣವನ್ನು ನಮೂದಿಸಿ',
       'basicInformation': 'ಮೂಲ ಮಾಹಿತಿ',
       'pricingDetails': 'ಬೆಲೆ ವಿವರಗಳು',
       'discountsAndOffers': 'ರಿಯಾಯಿತಿಗಳು ಮತ್ತು ಕೊಡುಗೆಗಳು',
@@ -447,8 +491,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'ಹಣಕಾಸಿನ ವಿವರಗಳು',
       'customerInformation': 'ಗ್ರಾಹಕರ ಮಾಹಿತಿ',
       'rejectChallan': 'ಚಲನ್ ಅನ್ನು ತಿರಸ್ಕರಿಸಿ',
-      'checkedFieldInfo': 'ಪರಿಶೀಲಿಸಿದ ಕ್ಷೇತ್ರಗಳನ್ನು ಕೆಳಗೆ ಸೇರಿಸಲಾಗಿದೆ. ತಿರಸ್ಕರಿಸುವ ಮೊದಲು ನೀವು ಸಂಪಾದಿಸಬಹುದು:',
-      'rejectRemarkHint': 'ಟೀಕೆಯನ್ನು ತಿರಸ್ಕರಿಸಿ (ಪರಿಶೀಲಿಸಲಾದ ಕ್ಷೇತ್ರಗಳಿಂದ ಸ್ವಯಂ ತುಂಬಿದೆ)...',
+      'checkedFieldInfo':
+          'ಪರಿಶೀಲಿಸಿದ ಕ್ಷೇತ್ರಗಳನ್ನು ಕೆಳಗೆ ಸೇರಿಸಲಾಗಿದೆ. ತಿರಸ್ಕರಿಸುವ ಮೊದಲು ನೀವು ಸಂಪಾದಿಸಬಹುದು:',
+      'rejectRemarkHint':
+          'ಟೀಕೆಯನ್ನು ತಿರಸ್ಕರಿಸಿ (ಪರಿಶೀಲಿಸಲಾದ ಕ್ಷೇತ್ರಗಳಿಂದ ಸ್ವಯಂ ತುಂಬಿದೆ)...',
     },
     'ml': {
       'customerLabel': 'ഉപഭോക്താവ്',
@@ -464,11 +510,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'ചലാൻ വിശദാംശങ്ങൾ ലോഡുചെയ്യുന്നു...',
       'failedToLoadDetails': 'വിശദാംശങ്ങൾ ലോഡുചെയ്യുന്നതിൽ പരാജയപ്പെട്ടു',
       'showSelectionCheckboxes': 'തിരഞ്ഞെടുക്കൽ ചെക്ക്ബോക്സുകൾ കാണിക്കുക',
-      'enableCheckboxesHelp': 'നിരസിക്കൽ പരാമർശങ്ങൾക്കായി ഫീൽഡുകൾ തിരഞ്ഞെടുക്കുന്നതിന് ചെക്ക്ബോക്സുകൾ പ്രവർത്തനക്ഷമമാക്കുക',
+      'enableCheckboxesHelp':
+          'നിരസിക്കൽ പരാമർശങ്ങൾക്കായി ഫീൽഡുകൾ തിരഞ്ഞെടുക്കുന്നതിന് ചെക്ക്ബോക്സുകൾ പ്രവർത്തനക്ഷമമാക്കുക',
       'rejectRemarkTitle': 'പരാമർശം നിരസിക്കുക',
       'reject': 'നിരസിക്കുക',
       'approve': 'അംഗീകരിക്കുക',
-      'pleaseSelectFieldOrReason': 'ദയവായി ഒരു ഫീൽഡെങ്കിലും പരിശോധിക്കുക അല്ലെങ്കിൽ നിരസിക്കാനുള്ള കാരണം നൽകുക',
+      'pleaseSelectFieldOrReason':
+          'ദയവായി ഒരു ഫീൽഡെങ്കിലും പരിശോധിക്കുക അല്ലെങ്കിൽ നിരസിക്കാനുള്ള കാരണം നൽകുക',
       'basicInformation': 'അടിസ്ഥാന വിവരങ്ങൾ',
       'pricingDetails': 'വിലനിർണ്ണയ വിശദാംശങ്ങൾ',
       'discountsAndOffers': 'ഡിസ്കൗണ്ടുകളും ഓഫറുകളും',
@@ -479,8 +527,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'സാമ്പത്തിക വിശദാംശങ്ങൾ',
       'customerInformation': 'ഉപഭോക്തൃ വിവരങ്ങൾ',
       'rejectChallan': 'ചലാൻ നിരസിക്കുക',
-      'checkedFieldInfo': 'പരിശോധിച്ച ഫീൽഡുകൾ ചുവടെ ചേർക്കുന്നു. നിരസിക്കുന്നതിന് മുമ്പ് നിങ്ങൾക്ക് എഡിറ്റ് ചെയ്യാം:',
-      'rejectRemarkHint': 'പരാമർശം നിരസിക്കുക (ചെക്കുചെയ്ത ഫീൽഡുകളിൽ നിന്ന് സ്വയമേവ പൂരിപ്പിച്ചത്)...',
+      'checkedFieldInfo':
+          'പരിശോധിച്ച ഫീൽഡുകൾ ചുവടെ ചേർക്കുന്നു. നിരസിക്കുന്നതിന് മുമ്പ് നിങ്ങൾക്ക് എഡിറ്റ് ചെയ്യാം:',
+      'rejectRemarkHint':
+          'പരാമർശം നിരസിക്കുക (ചെക്കുചെയ്ത ഫീൽഡുകളിൽ നിന്ന് സ്വയമേവ പൂരിപ്പിച്ചത്)...',
     },
     'mr': {
       'customerLabel': 'ग्राहक',
@@ -496,11 +546,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'चलन तपशील लोड करत आहे...',
       'failedToLoadDetails': 'तपशील लोड करण्यात अयशस्वी',
       'showSelectionCheckboxes': 'निवड चेकबॉक्स दाखवा',
-      'enableCheckboxesHelp': 'नाकारलेल्या टिप्पण्यांसाठी फील्ड निवडण्यासाठी चेकबॉक्सेस सक्षम करा',
+      'enableCheckboxesHelp':
+          'नाकारलेल्या टिप्पण्यांसाठी फील्ड निवडण्यासाठी चेकबॉक्सेस सक्षम करा',
       'rejectRemarkTitle': 'टिप्पणी नाकारणे',
       'reject': 'नकार द्या',
       'approve': 'मंजूर करा',
-      'pleaseSelectFieldOrReason': 'कृपया किमान एक फील्ड तपासा किंवा नाकारण्याचे कारण प्रविष्ट करा',
+      'pleaseSelectFieldOrReason':
+          'कृपया किमान एक फील्ड तपासा किंवा नाकारण्याचे कारण प्रविष्ट करा',
       'basicInformation': 'मूलभूत माहिती',
       'pricingDetails': 'किंमतीचे तपशील',
       'discountsAndOffers': 'सवलती आणि ऑफर',
@@ -511,8 +563,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'आर्थिक तपशील',
       'customerInformation': 'ग्राहक माहिती',
       'rejectChallan': 'चलन नाकारणे',
-      'checkedFieldInfo': 'चेक केलेले फील्ड खाली जोडले आहेत. तुम्ही नाकारण्यापूर्वी संपादित करू शकता:',
-      'rejectRemarkHint': 'टिप्पणी नकार द्या (चेक केलेल्या फील्डमधून स्वयंचलितपणे भरलेले)...',
+      'checkedFieldInfo':
+          'चेक केलेले फील्ड खाली जोडले आहेत. तुम्ही नाकारण्यापूर्वी संपादित करू शकता:',
+      'rejectRemarkHint':
+          'टिप्पणी नकार द्या (चेक केलेल्या फील्डमधून स्वयंचलितपणे भरलेले)...',
     },
     'nl': {
       'customerLabel': 'Klant',
@@ -528,11 +582,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Challan-details laden...',
       'failedToLoadDetails': 'Kan details niet laden',
       'showSelectionCheckboxes': 'Selectievakjes tonen',
-      'enableCheckboxesHelp': 'Schakel selectievakjes in om velden voor afwijzingsopmerkingen te selecteren',
+      'enableCheckboxesHelp':
+          'Schakel selectievakjes in om velden voor afwijzingsopmerkingen te selecteren',
       'rejectRemarkTitle': 'Opmerking afwijzen',
       'reject': 'Afwijzen',
       'approve': 'Goedkeuren',
-      'pleaseSelectFieldOrReason': 'Vink minimaal één veld aan of voer een afwijzingsreden in',
+      'pleaseSelectFieldOrReason':
+          'Vink minimaal één veld aan of voer een afwijzingsreden in',
       'basicInformation': 'Basisinformatie',
       'pricingDetails': 'Prijsdetails',
       'discountsAndOffers': 'Kortingen en aanbiedingen',
@@ -543,8 +599,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Financiële details',
       'customerInformation': 'Klantinformatie',
       'rejectChallan': 'Challan afwijzen',
-      'checkedFieldInfo': 'Hieronder zijn de aangevinkte velden toegevoegd. U kunt het volgende bewerken voordat u het afwijst:',
-      'rejectRemarkHint': 'Opmerking afwijzen (automatisch ingevuld uit aangevinkte velden)...',
+      'checkedFieldInfo':
+          'Hieronder zijn de aangevinkte velden toegevoegd. U kunt het volgende bewerken voordat u het afwijst:',
+      'rejectRemarkHint':
+          'Opmerking afwijzen (automatisch ingevuld uit aangevinkte velden)...',
     },
     'or': {
       'customerLabel': 'ଗ୍ରାହକ',
@@ -560,11 +618,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'ଚ୍ୟାଲେନ୍ ବିବରଣୀ ଲୋଡ୍ କରୁଛି ...',
       'failedToLoadDetails': 'ବିବରଣୀ ଲୋଡ୍ କରିବାରେ ବିଫଳ |',
       'showSelectionCheckboxes': 'ଚୟନ ଚେକ୍ ବକ୍ସଗୁଡିକ ଦେଖାନ୍ତୁ |',
-      'enableCheckboxesHelp': 'ପ୍ରତ୍ୟାଖ୍ୟାନ ଟିପ୍ପଣୀ ପାଇଁ କ୍ଷେତ୍ର ଚୟନ କରିବାକୁ ଚେକ୍ ବକ୍ସଗୁଡିକ ସକ୍ଷମ କରନ୍ତୁ |',
+      'enableCheckboxesHelp':
+          'ପ୍ରତ୍ୟାଖ୍ୟାନ ଟିପ୍ପଣୀ ପାଇଁ କ୍ଷେତ୍ର ଚୟନ କରିବାକୁ ଚେକ୍ ବକ୍ସଗୁଡିକ ସକ୍ଷମ କରନ୍ତୁ |',
       'rejectRemarkTitle': 'ମନ୍ତବ୍ୟ ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ |',
       'reject': 'ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ |',
       'approve': 'ଅନୁମୋଦନ କରନ୍ତୁ |',
-      'pleaseSelectFieldOrReason': 'ଦୟାକରି ଅତିକମରେ ଗୋଟିଏ କ୍ଷେତ୍ର ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ଏକ ପ୍ରତ୍ୟାଖ୍ୟାନ କାରଣ ପ୍ରବେଶ କରନ୍ତୁ |',
+      'pleaseSelectFieldOrReason':
+          'ଦୟାକରି ଅତିକମରେ ଗୋଟିଏ କ୍ଷେତ୍ର ଯାଞ୍ଚ କରନ୍ତୁ କିମ୍ବା ଏକ ପ୍ରତ୍ୟାଖ୍ୟାନ କାରଣ ପ୍ରବେଶ କରନ୍ତୁ |',
       'basicInformation': 'ମ Basic ଳିକ ସୂଚନା',
       'pricingDetails': 'ମୂଲ୍ୟ ବିବରଣୀ',
       'discountsAndOffers': 'ରିହାତି ଏବଂ ଅଫର୍',
@@ -575,8 +635,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'ଆର୍ଥିକ ବିବରଣୀ',
       'customerInformation': 'ଗ୍ରାହକ ସୂଚନା',
       'rejectChallan': 'ଚ୍ୟାଲେଞ୍ଜକୁ ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ |',
-      'checkedFieldInfo': 'ଯାଞ୍ଚ ହୋଇଥିବା କ୍ଷେତ୍ରଗୁଡିକ ନିମ୍ନରେ ଯୋଡା ଯାଇଛି | ପ୍ରତ୍ୟାଖ୍ୟାନ କରିବା ପୂର୍ବରୁ ଆପଣ ସଂପାଦନ କରିପାରିବେ:',
-      'rejectRemarkHint': 'ଟିପ୍ପଣୀକୁ ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ (ଯାଞ୍ଚ ହୋଇଥିବା କ୍ଷେତ୍ରଗୁଡିକରୁ ସ୍ auto ତ - ଭର୍ତି) ...',
+      'checkedFieldInfo':
+          'ଯାଞ୍ଚ ହୋଇଥିବା କ୍ଷେତ୍ରଗୁଡିକ ନିମ୍ନରେ ଯୋଡା ଯାଇଛି | ପ୍ରତ୍ୟାଖ୍ୟାନ କରିବା ପୂର୍ବରୁ ଆପଣ ସଂପାଦନ କରିପାରିବେ:',
+      'rejectRemarkHint':
+          'ଟିପ୍ପଣୀକୁ ପ୍ରତ୍ୟାଖ୍ୟାନ କରନ୍ତୁ (ଯାଞ୍ଚ ହୋଇଥିବା କ୍ଷେତ୍ରଗୁଡିକରୁ ସ୍ auto ତ - ଭର୍ତି) ...',
     },
     'pa': {
       'customerLabel': 'ਗਾਹਕ',
@@ -592,11 +654,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'ਚਲਾਨ ਦੇ ਵੇਰਵੇ ਲੋਡ ਕੀਤੇ ਜਾ ਰਹੇ ਹਨ...',
       'failedToLoadDetails': 'ਵੇਰਵੇ ਲੋਡ ਕਰਨ ਵਿੱਚ ਅਸਫਲ',
       'showSelectionCheckboxes': 'ਚੋਣ ਚੈੱਕਬਾਕਸ ਦਿਖਾਓ',
-      'enableCheckboxesHelp': 'ਅਸਵੀਕਾਰ ਟਿੱਪਣੀਆਂ ਲਈ ਖੇਤਰ ਚੁਣਨ ਲਈ ਚੈਕਬਾਕਸ ਨੂੰ ਸਮਰੱਥ ਬਣਾਓ',
+      'enableCheckboxesHelp':
+          'ਅਸਵੀਕਾਰ ਟਿੱਪਣੀਆਂ ਲਈ ਖੇਤਰ ਚੁਣਨ ਲਈ ਚੈਕਬਾਕਸ ਨੂੰ ਸਮਰੱਥ ਬਣਾਓ',
       'rejectRemarkTitle': 'ਟਿੱਪਣੀ ਨੂੰ ਅਸਵੀਕਾਰ ਕਰੋ',
       'reject': 'ਅਸਵੀਕਾਰ ਕਰੋ',
       'approve': 'ਮਨਜ਼ੂਰ ਕਰੋ',
-      'pleaseSelectFieldOrReason': 'ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਖੇਤਰ ਦੀ ਜਾਂਚ ਕਰੋ ਜਾਂ ਅਸਵੀਕਾਰ ਕਰਨ ਦਾ ਕਾਰਨ ਦਾਖਲ ਕਰੋ',
+      'pleaseSelectFieldOrReason':
+          'ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ ਇੱਕ ਖੇਤਰ ਦੀ ਜਾਂਚ ਕਰੋ ਜਾਂ ਅਸਵੀਕਾਰ ਕਰਨ ਦਾ ਕਾਰਨ ਦਾਖਲ ਕਰੋ',
       'basicInformation': 'ਮੁੱਢਲੀ ਜਾਣਕਾਰੀ',
       'pricingDetails': 'ਕੀਮਤ ਦੇ ਵੇਰਵੇ',
       'discountsAndOffers': 'ਛੋਟਾਂ ਅਤੇ ਪੇਸ਼ਕਸ਼ਾਂ',
@@ -607,8 +671,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'ਵਿੱਤੀ ਵੇਰਵੇ',
       'customerInformation': 'ਗਾਹਕ ਜਾਣਕਾਰੀ',
       'rejectChallan': 'ਚਲਾਨ ਰੱਦ ਕਰੋ',
-      'checkedFieldInfo': 'ਚੈੱਕ ਕੀਤੇ ਖੇਤਰ ਹੇਠਾਂ ਸ਼ਾਮਲ ਕੀਤੇ ਗਏ ਹਨ। ਤੁਸੀਂ ਅਸਵੀਕਾਰ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਸੰਪਾਦਿਤ ਕਰ ਸਕਦੇ ਹੋ:',
-      'rejectRemarkHint': 'ਟਿੱਪਣੀ ਨੂੰ ਅਸਵੀਕਾਰ ਕਰੋ (ਚੈੱਕ ਕੀਤੇ ਖੇਤਰਾਂ ਤੋਂ ਸਵੈ-ਭਰਿਆ)...',
+      'checkedFieldInfo':
+          'ਚੈੱਕ ਕੀਤੇ ਖੇਤਰ ਹੇਠਾਂ ਸ਼ਾਮਲ ਕੀਤੇ ਗਏ ਹਨ। ਤੁਸੀਂ ਅਸਵੀਕਾਰ ਕਰਨ ਤੋਂ ਪਹਿਲਾਂ ਸੰਪਾਦਿਤ ਕਰ ਸਕਦੇ ਹੋ:',
+      'rejectRemarkHint':
+          'ਟਿੱਪਣੀ ਨੂੰ ਅਸਵੀਕਾਰ ਕਰੋ (ਚੈੱਕ ਕੀਤੇ ਖੇਤਰਾਂ ਤੋਂ ਸਵੈ-ਭਰਿਆ)...',
     },
     'pl': {
       'customerLabel': 'Klient',
@@ -624,11 +690,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Ładowanie szczegółów challanu...',
       'failedToLoadDetails': 'Nie udało się załadować szczegółów',
       'showSelectionCheckboxes': 'Pokaż pola wyboru',
-      'enableCheckboxesHelp': 'Włącz pola wyboru, aby wybrać pola dla uwag o odrzuceniu',
+      'enableCheckboxesHelp':
+          'Włącz pola wyboru, aby wybrać pola dla uwag o odrzuceniu',
       'rejectRemarkTitle': 'Odrzuć uwagę',
       'reject': 'Odrzucić',
       'approve': 'Zatwierdzić',
-      'pleaseSelectFieldOrReason': 'Proszę zaznaczyć przynajmniej jedno pole lub podać powód odrzucenia',
+      'pleaseSelectFieldOrReason':
+          'Proszę zaznaczyć przynajmniej jedno pole lub podać powód odrzucenia',
       'basicInformation': 'Podstawowe informacje',
       'pricingDetails': 'Szczegóły cenowe',
       'discountsAndOffers': 'Rabaty i oferty',
@@ -639,8 +707,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Szczegóły finansowe',
       'customerInformation': 'Informacje o kliencie',
       'rejectChallan': 'Odrzuć Challana',
-      'checkedFieldInfo': 'Zaznaczone pola zostały dodane poniżej. Możesz edytować przed odrzuceniem:',
-      'rejectRemarkHint': 'Odrzuć uwagę (uzupełniana automatycznie z zaznaczonych pól)...',
+      'checkedFieldInfo':
+          'Zaznaczone pola zostały dodane poniżej. Możesz edytować przed odrzuceniem:',
+      'rejectRemarkHint':
+          'Odrzuć uwagę (uzupełniana automatycznie z zaznaczonych pól)...',
     },
     'pt': {
       'customerLabel': 'Cliente',
@@ -656,11 +726,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Carregando detalhes do desafio...',
       'failedToLoadDetails': 'Falha ao carregar detalhes',
       'showSelectionCheckboxes': 'Mostrar caixas de seleção de seleção',
-      'enableCheckboxesHelp': 'Ative as caixas de seleção para selecionar campos para comentários de rejeição',
+      'enableCheckboxesHelp':
+          'Ative as caixas de seleção para selecionar campos para comentários de rejeição',
       'rejectRemarkTitle': 'Rejeitar observação',
       'reject': 'Rejeitar',
       'approve': 'Aprovar',
-      'pleaseSelectFieldOrReason': 'Marque pelo menos um campo ou insira um motivo de rejeição',
+      'pleaseSelectFieldOrReason':
+          'Marque pelo menos um campo ou insira um motivo de rejeição',
       'basicInformation': 'Informações Básicas',
       'pricingDetails': 'Detalhes de preços',
       'discountsAndOffers': 'Descontos e ofertas',
@@ -671,8 +743,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Detalhes Financeiros',
       'customerInformation': 'Informações do cliente',
       'rejectChallan': 'Rejeitar Challan',
-      'checkedFieldInfo': 'Os campos marcados são adicionados abaixo. Você pode editar antes de rejeitar:',
-      'rejectRemarkHint': 'Rejeitar observação (preenchido automaticamente a partir dos campos marcados)...',
+      'checkedFieldInfo':
+          'Os campos marcados são adicionados abaixo. Você pode editar antes de rejeitar:',
+      'rejectRemarkHint':
+          'Rejeitar observação (preenchido automaticamente a partir dos campos marcados)...',
     },
     'ru': {
       'customerLabel': 'Клиент',
@@ -688,11 +762,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Загрузка сведений о чалане...',
       'failedToLoadDetails': 'Не удалось загрузить детали',
       'showSelectionCheckboxes': 'Показать флажки выбора',
-      'enableCheckboxesHelp': 'Установите флажки для выбора полей для замечаний об отказе',
+      'enableCheckboxesHelp':
+          'Установите флажки для выбора полей для замечаний об отказе',
       'rejectRemarkTitle': 'Отклонить замечание',
       'reject': 'Отклонять',
       'approve': 'Утвердить',
-      'pleaseSelectFieldOrReason': 'Пожалуйста, проверьте хотя бы одно поле или укажите причину отклонения.',
+      'pleaseSelectFieldOrReason':
+          'Пожалуйста, проверьте хотя бы одно поле или укажите причину отклонения.',
       'basicInformation': 'Основная информация',
       'pricingDetails': 'Подробности о ценах',
       'discountsAndOffers': 'Скидки и предложения',
@@ -703,8 +779,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Финансовые детали',
       'customerInformation': 'Информация о клиенте',
       'rejectChallan': 'Отклонить Чаллан',
-      'checkedFieldInfo': 'Отмеченные поля добавлены ниже. Прежде чем отклонить, вы можете отредактировать:',
-      'rejectRemarkHint': 'Отклонить замечание (автоматически заполняется из отмеченных полей)...',
+      'checkedFieldInfo':
+          'Отмеченные поля добавлены ниже. Прежде чем отклонить, вы можете отредактировать:',
+      'rejectRemarkHint':
+          'Отклонить замечание (автоматически заполняется из отмеченных полей)...',
     },
     'ta': {
       'customerLabel': 'வாடிக்கையாளர்',
@@ -720,11 +798,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'சலான் விவரங்களை ஏற்றுகிறது...',
       'failedToLoadDetails': 'விவரங்களை ஏற்றுவதில் தோல்வி',
       'showSelectionCheckboxes': 'தேர்வு பெட்டிகளைக் காட்டு',
-      'enableCheckboxesHelp': 'நிராகரிப்பு கருத்துகளுக்கான புலங்களைத் தேர்ந்தெடுக்க தேர்வுப்பெட்டிகளை இயக்கவும்',
+      'enableCheckboxesHelp':
+          'நிராகரிப்பு கருத்துகளுக்கான புலங்களைத் தேர்ந்தெடுக்க தேர்வுப்பெட்டிகளை இயக்கவும்',
       'rejectRemarkTitle': 'கருத்தை நிராகரிக்கவும்',
       'reject': 'நிராகரிக்கவும்',
       'approve': 'ஒப்புதல்',
-      'pleaseSelectFieldOrReason': 'குறைந்தது ஒரு புலத்தையாவது சரிபார்க்கவும் அல்லது நிராகரிப்பு காரணத்தை உள்ளிடவும்',
+      'pleaseSelectFieldOrReason':
+          'குறைந்தது ஒரு புலத்தையாவது சரிபார்க்கவும் அல்லது நிராகரிப்பு காரணத்தை உள்ளிடவும்',
       'basicInformation': 'அடிப்படை தகவல்',
       'pricingDetails': 'விலை விவரங்கள்',
       'discountsAndOffers': 'தள்ளுபடிகள் & சலுகைகள்',
@@ -735,8 +815,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'நிதி விவரங்கள்',
       'customerInformation': 'வாடிக்கையாளர் தகவல்',
       'rejectChallan': 'சலனை நிராகரி',
-      'checkedFieldInfo': 'சரிபார்க்கப்பட்ட புலங்கள் கீழே சேர்க்கப்பட்டுள்ளன. நிராகரிப்பதற்கு முன் நீங்கள் திருத்தலாம்:',
-      'rejectRemarkHint': 'கருத்தை நிராகரி (சரிபார்க்கப்பட்ட புலங்களில் இருந்து தானாக நிரப்பப்பட்டது)...',
+      'checkedFieldInfo':
+          'சரிபார்க்கப்பட்ட புலங்கள் கீழே சேர்க்கப்பட்டுள்ளன. நிராகரிப்பதற்கு முன் நீங்கள் திருத்தலாம்:',
+      'rejectRemarkHint':
+          'கருத்தை நிராகரி (சரிபார்க்கப்பட்ட புலங்களில் இருந்து தானாக நிரப்பப்பட்டது)...',
     },
     'te': {
       'customerLabel': 'కస్టమర్',
@@ -752,11 +834,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'చలాన్ వివరాలను లోడ్ చేస్తోంది...',
       'failedToLoadDetails': 'వివరాలను లోడ్ చేయడంలో విఫలమైంది',
       'showSelectionCheckboxes': 'ఎంపిక చెక్‌బాక్స్‌లను చూపించు',
-      'enableCheckboxesHelp': 'తిరస్కరణ వ్యాఖ్యల కోసం ఫీల్డ్‌లను ఎంచుకోవడానికి చెక్‌బాక్స్‌లను ప్రారంభించండి',
+      'enableCheckboxesHelp':
+          'తిరస్కరణ వ్యాఖ్యల కోసం ఫీల్డ్‌లను ఎంచుకోవడానికి చెక్‌బాక్స్‌లను ప్రారంభించండి',
       'rejectRemarkTitle': 'వ్యాఖ్యను తిరస్కరించండి',
       'reject': 'తిరస్కరించు',
       'approve': 'ఆమోదించండి',
-      'pleaseSelectFieldOrReason': 'దయచేసి కనీసం ఒక ఫీల్డ్‌ని తనిఖీ చేయండి లేదా తిరస్కరణ కారణాన్ని నమోదు చేయండి',
+      'pleaseSelectFieldOrReason':
+          'దయచేసి కనీసం ఒక ఫీల్డ్‌ని తనిఖీ చేయండి లేదా తిరస్కరణ కారణాన్ని నమోదు చేయండి',
       'basicInformation': 'ప్రాథమిక సమాచారం',
       'pricingDetails': 'ధర వివరాలు',
       'discountsAndOffers': 'డిస్కౌంట్లు & ఆఫర్లు',
@@ -767,8 +851,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'ఆర్థిక వివరాలు',
       'customerInformation': 'కస్టమర్ సమాచారం',
       'rejectChallan': 'చలాన్‌ని తిరస్కరించండి',
-      'checkedFieldInfo': 'తనిఖీ చేసిన ఫీల్డ్‌లు దిగువన జోడించబడ్డాయి. మీరు తిరస్కరించే ముందు సవరించవచ్చు:',
-      'rejectRemarkHint': 'వ్యాఖ్యను తిరస్కరించండి (చెక్ చేసిన ఫీల్డ్‌ల నుండి స్వయంచాలకంగా పూరించబడింది)...',
+      'checkedFieldInfo':
+          'తనిఖీ చేసిన ఫీల్డ్‌లు దిగువన జోడించబడ్డాయి. మీరు తిరస్కరించే ముందు సవరించవచ్చు:',
+      'rejectRemarkHint':
+          'వ్యాఖ్యను తిరస్కరించండి (చెక్ చేసిన ఫీల్డ్‌ల నుండి స్వయంచాలకంగా పూరించబడింది)...',
     },
     'th': {
       'customerLabel': 'ลูกค้า',
@@ -784,11 +870,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'กำลังโหลดรายละเอียด chalan...',
       'failedToLoadDetails': 'โหลดรายละเอียดไม่สำเร็จ',
       'showSelectionCheckboxes': 'แสดงช่องทำเครื่องหมายการเลือก',
-      'enableCheckboxesHelp': 'เปิดใช้งานช่องทำเครื่องหมายเพื่อเลือกช่องสำหรับหมายเหตุการปฏิเสธ',
+      'enableCheckboxesHelp':
+          'เปิดใช้งานช่องทำเครื่องหมายเพื่อเลือกช่องสำหรับหมายเหตุการปฏิเสธ',
       'rejectRemarkTitle': 'ปฏิเสธข้อสังเกต',
       'reject': 'ปฏิเสธ',
       'approve': 'อนุมัติ',
-      'pleaseSelectFieldOrReason': 'โปรดตรวจสอบอย่างน้อยหนึ่งช่องหรือป้อนเหตุผลในการปฏิเสธ',
+      'pleaseSelectFieldOrReason':
+          'โปรดตรวจสอบอย่างน้อยหนึ่งช่องหรือป้อนเหตุผลในการปฏิเสธ',
       'basicInformation': 'ข้อมูลพื้นฐาน',
       'pricingDetails': 'รายละเอียดราคา',
       'discountsAndOffers': 'ส่วนลดและข้อเสนอ',
@@ -799,7 +887,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'รายละเอียดทางการเงิน',
       'customerInformation': 'ข้อมูลลูกค้า',
       'rejectChallan': 'ปฏิเสธชาลัน',
-      'checkedFieldInfo': 'ช่องที่เลือกจะถูกเพิ่มด้านล่าง คุณสามารถแก้ไขได้ก่อนที่จะปฏิเสธ:',
+      'checkedFieldInfo':
+          'ช่องที่เลือกจะถูกเพิ่มด้านล่าง คุณสามารถแก้ไขได้ก่อนที่จะปฏิเสธ:',
       'rejectRemarkHint': 'ปฏิเสธหมายเหตุ (กรอกอัตโนมัติจากช่องที่เลือก)...',
     },
     'tr': {
@@ -816,11 +905,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Challan ayrıntıları yükleniyor...',
       'failedToLoadDetails': 'Ayrıntılar yüklenemedi',
       'showSelectionCheckboxes': 'Seçim Onay Kutularını Göster',
-      'enableCheckboxesHelp': 'Reddetme açıklamalarına ilişkin alanları seçmek için onay kutularını etkinleştirin',
+      'enableCheckboxesHelp':
+          'Reddetme açıklamalarına ilişkin alanları seçmek için onay kutularını etkinleştirin',
       'rejectRemarkTitle': 'Açıklamayı reddet',
       'reject': 'Reddetmek',
       'approve': 'Onaylamak',
-      'pleaseSelectFieldOrReason': 'Lütfen en az bir alanı işaretleyin veya bir ret nedeni girin',
+      'pleaseSelectFieldOrReason':
+          'Lütfen en az bir alanı işaretleyin veya bir ret nedeni girin',
       'basicInformation': 'Temel Bilgiler',
       'pricingDetails': 'Fiyatlandırma Ayrıntıları',
       'discountsAndOffers': 'İndirimler ve Teklifler',
@@ -831,8 +922,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Finansal Detaylar',
       'customerInformation': 'Müşteri Bilgileri',
       'rejectChallan': 'Challan\'ı reddet',
-      'checkedFieldInfo': 'İşaretli alanlar aşağıya eklenmiştir. Reddetmeden önce düzenleyebilirsiniz:',
-      'rejectRemarkHint': 'Açıklamayı reddet (işaretli alanlardan otomatik olarak doldurulur)...',
+      'checkedFieldInfo':
+          'İşaretli alanlar aşağıya eklenmiştir. Reddetmeden önce düzenleyebilirsiniz:',
+      'rejectRemarkHint':
+          'Açıklamayı reddet (işaretli alanlardan otomatik olarak doldurulur)...',
     },
     'ur': {
       'customerLabel': 'گاہک',
@@ -848,11 +941,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'چالان کی تفصیلات لوڈ ہو رہی ہیں...',
       'failedToLoadDetails': 'تفصیلات لوڈ کرنے میں ناکام',
       'showSelectionCheckboxes': 'سلیکشن چیک باکسز دکھائیں۔',
-      'enableCheckboxesHelp': 'مسترد ریمارکس کے لیے فیلڈز کو منتخب کرنے کے لیے چیک باکسز کو فعال کریں۔',
+      'enableCheckboxesHelp':
+          'مسترد ریمارکس کے لیے فیلڈز کو منتخب کرنے کے لیے چیک باکسز کو فعال کریں۔',
       'rejectRemarkTitle': 'ریمارکس کو مسترد کریں۔',
       'reject': 'رد کرنا',
       'approve': 'منظور کرو',
-      'pleaseSelectFieldOrReason': 'براہ کرم کم از کم ایک فیلڈ چیک کریں یا مسترد کرنے کی وجہ درج کریں۔',
+      'pleaseSelectFieldOrReason':
+          'براہ کرم کم از کم ایک فیلڈ چیک کریں یا مسترد کرنے کی وجہ درج کریں۔',
       'basicInformation': 'بنیادی معلومات',
       'pricingDetails': 'قیمتوں کی تفصیلات',
       'discountsAndOffers': 'ڈسکاؤنٹس اور آفرز',
@@ -863,8 +958,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'مالی تفصیلات',
       'customerInformation': 'کسٹمر کی معلومات',
       'rejectChallan': 'چالان مسترد کریں۔',
-      'checkedFieldInfo': 'چیک شدہ فیلڈز نیچے شامل کیے گئے ہیں۔ آپ رد کرنے سے پہلے ترمیم کر سکتے ہیں:',
-      'rejectRemarkHint': 'ریمارکس کو مسترد کریں (چیک شدہ فیلڈ سے خود بخود بھرا ہوا)...',
+      'checkedFieldInfo':
+          'چیک شدہ فیلڈز نیچے شامل کیے گئے ہیں۔ آپ رد کرنے سے پہلے ترمیم کر سکتے ہیں:',
+      'rejectRemarkHint':
+          'ریمارکس کو مسترد کریں (چیک شدہ فیلڈ سے خود بخود بھرا ہوا)...',
     },
     'vi': {
       'customerLabel': 'Khách hàng',
@@ -880,11 +977,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'loadingChallanDetails': 'Đang tải chi tiết challan...',
       'failedToLoadDetails': 'Không thể tải chi tiết',
       'showSelectionCheckboxes': 'Hiển thị hộp kiểm lựa chọn',
-      'enableCheckboxesHelp': 'Bật hộp kiểm để chọn các trường cho nhận xét từ chối',
+      'enableCheckboxesHelp':
+          'Bật hộp kiểm để chọn các trường cho nhận xét từ chối',
       'rejectRemarkTitle': 'Từ chối nhận xét',
       'reject': 'Từ chối',
       'approve': 'Chấp thuận',
-      'pleaseSelectFieldOrReason': 'Vui lòng chọn ít nhất một trường hoặc nhập lý do từ chối',
+      'pleaseSelectFieldOrReason':
+          'Vui lòng chọn ít nhất một trường hoặc nhập lý do từ chối',
       'basicInformation': 'Thông tin cơ bản',
       'pricingDetails': 'Chi tiết giá cả',
       'discountsAndOffers': 'Giảm giá & Ưu đãi',
@@ -895,8 +994,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'financialDetails': 'Chi tiết tài chính',
       'customerInformation': 'Thông tin khách hàng',
       'rejectChallan': 'Từ chối Challan',
-      'checkedFieldInfo': 'Các trường được kiểm tra sẽ được thêm vào bên dưới. Bạn có thể chỉnh sửa trước khi từ chối:',
-      'rejectRemarkHint': 'Từ chối nhận xét (tự động điền từ các trường đã chọn)...',
+      'checkedFieldInfo':
+          'Các trường được kiểm tra sẽ được thêm vào bên dưới. Bạn có thể chỉnh sửa trước khi từ chối:',
+      'rejectRemarkHint':
+          'Từ chối nhận xét (tự động điền từ các trường đã chọn)...',
     },
     'zh': {
       'customerLabel': '顾客',
@@ -943,8 +1044,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   final TextEditingController _rejectRemarkController = TextEditingController();
   bool _isRadioSelected = false;
 
-  static const Color _primary = Color(0xFF1A56DB);
-  static const Color _secondary = Color(0xFF3B82F6);
+  static const Color _primary = Color(0xFF071426);
+  static const Color _secondary = Color(0xFF0E2542);
   static const Color _bg = Color(0xFFF0F4FF);
   static const Color _cardBg = Colors.white;
   static const Color _textDark = Color(0xFF1E293B);
@@ -1099,7 +1200,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return [
       _SectionDef(
         title: basic,
-        summary: _summary('${_t('customerLabel')}: ${_formatValue(d['customername'])}'),
+        summary: _summary(
+          '${_t('customerLabel')}: ${_formatValue(d['customername'])}',
+        ),
         icon: Icons.info_outline_rounded,
         iconColor: const Color(0xFF3B82F6),
         fields: [
@@ -1122,7 +1225,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: pricing,
-        summary: _summary('${_t('exShowroomLabel')}: ${_formatValue(d['ExshowRoomPrice'])}'),
+        summary: _summary(
+          '${_t('exShowroomLabel')}: ${_formatValue(d['ExshowRoomPrice'])}',
+        ),
         icon: Icons.attach_money_rounded,
         iconColor: const Color(0xFF10B981),
         fields: [
@@ -1155,7 +1260,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: discounts,
-        summary: _summary('${_t('corporateLabel')}: ${_formatValue(d['Corporateyn'])}'),
+        summary: _summary(
+          '${_t('corporateLabel')}: ${_formatValue(d['Corporateyn'])}',
+        ),
         icon: Icons.local_offer_rounded,
         iconColor: const Color(0xFFF59E0B),
         fields: [
@@ -1207,7 +1314,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: discount,
-        summary: _summary('${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}'),
+        summary: _summary(
+          '${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}',
+        ),
         icon: Icons.discount_rounded,
         iconColor: const Color(0xFFEC4899),
         fields: [
@@ -1227,7 +1336,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: rto,
-        summary: _summary('${_t('rtoAmountLabel')}: ${_formatValue(d['RTOAmount'])}'),
+        summary: _summary(
+          '${_t('rtoAmountLabel')}: ${_formatValue(d['RTOAmount'])}',
+        ),
         icon: Icons.directions_car_rounded,
         iconColor: const Color(0xFF8B5CF6),
         fields: [
@@ -1251,7 +1362,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: tax,
-        summary: _summary('${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}'),
+        summary: _summary(
+          '${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}',
+        ),
         icon: Icons.receipt_rounded,
         iconColor: const Color(0xFFEC4899),
         fields: [
@@ -1267,7 +1380,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: insurance,
-        summary: _summary('${_t('insuranceAmtLabel')}: ${_formatValue(d['insamt'])}'),
+        summary: _summary(
+          '${_t('insuranceAmtLabel')}: ${_formatValue(d['insamt'])}',
+        ),
         icon: Icons.security_rounded,
         iconColor: const Color(0xFF06B6D4),
         fields: [
@@ -1333,7 +1448,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: financial,
-        summary: _summary('${_t('netAmountLabel')}: ${_formatValue(d['netamount'])}'),
+        summary: _summary(
+          '${_t('netAmountLabel')}: ${_formatValue(d['netamount'])}',
+        ),
         icon: Icons.account_balance_rounded,
         iconColor: const Color(0xFFEF4444),
         fields: [
@@ -1378,7 +1495,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       ),
       _SectionDef(
         title: customer,
-        summary: _summary('${_t('mobileLabel')}: ${_formatValue(d['mobileno'])}'),
+        summary: _summary(
+          '${_t('mobileLabel')}: ${_formatValue(d['mobileno'])}',
+        ),
         icon: Icons.person_rounded,
         iconColor: const Color(0xFF6366F1),
         fields: [
@@ -2077,9 +2196,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            _t('pleaseSelectFieldOrReason'),
-          ),
+          content: Text(_t('pleaseSelectFieldOrReason')),
           backgroundColor: Color(0xFFEF4444),
         ),
       );
@@ -2389,9 +2506,7 @@ class _RejectDialogState extends State<_RejectDialog> {
     if (remark.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            widget.pleaseSelectFieldOrReasonText,
-          ),
+          content: Text(widget.pleaseSelectFieldOrReasonText),
           backgroundColor: Color(0xFFEF4444),
         ),
       );

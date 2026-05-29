@@ -88,7 +88,8 @@ class _ChallanScreenState extends State<ChallanScreen>
     },
     'pl': {
       'searchHint': 'Szukaj klienta, wyzwanie nie...',
-      'invalidChallanId': 'Nieprawidłowy identyfikator challana. Dostępne pola:',
+      'invalidChallanId':
+          'Nieprawidłowy identyfikator challana. Dostępne pola:',
     },
     'pt': {
       'searchHint': 'Pesquisa cliente, desafio não...',
@@ -122,26 +123,22 @@ class _ChallanScreenState extends State<ChallanScreen>
       'searchHint': 'Tìm kiếm khách hàng, challan no...',
       'invalidChallanId': 'ID challan không hợp lệ. Các trường có sẵn:',
     },
-    'zh': {
-      'searchHint': '搜索客户，查兰没有...',
-      'invalidChallanId': '查兰 ID 无效。可用字段：',
-    },
+    'zh': {'searchHint': '搜索客户，查兰没有...', 'invalidChallanId': '查兰 ID 无效。可用字段：'},
   };
 
   bool _loading = true;
   String? _error;
   List<Map<String, dynamic>> _rows = [];
-late stt.SpeechToText _speech;
+  late stt.SpeechToText _speech;
 
-bool _isListening = false;
+  bool _isListening = false;
 
-final TextEditingController _searchController =
-    TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
 
-List<Map<String, dynamic>> _filteredRows = [];
+  List<Map<String, dynamic>> _filteredRows = [];
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
-  
+
   // Date filter: 'challan' for Challan Date, 'expected' for Expected Delivery Date
   String _dateFilter = 'challan';
 
@@ -159,7 +156,9 @@ List<Map<String, dynamic>> _filteredRows = [];
     return [
       _ColDef(
         key: _dateFilter == 'challan' ? 'date' : 'exdate',
-        label: _dateFilter == 'challan' ? l10n.challanDate : l10n.expectedDeliveryDate,
+        label: _dateFilter == 'challan'
+            ? l10n.challanDate
+            : l10n.expectedDeliveryDate,
         flex: 3,
       ),
       _ColDef(key: 'sp_468', label: l10n.challanNo, flex: 3),
@@ -175,19 +174,15 @@ List<Map<String, dynamic>> _filteredRows = [];
   @override
   void initState() {
     super.initState();
-_speech = stt.SpeechToText();
+    _speech = stt.SpeechToText();
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
 
-    _fadeAnim = CurvedAnimation(
-      parent: _animController,
-      curve: Curves.easeOut,
-    );
+    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
 
     _loadData();
-   
   }
 
   @override
@@ -210,14 +205,14 @@ _speech = stt.SpeechToText();
         dateType: _dateFilter,
       );
 
-     setState(() {
-  _rows = List<Map<String, dynamic>>.from(data);
+      setState(() {
+        _rows = List<Map<String, dynamic>>.from(data);
 
-  // IMPORTANT
-  _filteredRows = List<Map<String, dynamic>>.from(data);
+        // IMPORTANT
+        _filteredRows = List<Map<String, dynamic>>.from(data);
 
-  _loading = false;
-});
+        _loading = false;
+      });
 
       _animController.forward();
     } catch (e) {
@@ -243,41 +238,30 @@ _speech = stt.SpeechToText();
 
     return text;
   }
-void _filterSearch(String query) {
-  if (query.trim().isEmpty) {
+
+  void _filterSearch(String query) {
+    if (query.trim().isEmpty) {
+      setState(() {
+        _filteredRows = _rows;
+      });
+      return;
+    }
+
+    final q = query.toLowerCase();
+
     setState(() {
-      _filteredRows = _rows;
+      _filteredRows = _rows.where((row) {
+        return row['sp_469'].toString().toLowerCase().contains(q) ||
+            row['sp_468'].toString().toLowerCase().contains(q) ||
+            row['date'].toString().toLowerCase().contains(q) ||
+            row['exdate'].toString().toLowerCase().contains(q);
+      }).toList();
     });
-    return;
   }
-
-  final q = query.toLowerCase();
-
-  setState(() {
-    _filteredRows = _rows.where((row) {
-      return row['sp_469']
-              .toString()
-              .toLowerCase()
-              .contains(q) ||
-          row['sp_468']
-              .toString()
-              .toLowerCase()
-              .contains(q) ||
-          row['date']
-              .toString()
-              .toLowerCase()
-              .contains(q) ||
-          row['exdate']
-              .toString()
-              .toLowerCase()
-              .contains(q);
-    }).toList();
-  });
-}
 
   void _onEdit(Map<String, dynamic> row) async {
     print("🔍 Edit clicked for row: $row");
-    
+
     final sp462 = row['sp_462']?.toString() ?? '';
     final challanNo = row['sp_468']?.toString() ?? '';
 
@@ -289,7 +273,9 @@ void _filterSearch(String query) {
         SnackBar(
           backgroundColor: const Color(0xFFE53935),
           behavior: SnackBarBehavior.floating,
-          content: Text("${_t('invalidChallanId')} ${row.keys.take(5).join(', ')}"),
+          content: Text(
+            "${_t('invalidChallanId')} ${row.keys.take(5).join(', ')}",
+          ),
           duration: const Duration(seconds: 5),
         ),
       );
@@ -299,10 +285,8 @@ void _filterSearch(String query) {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ChallanEditDetailsScreen(
-          sp462: sp462,
-          challanNo: challanNo,
-        ),
+        builder: (context) =>
+            ChallanEditDetailsScreen(sp462: sp462, challanNo: challanNo),
       ),
     );
 
@@ -311,60 +295,63 @@ void _filterSearch(String query) {
       _loadData();
     }
   }
-Future<void> _startListening() async {
-  try {
-    bool available = await _speech.initialize(
-      onStatus: (status) {
-        print("Speech Status: $status");
 
-        if (status == 'done') {
+  Future<void> _startListening() async {
+    try {
+      bool available = await _speech.initialize(
+        onStatus: (status) {
+          print("Speech Status: $status");
+
+          if (status == 'done') {
+            setState(() {
+              _isListening = false;
+            });
+          }
+        },
+        onError: (error) {
+          print("Speech Error: $error");
+
           setState(() {
             _isListening = false;
           });
-        }
-      },
-      onError: (error) {
-        print("Speech Error: $error");
-
-        setState(() {
-          _isListening = false;
-        });
-      },
-    );
-
-    if (available) {
-      setState(() {
-        _isListening = true;
-      });
-
-      _speech.listen(
-        listenMode: stt.ListenMode.confirmation,
-        onResult: (result) {
-          setState(() {
-            _searchController.text = result.recognizedWords;
-          });
-
-          _filterSearch(result.recognizedWords);
         },
       );
-    } else {
-      print("Speech recognition unavailable");
-    }
-  } catch (e) {
-    print("Speech exception: $e");
-  }
-}
-Future<void> _stopListening() async {
-  await _speech.stop();
 
-  setState(() {
-    _isListening = false;
-  });
-}
+      if (available) {
+        setState(() {
+          _isListening = true;
+        });
+
+        _speech.listen(
+          listenMode: stt.ListenMode.confirmation,
+          onResult: (result) {
+            setState(() {
+              _searchController.text = result.recognizedWords;
+            });
+
+            _filterSearch(result.recognizedWords);
+          },
+        );
+      } else {
+        print("Speech recognition unavailable");
+      }
+    } catch (e) {
+      print("Speech exception: $e");
+    }
+  }
+
+  Future<void> _stopListening() async {
+    await _speech.stop();
+
+    setState(() {
+      _isListening = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    
+
     return Scaffold(
       backgroundColor: _bg,
       body: Column(
@@ -374,10 +361,10 @@ Future<void> _stopListening() async {
             child: _loading
                 ? _buildLoader(l10n)
                 : _error != null
-                    ? _buildError(l10n)
-                    : _rows.isEmpty
-                        ? _buildEmpty(l10n)
-                        : _buildGrid(l10n),
+                ? _buildError(l10n)
+                : _rows.isEmpty
+                ? _buildEmpty(l10n)
+                : _buildGrid(l10n),
           ),
         ],
       ),
@@ -388,11 +375,7 @@ Future<void> _stopListening() async {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF1A3A8F),
-            _primary,
-            _secondary,
-          ],
+          colors: [Color(0xFF071426), Color(0xFF0E2542), Color(0xFF0A2E5C)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -565,10 +548,7 @@ Future<void> _stopListening() async {
             Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _textMid,
-              ),
+              style: const TextStyle(fontSize: 12, color: _textMid),
             ),
             const SizedBox(height: 28),
             ElevatedButton.icon(
@@ -606,11 +586,7 @@ Future<void> _stopListening() async {
               color: _accent.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Icon(
-              Icons.inbox_rounded,
-              size: 50,
-              color: _accent,
-            ),
+            child: const Icon(Icons.inbox_rounded, size: 50, color: _accent),
           ),
           const SizedBox(height: 20),
           Text(
@@ -637,7 +613,10 @@ Future<void> _stopListening() async {
               children: [
                 _StatChip(
                   icon: Icons.receipt_long_rounded,
-                  label: l10n.records(_rows.length, _rows.length == 1 ? '' : 's'),
+                  label: l10n.records(
+                    _rows.length,
+                    _rows.length == 1 ? '' : 's',
+                  ),
                   color: _primary,
                 ),
                 const Spacer(),
@@ -650,74 +629,69 @@ Future<void> _stopListening() async {
             ),
           ),
           Padding(
-  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-  child: Container(
-    height: 52,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(30),
-      boxShadow: [
-        BoxShadow(
-          color: Colors.black.withValues(alpha: 0.08),
-          blurRadius: 10,
-          offset: const Offset(0, 3),
-        ),
-      ],
-      border: Border.all(
-        color: const Color(0xFFE2E8F0),
-      ),
-    ),
-    child: Row(
-      children: [
-        const SizedBox(width: 14),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 14),
 
-        const Icon(
-          Icons.search,
-          color: Color(0xFF64748B),
-        ),
+                  const Icon(Icons.search, color: Color(0xFF64748B)),
 
-        const SizedBox(width: 10),
+                  const SizedBox(width: 10),
 
-        Expanded(
-          child: TextField(
-            controller: _searchController,
-            onChanged: _filterSearch,
-            decoration: InputDecoration(
-              hintText: _t('searchHint'),
-              border: InputBorder.none,
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterSearch,
+                      decoration: InputDecoration(
+                        hintText: _t('searchHint'),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      if (_isListening) {
+                        await _stopListening();
+                      } else {
+                        await _startListening();
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _isListening
+                            ? Colors.red
+                            : const Color(0xFF1A56DB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-
-        GestureDetector(
-        onTap: () async {
-  if (_isListening) {
-    await _stopListening();
-  } else {
-    await _startListening();
-  }
-},
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: _isListening
-                  ? Colors.red
-                  : const Color(0xFF1A56DB),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _isListening ? Icons.mic : Icons.mic_none,
-              color: Colors.white,
-              size: 20,
-            ),
-          ),
-        ),
-      ],
-    ),
-  ),
-),
           // ── Date Filter Section ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
@@ -726,10 +700,7 @@ Future<void> _stopListening() async {
               decoration: BoxDecoration(
                 color: _cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _gridBorder,
-                  width: 1,
-                ),
+                border: Border.all(color: _gridBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: _primary.withValues(alpha: 0.06),
@@ -790,7 +761,7 @@ Future<void> _stopListening() async {
               ),
             ),
           ),
-          
+
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -798,10 +769,7 @@ Future<void> _stopListening() async {
                 decoration: BoxDecoration(
                   color: _cardBg,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: _gridBorder,
-                    width: 1.2,
-                  ),
+                  border: Border.all(color: _gridBorder, width: 1.2),
                   boxShadow: [
                     BoxShadow(
                       color: _primary.withValues(alpha: 0.08),
@@ -814,9 +782,7 @@ Future<void> _stopListening() async {
                 child: Column(
                   children: [
                     _buildTableHeader(l10n),
-                    Expanded(
-                      child: _buildTableRows(),
-                    ),
+                    Expanded(child: _buildTableRows()),
                   ],
                 ),
               ),
@@ -832,17 +798,9 @@ Future<void> _stopListening() async {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF1A3A8F),
-            _primary,
-          ],
+          colors: [Color(0xFF071426), Color(0xFF0E2542)],
         ),
-        border: Border(
-          bottom: BorderSide(
-            color: _gridBorder,
-            width: 1.2,
-          ),
-        ),
+        border: Border(bottom: BorderSide(color: _gridBorder, width: 1.2)),
       ),
       child: Row(
         children: [
@@ -852,10 +810,7 @@ Future<void> _stopListening() async {
               child: Container(
                 decoration: const BoxDecoration(
                   border: Border(
-                    right: BorderSide(
-                      color: _gridHeaderBorder,
-                      width: 1,
-                    ),
+                    right: BorderSide(color: _gridHeaderBorder, width: 1),
                   ),
                 ),
                 child: Padding(
@@ -877,10 +832,7 @@ Future<void> _stopListening() async {
           SizedBox(
             width: 112,
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 13,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 13),
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -903,18 +855,14 @@ Future<void> _stopListening() async {
   Widget _buildTableRows() {
     final l10n = AppLocalizations.of(context)!;
     final columns = _columns(l10n);
-    
+
     return ListView.separated(
-     itemCount: _filteredRows.length,
+      itemCount: _filteredRows.length,
       separatorBuilder: (_, __) {
-        return const Divider(
-          height: 1,
-          thickness: 1,
-          color: _gridBorder,
-        );
+        return const Divider(height: 1, thickness: 1, color: _gridBorder);
       },
       itemBuilder: (context, index) {
-      final row = _filteredRows[index];
+        final row = _filteredRows[index];
 
         return _DataRow(
           row: row,
@@ -943,16 +891,11 @@ class _StatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1009,10 +952,7 @@ class _DataRow extends StatelessWidget {
               child: Container(
                 decoration: const BoxDecoration(
                   border: Border(
-                    right: BorderSide(
-                      color: _borderColor,
-                      width: 1,
-                    ),
+                    right: BorderSide(color: _borderColor, width: 1),
                   ),
                 ),
                 child: Padding(
@@ -1027,12 +967,11 @@ class _DataRow extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1A56DB)
-                                .withValues(alpha: 0.08),
+                            color: const Color(
+                              0xFF1A56DB,
+                            ).withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: const Color(0xFFBFDBFE),
-                            ),
+                            border: Border.all(color: const Color(0xFFBFDBFE)),
                           ),
                           child: Text(
                             value,
@@ -1049,7 +988,8 @@ class _DataRow extends StatelessWidget {
                           maxLines: 2,
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: (col.key == 'date' || col.key == 'exdate')
+                            fontWeight:
+                                (col.key == 'date' || col.key == 'exdate')
                                 ? FontWeight.w600
                                 : FontWeight.w700,
                             color: (col.key == 'date' || col.key == 'exdate')
@@ -1066,10 +1006,7 @@ class _DataRow extends StatelessWidget {
             child: Container(
               decoration: const BoxDecoration(
                 border: Border(
-                  right: BorderSide(
-                    color: _borderColor,
-                    width: 1,
-                  ),
+                  right: BorderSide(color: _borderColor, width: 1),
                 ),
               ),
               child: Center(
@@ -1082,16 +1019,12 @@ class _DataRow extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [
-                          Color(0xFF1A56DB),
-                          Color(0xFF3B82F6),
-                        ],
+                        colors: [Color(0xFF1A56DB), Color(0xFF3B82F6)],
                       ),
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1A56DB)
-                              .withValues(alpha: 0.3),
+                          color: const Color(0xFF1A56DB).withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -1136,10 +1069,7 @@ class _EditSheet extends StatefulWidget {
   final Map<String, dynamic> row;
   final VoidCallback onSaved;
 
-  const _EditSheet({
-    required this.row,
-    required this.onSaved,
-  });
+  const _EditSheet({required this.row, required this.onSaved});
 
   @override
   State<_EditSheet> createState() => _EditSheetState();
@@ -1186,9 +1116,7 @@ class _EditSheetState extends State<_EditSheet> {
       _saving = true;
     });
 
-    await Future.delayed(
-      const Duration(milliseconds: 800),
-    );
+    await Future.delayed(const Duration(milliseconds: 800));
 
     if (!mounted) return;
 
@@ -1204,9 +1132,7 @@ class _EditSheetState extends State<_EditSheet> {
       SnackBar(
         backgroundColor: const Color(0xFF1A56DB),
         behavior: SnackBarBehavior.floating,
-        content: const Text(
-          "Challan updated successfully",
-        ),
+        content: const Text("Challan updated successfully"),
       ),
     );
   }
@@ -1217,12 +1143,7 @@ class _EditSheetState extends State<_EditSheet> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-      padding: EdgeInsets.fromLTRB(
-        20,
-        24,
-        20,
-        20 + bottom,
-      ),
+      padding: EdgeInsets.fromLTRB(20, 24, 20, 20 + bottom),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -1304,15 +1225,10 @@ class _SheetField extends StatelessWidget {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(
-          icon,
-          color: const Color(0xFF1A56DB),
-        ),
+        prefixIcon: Icon(icon, color: const Color(0xFF1A56DB)),
         filled: true,
         fillColor: const Color(0xFFF8FAFF),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -1370,9 +1286,5 @@ class _ColDef {
   final String label;
   final int flex;
 
-  const _ColDef({
-    required this.key,
-    required this.label,
-    required this.flex,
-  });
+  const _ColDef({required this.key, required this.label, required this.flex});
 }
