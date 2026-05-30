@@ -114,6 +114,16 @@ class _SplashScreenState extends State<SplashScreen>
                   letterSpacing: 3,
                 ),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                "A smarter way to manage your car service",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  letterSpacing: 0.5,
+                ),
+              ),
               const SizedBox(height: 48),
               const SizedBox(
                 width: 28,
