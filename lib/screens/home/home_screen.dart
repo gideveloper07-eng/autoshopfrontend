@@ -461,11 +461,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: "Challan",
                             subtitle: "View & manage challans",
                             gradient: [
-                              const Color(0xFF071426),
-                              const Color(0xFF0E2542),
-                              const Color(0xFF42A5F5),
+                              const Color(0xFF0B1F3A),
+                              const Color(0xFF1E4F9C),
+                              const Color(0xFF4FA3FF),
                             ],
-                            accentColor: const Color(0xFF82B1FF),
+                            accentColor: const Color(0xFFFF80AB),
                             onTap: () {
                               Navigator.push(
                                 context,
