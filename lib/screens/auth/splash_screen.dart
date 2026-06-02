@@ -18,8 +18,9 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
 
-  static const Color kRed = Color(0xFF071426); // Blue
-  static const Color kRedDark = Color(0xFF0E2542); // Dark Blue
+  static const Color kSplashDark = Color(0xFF0D3F8A);
+  static const Color kSplashMid = Color(0xFF2C6CE0);
+  static const Color kSplashLight = Color(0xFF82C9FF);
 
   @override
   void initState() {
@@ -76,9 +77,10 @@ class _SplashScreenState extends State<SplashScreen>
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [kRedDark, kRed],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            colors: [kSplashDark, kSplashMid, kSplashLight],
+            stops: [0.0, 0.45, 1.0],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: FadeTransition(

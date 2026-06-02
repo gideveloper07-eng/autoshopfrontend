@@ -1044,9 +1044,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   final TextEditingController _rejectRemarkController = TextEditingController();
   bool _isRadioSelected = false;
 
-  static const Color _primary = Color(0xFF071426);
-  static const Color _secondary = Color(0xFF0E2542);
-  static const Color _bg = Color(0xFFF0F4FF);
+  static const Color _primary = Color(0xFF0D3F8A);
+  static const Color _secondary = Color(0xFF2C6CE0);
+  static const Color _bg = Color(0xFFF4F9FF);
   static const Color _cardBg = Colors.white;
   static const Color _textDark = Color(0xFF1E293B);
   static const Color _textMid = Color(0xFF64748B);
@@ -1540,13 +1540,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF1A3A8F), _primary, _secondary],
+          colors: [Color(0xFF0D3F8A), _primary, _secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x551A56DB),
+            color: Color(0x332C6CE0),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -1917,137 +1917,145 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       children: [
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            key: ValueKey('${section.title}-$isExpanded'),
-            tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-            childrenPadding: EdgeInsets.zero,
-            leading: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: hasCriticalField
-                        ? const Color(0xFFFFE5E5)
-                        : section.iconColor.withValues(alpha: 0.1),
+          child: Material(
+            color: Colors.transparent,
+            child: ExpansionTile(
+              key: ValueKey('${section.title}-$isExpanded'),
+              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+              childrenPadding: EdgeInsets.zero,
+              leading: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: hasCriticalField
+                          ? const Color(0xFFFFE5E5)
+                          : section.iconColor.withValues(alpha: 0.1),
 
-                    borderRadius: BorderRadius.circular(8),
+                      borderRadius: BorderRadius.circular(8),
 
-                    border: hasCriticalField
-                        ? Border.all(color: const Color(0xFFFF6B6B), width: 1.2)
-                        : null,
-                  ),
+                      border: hasCriticalField
+                          ? Border.all(
+                              color: const Color(0xFFFF6B6B),
+                              width: 1.2,
+                            )
+                          : null,
+                    ),
 
-                  child: Icon(
-                    section.icon,
-                    color: hasCriticalField
-                        ? const Color(0xFFDC2626)
-                        : section.iconColor,
-                    size: 20,
-                  ),
-                ),
-
-                if (hasCriticalField)
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      width: 18,
-                      height: 18,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFDC2626),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-
-                      child: const Icon(
-                        Icons.priority_high,
-                        size: 10,
-                        color: Colors.white,
-                      ),
+                    child: Icon(
+                      section.icon,
+                      color: hasCriticalField
+                          ? const Color(0xFFDC2626)
+                          : section.iconColor,
+                      size: 20,
                     ),
                   ),
-              ],
-            ),
-            title: Text(
-              _localizedSectionTitle(l10n, section.title),
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
 
-                color: hasCriticalField ? const Color(0xFFB91C1C) : _textDark,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (section.summary != null)
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: summaryMaxWidth),
-                    child: Text(
-                      section.summary!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: _textDark,
-                      ),
-                    ),
-                  ),
-                if (section.summary != null) const SizedBox(width: 6),
-                AnimatedRotation(
-                  turns: isExpanded ? 0.5 : 0,
-                  duration: const Duration(milliseconds: 200),
-                  child: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    color: Color(0xFF334155),
-                  ),
-                ),
-              ],
-            ),
-            initiallyExpanded: isExpanded,
-            onExpansionChanged: (expanded) {
-              setState(() {
-                if (expanded) {
-                  _expandedSections.add(section.title);
-                } else {
-                  _expandedSections.remove(section.title);
-                }
-
-                _savePageState();
-              });
-            },
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: _rowBorder, width: 1.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < section.fields.length; i++)
-                        _SectionFieldRow(
-                          field: section.fields[i],
-                          isEven: i % 2 == 0,
-                          isLast: i == section.fields.length - 1,
-                          isChecked: _checkedRejectFields.contains(
-                            section.fields[i].fieldKey,
-                          ),
-                          onCheckChanged: (v) =>
-                              _toggleRejectField(section.fields[i].fieldKey, v),
-                          showCheckbox: _isRadioSelected,
+                  if (hasCriticalField)
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        width: 18,
+                        height: 18,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDC2626),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
-                    ],
-                  ),
+
+                        child: const Icon(
+                          Icons.priority_high,
+                          size: 10,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              title: Text(
+                _localizedSectionTitle(l10n, section.title),
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+
+                  color: hasCriticalField ? const Color(0xFFB91C1C) : _textDark,
                 ),
               ),
-            ],
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (section.summary != null)
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: summaryMaxWidth),
+                      child: Text(
+                        section.summary!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: _textDark,
+                        ),
+                      ),
+                    ),
+                  if (section.summary != null) const SizedBox(width: 6),
+                  AnimatedRotation(
+                    turns: isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: Color(0xFF334155),
+                    ),
+                  ),
+                ],
+              ),
+              initiallyExpanded: isExpanded,
+              onExpansionChanged: (expanded) {
+                setState(() {
+                  if (expanded) {
+                    _expandedSections.add(section.title);
+                  } else {
+                    _expandedSections.remove(section.title);
+                  }
+
+                  _savePageState();
+                });
+              },
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: _rowBorder, width: 1.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < section.fields.length; i++)
+                          _SectionFieldRow(
+                            field: section.fields[i],
+                            isEven: i % 2 == 0,
+                            isLast: i == section.fields.length - 1,
+                            isChecked: _checkedRejectFields.contains(
+                              section.fields[i].fieldKey,
+                            ),
+                            onCheckChanged: (v) => _toggleRejectField(
+                              section.fields[i].fieldKey,
+                              v,
+                            ),
+                            showCheckbox: _isRadioSelected,
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (showDivider)

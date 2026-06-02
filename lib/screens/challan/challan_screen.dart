@@ -142,15 +142,15 @@ class _ChallanScreenState extends State<ChallanScreen>
   // Date filter: 'challan' for Challan Date, 'expected' for Expected Delivery Date
   String _dateFilter = 'challan';
 
-  static const Color _primary = Color(0xFF1A56DB);
-  static const Color _secondary = Color(0xFF3B82F6);
-  static const Color _accent = Color(0xFF60A5FA);
-  static const Color _bg = Color(0xFFF0F4FF);
+  static const Color _primary = Color(0xFF0D3F8A); // dark splash blue
+  static const Color _secondary = Color(0xFF3B2A96); // deep purple
+  static const Color _accent = Color(0xFF57D1FF); // bright cyan accent
+  static const Color _bg = Color(0xFFF4F9FF);
   static const Color _cardBg = Colors.white;
   static const Color _textDark = Color(0xFF1E293B);
   static const Color _textMid = Color(0xFF64748B);
   static const Color _gridBorder = Color(0xFFC7D2FE);
-  static const Color _gridHeaderBorder = Color(0xFF93C5FD);
+  static const Color _gridHeaderBorder = Color(0xFF27406D);
 
   List<_ColDef> _columns(AppLocalizations l10n) {
     return [
@@ -375,13 +375,13 @@ class _ChallanScreenState extends State<ChallanScreen>
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF071426), Color(0xFF0E2542), Color(0xFF0A2E5C)],
+          colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF82C9FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x551A56DB),
+            color: Color(0x332C6CE0),
             blurRadius: 20,
             offset: Offset(0, 6),
           ),
@@ -798,7 +798,9 @@ class _ChallanScreenState extends State<ChallanScreen>
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF071426), Color(0xFF0E2542)],
+          colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
         border: Border(bottom: BorderSide(color: _gridBorder, width: 1.2)),
       ),

@@ -9,6 +9,7 @@ import '../challan/challan_screen.dart';
 import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import '../../theme/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -163,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1565C0),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -202,26 +203,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FB),
+      backgroundColor: AppColors.background,
       body: Column(
         children: [
           // ── HEADER ────────────────────────────────────────────────────
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF071426),
-                  Color(0xFF0E2542),
-                  Color(0xFF42A5F5),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+            decoration: BoxDecoration(
+              gradient: AppColors.vibrantGradient,
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x441565C0),
+                  color: AppColors.shadowPrimary,
                   blurRadius: 16,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -428,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         text: TextSpan(
                           style: const TextStyle(
                             fontSize: 18,
-                            color: Color(0xFF1A1A2E),
+                            color: AppColors.textPrimary,
                           ),
                           children: [
                             const TextSpan(text: "Welcome, "),
@@ -436,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               text: widget.userName.split(' ').first,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF1565C0),
+                                color: AppColors.primary,
                               ),
                             ),
                           ],
@@ -447,7 +440,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 4),
                   Text(
                     "What would you like to do today?",
-                    style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -461,11 +457,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             label: "Challan",
                             subtitle: "View & manage challans",
                             gradient: [
-                              const Color(0xFF0B1F3A),
-                              const Color(0xFF1E4F9C),
-                              const Color(0xFF4FA3FF),
+                              const Color(0xFF0A2E5C), // dark blue
+                              const Color(0xFF3B2A96), // deep purple
+                              const Color(0xFF6A4BD8), // lighter purple
                             ],
-                            accentColor: const Color(0xFFFF80AB),
+                            accentColor: AppColors.secondary,
                             onTap: () {
                               Navigator.push(
                                 context,

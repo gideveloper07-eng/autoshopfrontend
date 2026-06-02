@@ -9,26 +9,26 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey        = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
   final companyCodeCtrl = TextEditingController();
-  final userIdCtrl      = TextEditingController();
-  final passwordCtrl    = TextEditingController();
-  bool isLoading        = false;
-  bool obscure          = true;
+  final userIdCtrl = TextEditingController();
+  final passwordCtrl = TextEditingController();
+  bool isLoading = false;
+  bool obscure = true;
   bool isValidatingCode = false;
   bool? companyValid;
 
-String databaseName = "";
-String companyName = "";
-String utg = "";  
+  String databaseName = "";
+  String companyName = "";
+  String utg = "";
 
-static const Color kBlue      = Color(0xFF1565C0);
-static const Color kBlueLight = Color(0xFF42A5F5);
-static const Color kBlueDark  = Color(0xFF0D47A1);
-static const Color kBlueDeep  = Color(0xFF0A2E5C);
-static const Color kNavy      = Color(0xFF071426);
-static const Color kNavySoft  = Color(0xFF0E2542);
-static const Color kSteel     = Color(0xFFB9C7D9);
+  static const Color kBlue = Color(0xFF1565C0);
+  static const Color kBlueLight = Color(0xFF42A5F5);
+  static const Color kBlueDark = Color(0xFF0D47A1);
+  static const Color kBlueDeep = Color(0xFF0A2E5C);
+  static const Color kNavy = Color(0xFF071426);
+  static const Color kNavySoft = Color(0xFF0E2542);
+  static const Color kSteel = Color(0xFFB9C7D9);
 
   @override
   void initState() {
@@ -41,23 +41,20 @@ static const Color kSteel     = Color(0xFFB9C7D9);
     final code = companyCodeCtrl.text.trim();
     if (code.isEmpty) return;
     setState(() => isValidatingCode = true);
-//final result = await ApiService.validateCompany(code);
-Map<String, dynamic> result =
-    await ApiService.validateCompany(code);
+    //final result = await ApiService.validateCompany(code);
+    Map<String, dynamic> result = await ApiService.validateCompany(code);
 
-setState(() {
-  isValidatingCode = false;
+    setState(() {
+      isValidatingCode = false;
 
-  //databaseName = result['databaseName'] ?? "";
-  //companyName  = result['companyName'] ?? "";
-  databaseName =
-    result['databaseName']?.toString() ?? "";
+      //databaseName = result['databaseName'] ?? "";
+      //companyName  = result['companyName'] ?? "";
+      databaseName = result['databaseName']?.toString() ?? "";
 
-companyName =
-    result['companyName']?.toString() ?? "";
+      companyName = result['companyName']?.toString() ?? "";
 
-  companyValid = databaseName.isNotEmpty;
-});
+      companyValid = databaseName.isNotEmpty;
+    });
   }
 
   @override
@@ -81,32 +78,32 @@ companyName =
     }
     setState(() => isLoading = true);
     print("DATABASE NAME : $databaseName");
-print("USER ID       : ${userIdCtrl.text.trim()}");
-print("USER ID       : ${passwordCtrl.text.trim()}");
- final res = await ApiService.login(
-  databaseName: databaseName,
-  userId: userIdCtrl.text.trim(),
-  password: passwordCtrl.text.trim(),
-);
+    print("USER ID       : ${userIdCtrl.text.trim()}");
+    print("USER ID       : ${passwordCtrl.text.trim()}");
+    final res = await ApiService.login(
+      databaseName: databaseName,
+      userId: userIdCtrl.text.trim(),
+      password: passwordCtrl.text.trim(),
+    );
     setState(() => isLoading = false);
     if (!mounted) return;
 
     if (res != null && res['token'] != null) {
       // Save companyCode (not returned by server, so we store it from the form)
       await ApiService.saveUserSession(
-        token:        res['token'],
-        userId:       res['userId']?.toString()       ?? userIdCtrl.text.trim(),
-        userName:     res['name']?.toString()         ?? userIdCtrl.text.trim(),
-        userEmail:    res['email']?.toString()        ?? '',
+        token: res['token'],
+        userId: res['userId']?.toString() ?? userIdCtrl.text.trim(),
+        userName: res['name']?.toString() ?? userIdCtrl.text.trim(),
+        userEmail: res['email']?.toString() ?? '',
         databaseName: res['databaseName']?.toString() ?? databaseName,
-        companyCode:  companyCodeCtrl.text.trim(),
-        utg:          res["utg"].toString(),
+        companyCode: companyCodeCtrl.text.trim(),
+        utg: res["utg"].toString(),
       );
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => HomeScreen(
-            userName:  res['name']  ?? res['userId'] ?? 'User',
+            userName: res['name'] ?? res['userId'] ?? 'User',
             userEmail: res['email'] ?? '',
           ),
         ),
@@ -121,9 +118,14 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            icon: const Icon(Icons.devices_other_rounded,
-                color: Color(0xFF8B1E3F), size: 40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            icon: const Icon(
+              Icons.devices_other_rounded,
+              color: Color(0xFF8B1E3F),
+              size: 40,
+            ),
             title: const Text(
               "Already Logged In",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
@@ -142,9 +144,12 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
                   backgroundColor: const Color(0xFF8B1E3F),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8)),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 32, vertical: 12),
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
                 ),
                 child: const Text("OK"),
               ),
@@ -153,10 +158,7 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(msg),
-            backgroundColor: kBlueDark,
-          ),
+          SnackBar(content: Text(msg), backgroundColor: kBlueDark),
         );
       }
     }
@@ -170,8 +172,8 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [kNavy, kNavySoft, Color(0xFFE6EBF2)],
-            stops: [0.0, 0.52, 0.52],
+            colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF83C4FF)],
+            stops: [0.0, 0.45, 1.0],
           ),
         ),
         child: Stack(
@@ -179,16 +181,24 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
             Positioned(
               top: -90,
               left: -60,
-              child: _bgGlow(220, Colors.white.withOpacity(0.05)),
+              child: _bgGlow(220, Colors.white.withOpacity(0.06)),
             ),
             Positioned(
-              top: 120,
-              right: -80,
-              child: _bgGlow(250, Colors.white.withOpacity(0.04)),
+              top: 90,
+              right: -90,
+              child: _bgGlow(260, Colors.white.withOpacity(0.05)),
+            ),
+            Positioned(
+              bottom: -80,
+              left: -90,
+              child: _bgGlow(180, Colors.white.withOpacity(0.04)),
             ),
             SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 18,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
                     minHeight: MediaQuery.of(context).size.height - 36,
@@ -219,10 +229,7 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
     return Container(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-      ),
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 
@@ -235,14 +242,14 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0A1F38), Color(0xFF11335B), Color(0xFF1E4E82)],
+          colors: [Color(0xFF2979FF), Color(0xFF4EA9FF), Color(0xFF83D4FF)],
         ),
-        border: Border.all(color: Colors.white24, width: 1),
+        border: Border.all(color: Colors.white.withOpacity(0.26), width: 1.3),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.36),
-            blurRadius: 26,
-            offset: const Offset(0, 12),
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -252,9 +259,19 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
+              color: Colors.white.withOpacity(0.16),
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: Colors.white.withOpacity(0.34), width: 1.2),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.35),
+                width: 1.3,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.white.withOpacity(0.18),
+                  blurRadius: 28,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
             child: const Icon(
               Icons.directions_car_filled_rounded,
@@ -293,14 +310,19 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 26),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.93),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withOpacity(0.85)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFFFFF), Color(0xFFF4FBFF)],
+          stops: [0.0, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE6F4FF), width: 1.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.16),
-            blurRadius: 26,
-            offset: const Offset(0, 12),
+            color: const Color(0x220D3C74),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -341,33 +363,52 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
                 style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
                 decoration: InputDecoration(
                   hintText: "Enter company code",
-                  hintStyle: TextStyle(color: const Color(0xFF73839A), fontSize: 13),
-                  prefixIcon: const Icon(Icons.business_outlined, color: kBlue, size: 20),
+                  hintStyle: TextStyle(
+                    color: const Color(0xFF73839A),
+                    fontSize: 13,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.business_outlined,
+                    color: kBlue,
+                    size: 20,
+                  ),
                   suffixIcon: isValidatingCode
                       ? const Padding(
                           padding: EdgeInsets.all(12),
                           child: SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: kBlue),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: kBlue,
+                            ),
                           ),
                         )
                       : companyValid == true
-                          ? const Icon(Icons.check_circle, color: Colors.green, size: 20)
-                          : companyValid == false
-                              ? const Icon(Icons.cancel, color: Colors.red, size: 20)
-                              : null,
+                      ? const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 20,
+                        )
+                      : companyValid == false
+                      ? const Icon(Icons.cancel, color: Colors.red, size: 20)
+                      : null,
                   filled: true,
-                  fillColor: const Color(0xFFF3F7FC),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                  fillColor: companyValid == false
+                      ? const Color(0xFFFFECEF)
+                      : const Color(0xFFFFF3F5),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 4,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
                       color: companyValid == false
                           ? Colors.red
                           : companyValid == true
-                              ? Colors.green
-                              : const Color(0xFFD6E3F0),
+                          ? Colors.green
+                          : const Color(0xFFD6E3F0),
                     ),
                   ),
                   enabledBorder: OutlineInputBorder(
@@ -376,8 +417,8 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
                       color: companyValid == false
                           ? Colors.red
                           : companyValid == true
-                              ? Colors.green
-                              : const Color(0xFFD6E3F0),
+                          ? Colors.green
+                          : const Color(0xFFD6E3F0),
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -406,7 +447,9 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
               ctrl: userIdCtrl,
               hint: "Enter your user ID",
               icon: Icons.person_outline,
-              validator: (v) => (v == null || v.trim().isEmpty) ? "User ID is required" : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? "User ID is required"
+                  : null,
             ),
             const SizedBox(height: 16),
             _label("Password"),
@@ -419,16 +462,20 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF0D2746), Color(0xFF1A4474), Color(0xFF2B6DB2)],
+                    colors: [
+                      Color(0xFF1A6BE3),
+                      Color(0xFF28A8F6),
+                      Color(0xFF57D1FF),
+                    ],
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                   ),
                   borderRadius: BorderRadius.circular(12),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.26),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      color: Colors.black.withOpacity(0.16),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
@@ -439,7 +486,9 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
                     disabledBackgroundColor: Colors.transparent,
                     backgroundColor: Colors.transparent,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: isLoading
                       ? const SizedBox(
@@ -468,13 +517,13 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
   }
 
   Widget _label(String text) => Text(
-        text,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF333333),
-        ),
-      );
+    text,
+    style: const TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Color(0xFF333333),
+    ),
+  );
 
   Widget _field({
     required TextEditingController ctrl,
@@ -491,9 +540,8 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
         hintStyle: const TextStyle(color: Color(0xFF73839A), fontSize: 13),
         prefixIcon: Icon(icon, color: kBlue, size: 20),
         filled: true,
-        fillColor: const Color(0xFFF3F7FC),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        fillColor: const Color(0xFFE8F2FF),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
@@ -524,8 +572,7 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
       decoration: InputDecoration(
         hintText: "Enter your password",
         hintStyle: const TextStyle(color: Color(0xFF73839A), fontSize: 13),
-        prefixIcon:
-            const Icon(Icons.lock_outline, color: kBlue, size: 20),
+        prefixIcon: const Icon(Icons.lock_outline, color: kBlue, size: 20),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off : Icons.visibility,
@@ -535,9 +582,8 @@ print("USER ID       : ${passwordCtrl.text.trim()}");
           onPressed: () => setState(() => obscure = !obscure),
         ),
         filled: true,
-        fillColor: const Color(0xFFF3F7FC),
-        contentPadding:
-            const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+        fillColor: const Color(0xFFE8F2FF),
+        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFFD6E3F0)),
