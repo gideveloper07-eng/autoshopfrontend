@@ -7,7 +7,7 @@ import '../l10n/app_localizations.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+// import 'package:screen_protector/screen_protector.dart'; // Temporarily disabled
 
 import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
@@ -18,10 +18,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Disable screenshots for mobile and tablet (Android only)
+  // Screenshot blocking is now implemented in native Android code (MainActivity.kt)
   if (!kIsWeb) {
     try {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-      print("Screenshot blocking enabled");
+      print("Screenshot blocking enabled via native Android code");
     } catch (e) {
       print("Error enabling screenshot blocking: $e");
     }

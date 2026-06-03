@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 
 /// Helper class to manage screenshot blocking across the application
+/// Screenshot blocking is now implemented at the native Android level (MainActivity.kt)
+/// This class is kept for future compatibility if dynamic toggling is needed
 class ScreenshotBlocker {
-  static bool _isBlocked = false;
+  static bool _isBlocked = true; // Always blocked via native code
 
   /// Enable screenshot blocking
-  /// Works on Android and iOS (with native implementation)
+  /// Note: Screenshot blocking is permanently enabled in MainActivity.kt
   static Future<void> enableScreenshotBlocking() async {
     if (kIsWeb) {
       // Screenshot blocking is not supported on web
@@ -16,36 +17,24 @@ class ScreenshotBlocker {
       return;
     }
 
-    try {
-      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
-      _isBlocked = true;
-      if (kDebugMode) {
-        print('Screenshot blocking enabled successfully');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error enabling screenshot blocking: $e');
-      }
+    // Screenshot blocking is handled at native level in MainActivity.kt
+    _isBlocked = true;
+    if (kDebugMode) {
+      print('Screenshot blocking is enabled via native Android code');
     }
   }
 
   /// Disable screenshot blocking
-  /// Use this if you need to temporarily allow screenshots
+  /// Note: Currently not supported as blocking is set at native level
+  /// You would need to use MethodChannel to dynamically control this
   static Future<void> disableScreenshotBlocking() async {
     if (kIsWeb) {
       return;
     }
 
-    try {
-      await FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SECURE);
-      _isBlocked = false;
-      if (kDebugMode) {
-        print('Screenshot blocking disabled');
-      }
-    } catch (e) {
-      if (kDebugMode) {
-        print('Error disabling screenshot blocking: $e');
-      }
+    if (kDebugMode) {
+      print('Screenshot blocking cannot be disabled dynamically (set in native code)');
+      print('To disable, modify MainActivity.kt and rebuild the app');
     }
   }
 
@@ -53,11 +42,10 @@ class ScreenshotBlocker {
   static bool get isBlocked => _isBlocked;
 
   /// Toggle screenshot blocking on/off
+  /// Note: Currently not supported dynamically
   static Future<void> toggleScreenshotBlocking() async {
-    if (_isBlocked) {
-      await disableScreenshotBlocking();
-    } else {
-      await enableScreenshotBlocking();
+    if (kDebugMode) {
+      print('Screenshot blocking is permanently enabled at native level');
     }
   }
 }
