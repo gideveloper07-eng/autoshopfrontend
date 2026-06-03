@@ -82,6 +82,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
 
       debugShowCheckedModeBanner: false,
+      
+      // Hide debug banner in web
+      showPerformanceOverlay: false,
 
       title: 'MyAutoShop',
       
