@@ -150,7 +150,7 @@ class _ChallanScreenState extends State<ChallanScreen>
   static const Color _textDark = Color(0xFF1E293B);
   static const Color _textMid = Color(0xFF64748B);
   static const Color _gridBorder = Color(0xFFC7D2FE);
-  static const Color _gridHeaderBorder = Color(0xFF8B0000); // Dark red for header borders
+  static const Color _gridHeaderBorder = Color(0xFF27406D);
 
   List<_ColDef> _columns(AppLocalizations l10n) {
     return [
@@ -798,7 +798,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFFDC143C), Color(0xFFFF4500)],
+          colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1021,12 +1021,12 @@ class _DataRow extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFDC143C), Color(0xFFFF4500)],
+                        colors: [Color(0xFF1A56DB), Color(0xFF3B82F6)],
                       ),
                       borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFDC143C).withValues(alpha: 0.3),
+                          color: const Color(0xFF1A56DB).withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -1256,7 +1256,7 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: isSelected
               ? const LinearGradient(
-                  colors: [Color(0xFFDC143C), Color(0xFFFF4500)],
+                  colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -1265,7 +1265,7 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFDC143C)
+                ? const Color(0xFFDC2626)
                 : const Color(0xFFE2E8F0),
             width: 1,
           ),

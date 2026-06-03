@@ -1915,14 +1915,20 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
 
     return Column(
       children: [
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: Material(
-            color: Colors.transparent,
-            child: ExpansionTile(
-              key: ValueKey('${section.title}-$isExpanded'),
-              tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-              childrenPadding: EdgeInsets.zero,
+        Container(
+          decoration: BoxDecoration(
+            color: hasCriticalField
+                ? const Color(0xFFFFEBEE) // Light red background for highlighted sections
+                : Colors.transparent,
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: Material(
+              color: Colors.transparent,
+              child: ExpansionTile(
+                key: ValueKey('${section.title}-$isExpanded'),
+                tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+                childrenPadding: EdgeInsets.zero,
               leading: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -2057,6 +2063,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
               ],
             ),
           ),
+        ),
         ),
         if (showDivider)
           const Divider(height: 1, thickness: 1, color: _rowBorder),
