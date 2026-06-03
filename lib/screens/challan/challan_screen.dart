@@ -232,8 +232,19 @@ class _ChallanScreenState extends State<ChallanScreen>
 
     String text = value.toString();
 
-    if ((key == 'date' || key == 'exdate') && text.contains('T')) {
-      text = text.split('T').first;
+    if (key == 'date' || key == 'exdate') {
+      if (text.contains('T')) {
+        text = text.split('T').first;
+      }
+
+      // If the date is in yyyy-mm-dd form, convert to dd-mm-yyyy for display
+      final parts = text.split('-');
+      if (parts.length >= 3) {
+        final y = parts[0];
+        final m = parts[1];
+        final d = parts[2];
+        text = '$d-$m-$y';
+      }
     }
 
     return text;
@@ -726,37 +737,42 @@ class _ChallanScreenState extends State<ChallanScreen>
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        _FilterChip(
-                          label: l10n.challanDate,
-                          isSelected: _dateFilter == 'challan',
-                          onTap: () {
-                            if (_dateFilter != 'challan') {
-                              setState(() {
-                                _dateFilter = 'challan';
-                              });
-                              _loadData(); // Reload data with new filter
-                            }
-                          },
-                        ),
-                        const SizedBox(width: 8),
-                        _FilterChip(
-                          label: l10n.expectedDelivery,
-                          isSelected: _dateFilter == 'expected',
-                          onTap: () {
-                            if (_dateFilter != 'expected') {
-                              setState(() {
-                                _dateFilter = 'expected';
-                              });
-                              _loadData(); // Reload data with new filter
-                            }
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+               Expanded(
+  child: Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Flexible(
+        child: _FilterChip(
+          label: l10n.challanDate,
+          isSelected: _dateFilter == 'challan',
+          onTap: () {
+            if (_dateFilter != 'challan') {
+              setState(() {
+                _dateFilter = 'challan';
+              });
+              _loadData();
+            }
+          },
+        ),
+      ),
+      const SizedBox(width: 8),
+      Flexible(
+        child: _FilterChip(
+          label: l10n.expectedDelivery,
+          isSelected: _dateFilter == 'expected',
+          onTap: () {
+            if (_dateFilter != 'expected') {
+              setState(() {
+                _dateFilter = 'expected';
+              });
+              _loadData();
+            }
+          },
+        ),
+      ),
+    ],
+  ),
+),
                 ],
               ),
             ),
@@ -1252,11 +1268,13 @@ class _FilterChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
           gradient: isSelected
               ? const LinearGradient(
-                  colors: [Color(0xFFDC2626), Color(0xFFEF4444)],
+                  // match the header / table header blue
+                  colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 )
@@ -1265,13 +1283,15 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
-                ? const Color(0xFFDC2626)
+                ? const Color(0xFF27406D)
                 : const Color(0xFFE2E8F0),
             width: 1,
           ),
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,

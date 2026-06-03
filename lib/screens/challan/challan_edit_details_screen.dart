@@ -68,6 +68,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       'checkedFieldInfo':
           'Checked fields are added below. You can edit before rejecting:',
       'rejectRemarkHint': 'Reject remark (auto-filled from checked fields)...',
+      'allHighlightedMandatory':
+          'All highlighted fields are mandatory to check before approval. Please open and review all highlighted sections.',
     },
     'ar': {
       'customerLabel': 'عميل',
@@ -1819,8 +1821,6 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Column(
               children: [
-                _buildControlsCard(l10n),
-                const SizedBox(height: 14),
                 Container(
                   decoration: BoxDecoration(
                     color: _cardBg,
@@ -1849,6 +1849,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             ),
           ),
         ),
+        // Controls card moved below the scroll area so it appears above action buttons
+        const SizedBox(height: 14),
+        _buildControlsCard(l10n),
+        const SizedBox(height: 8),
         if (_checkedRejectFields.isNotEmpty) _buildRejectRemarkPreview(l10n),
         _buildActionButtons(l10n),
       ],
@@ -1918,7 +1922,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         Container(
           decoration: BoxDecoration(
             color: hasCriticalField
-                ? const Color(0xFFFFEBEE) // Light red background for highlighted sections
+                ? const Color(
+                    0xFFFFEBEE,
+                  ) // Light red background for highlighted sections
                 : Colors.transparent,
           ),
           child: Theme(
@@ -1929,141 +1935,143 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                 key: ValueKey('${section.title}-$isExpanded'),
                 tilePadding: const EdgeInsets.symmetric(horizontal: 12),
                 childrenPadding: EdgeInsets.zero,
-              leading: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: hasCriticalField
-                          ? const Color(0xFFFFE5E5)
-                          : section.iconColor.withValues(alpha: 0.1),
+                leading: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: hasCriticalField
+                            ? const Color(0xFFFFE5E5)
+                            : section.iconColor.withValues(alpha: 0.1),
 
-                      borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8),
 
-                      border: hasCriticalField
-                          ? Border.all(
-                              color: const Color(0xFFFF6B6B),
-                              width: 1.2,
-                            )
-                          : null,
-                    ),
+                        border: hasCriticalField
+                            ? Border.all(
+                                color: const Color(0xFFFF6B6B),
+                                width: 1.2,
+                              )
+                            : null,
+                      ),
 
-                    child: Icon(
-                      section.icon,
-                      color: hasCriticalField
-                          ? const Color(0xFFDC2626)
-                          : section.iconColor,
-                      size: 20,
-                    ),
-                  ),
-
-                  if (hasCriticalField)
-                    Positioned(
-                      top: -4,
-                      right: -4,
-                      child: Container(
-                        width: 18,
-                        height: 18,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-
-                        child: const Icon(
-                          Icons.priority_high,
-                          size: 10,
-                          color: Colors.white,
-                        ),
+                      child: Icon(
+                        section.icon,
+                        color: hasCriticalField
+                            ? const Color(0xFFDC2626)
+                            : section.iconColor,
+                        size: 20,
                       ),
                     ),
-                ],
-              ),
-              title: Text(
-                _localizedSectionTitle(l10n, section.title),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
 
-                  color: hasCriticalField ? const Color(0xFFB91C1C) : _textDark,
-                ),
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (section.summary != null)
-                    ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: summaryMaxWidth),
-                      child: Text(
-                        section.summary!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: _textDark,
-                        ),
-                      ),
-                    ),
-                  if (section.summary != null) const SizedBox(width: 6),
-                  AnimatedRotation(
-                    turns: isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: Color(0xFF334155),
-                    ),
-                  ),
-                ],
-              ),
-              initiallyExpanded: isExpanded,
-              onExpansionChanged: (expanded) {
-                setState(() {
-                  if (expanded) {
-                    _expandedSections.add(section.title);
-                  } else {
-                    _expandedSections.remove(section.title);
-                  }
-
-                  _savePageState();
-                });
-              },
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: _rowBorder, width: 1.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < section.fields.length; i++)
-                          _SectionFieldRow(
-                            field: section.fields[i],
-                            isEven: i % 2 == 0,
-                            isLast: i == section.fields.length - 1,
-                            isChecked: _checkedRejectFields.contains(
-                              section.fields[i].fieldKey,
-                            ),
-                            onCheckChanged: (v) => _toggleRejectField(
-                              section.fields[i].fieldKey,
-                              v,
-                            ),
-                            showCheckbox: _isRadioSelected,
+                    if (hasCriticalField)
+                      Positioned(
+                        top: -4,
+                        right: -4,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
                           ),
-                      ],
-                    ),
+
+                          child: const Icon(
+                            Icons.priority_high,
+                            size: 10,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                title: Text(
+                  _localizedSectionTitle(l10n, section.title),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+
+                    color: hasCriticalField
+                        ? const Color(0xFFB91C1C)
+                        : _textDark,
                   ),
                 ),
-              ],
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (section.summary != null)
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: summaryMaxWidth),
+                        child: Text(
+                          section.summary!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: _textDark,
+                          ),
+                        ),
+                      ),
+                    if (section.summary != null) const SizedBox(width: 6),
+                    AnimatedRotation(
+                      turns: isExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Color(0xFF334155),
+                      ),
+                    ),
+                  ],
+                ),
+                initiallyExpanded: isExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    if (expanded) {
+                      _expandedSections.add(section.title);
+                    } else {
+                      _expandedSections.remove(section.title);
+                    }
+
+                    _savePageState();
+                  });
+                },
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: _rowBorder, width: 1.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          for (var i = 0; i < section.fields.length; i++)
+                            _SectionFieldRow(
+                              field: section.fields[i],
+                              isEven: i % 2 == 0,
+                              isLast: i == section.fields.length - 1,
+                              isChecked: _checkedRejectFields.contains(
+                                section.fields[i].fieldKey,
+                              ),
+                              onCheckChanged: (v) => _toggleRejectField(
+                                section.fields[i].fieldKey,
+                                v,
+                              ),
+                              showCheckbox: _isRadioSelected,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
         ),
         if (showDivider)
           const Divider(height: 1, thickness: 1, color: _rowBorder),
@@ -2149,6 +2157,43 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   Future<void> _onApprove() async {
     if (_data == null) return;
 
+    // Validate: all highlighted (critical) sections must be expanded before approval
+    final sections = _buildSections();
+    final highlightedSections = sections
+        .where((s) => s.fields.any((f) => f.critical))
+        .toList();
+    final unopenedHighlighted = highlightedSections
+        .where((s) => !_expandedSections.contains(s.title))
+        .toList();
+
+    if (unopenedHighlighted.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded,
+                  color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  _t('allHighlightedMandatory'),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _processing = true);
 
     try {
@@ -2185,6 +2230,35 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   Future<void> _onReject() async {
     if (_data == null) return;
     final l10n = AppLocalizations.of(context)!;
+
+    // Validate: at least one checkbox must be selected before rejection
+    if (_checkedRejectFields.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  color: Colors.white, size: 20),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'To reject this challan, please select at least one issue from the highlighted fields.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
 
     _syncRejectRemark();
 
@@ -2534,6 +2608,7 @@ class _RejectDialogState extends State<_RejectDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
@@ -2545,29 +2620,32 @@ class _RejectDialogState extends State<_RejectDialog> {
           ),
         ],
       ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.checkedFieldInfoText,
-            style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: widget.remarkController,
-            maxLines: 5,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: widget.rejectRemarkHintText,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: const Color(0xFFF8FAFF),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 420, minHeight: 240),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.checkedFieldInfoText,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
             ),
-          ),
-        ],
+            const SizedBox(height: 18),
+            TextField(
+              controller: widget.remarkController,
+              maxLines: 6,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: widget.rejectRemarkHintText,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFF),
+              ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
