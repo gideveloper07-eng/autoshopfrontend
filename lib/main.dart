@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../l10n/app_localizations.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 
 import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
@@ -14,6 +16,16 @@ import 'screens/auth/login_screen.dart';
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Disable screenshots for mobile and tablet (Android only)
+  if (!kIsWeb) {
+    try {
+      await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+      print("Screenshot blocking enabled");
+    } catch (e) {
+      print("Error enabling screenshot blocking: $e");
+    }
+  }
 
   try {
 
