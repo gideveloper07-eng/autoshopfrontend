@@ -1058,6 +1058,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   @override
   void initState() {
     super.initState();
+    ActivityService.logActivity(
+      activityType: "SCREEN",
+      activityName: "ChallanEditDetailsScreen",
+      screenName: "ChallanEditDetailsScreen",
+    );
     _initializePage();
   }
 
@@ -2218,6 +2223,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           content: Text(result['message'] ?? 'Challan approved successfully'),
         ),
       );
+      await ActivityService.logActivity(
+        activityType: "APPROVE_CHALLAN",
+        activityName: widget.challanNo,
+        screenName: "ChallanEditDetailsScreen",
+      );
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
@@ -2319,6 +2329,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           behavior: SnackBarBehavior.floating,
           content: Text(result['message'] ?? 'Challan rejected successfully'),
         ),
+      );
+      await ActivityService.logActivity(
+        activityType: "REJECT_CHALLAN",
+        activityName: widget.challanNo,
+        screenName: "ChallanEditDetailsScreen",
       );
       Navigator.pop(context, true);
     } catch (e) {
@@ -2589,8 +2604,8 @@ class _RejectDialogState extends State<_RejectDialog> {
     super.initState();
     ActivityService.logActivity(
       activityType: "SCREEN",
-      activityName: "ChallanEdit",
-      screenName: "ChallanEdit",
+      activityName: "ChallanEditDetailsScreen",
+      screenName: "ChallanEditDetailsScreen",
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.hasCheckedFields) {

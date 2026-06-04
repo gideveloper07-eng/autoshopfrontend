@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../l10n/app_localizations.dart';
-
+import 'services/activity_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 // import 'package:screen_protector/screen_protector.dart'; // Temporarily disabled
@@ -12,7 +12,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
-import 'services/route_tracker.dart';
+//import 'services/route_tracker.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +56,7 @@ void main() async {
 
     print(e);
   }
-
+  await ActivityService.initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => LanguageProvider(),
@@ -127,7 +127,7 @@ class MyApp extends StatelessWidget {
           foregroundColor: Colors.black,
         ),
       ),
-      navigatorObservers: [RouteTracker()],
+      // navigatorObservers: [RouteTracker()],
       initialRoute: '/',
 
       routes: {

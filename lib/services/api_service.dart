@@ -658,13 +658,15 @@ class ApiService {
     required String activityName,
     String? userName,
     String? screenName,
+    String? deviceInfo,
+    String? appVersion,
   }) async {
     try {
       final token = await getToken();
 
       if (token == null) return;
 
-      await http.post(
+      final response = await http.post(
         Uri.parse("$baseUrl/api/auth/activity-log"),
         headers: {
           "Content-Type": "application/json",
@@ -677,8 +679,10 @@ class ApiService {
           "screenName": screenName,
         }),
       );
+      // Silently ignore if endpoint not available on server yet
+      if (response.statusCode == 404) return;
     } catch (e) {
-      print("ACTIVITY LOG ERROR: $e");
+      // Silently ignore activity log errors to avoid breaking main flow
     }
   }
 }

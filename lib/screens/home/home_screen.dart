@@ -191,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         await ActivityService.logActivity(
           activityType: "LOGOUT",
           activityName: "User Logout",
-          userId: await ApiService.getUserId(),
+
           userName: await ApiService.getUserName(),
           screenName: "HomeScreen",
         );

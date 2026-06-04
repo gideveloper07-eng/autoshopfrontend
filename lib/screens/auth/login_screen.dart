@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await ActivityService.logActivity(
           activityType: "LOGIN",
           activityName: "User Login",
-          userId: res['userId']?.toString() ?? '',
+          //  userId: res['userId']?.toString() ?? '',
           userName: res['name']?.toString() ?? '',
           screenName: 'LoginScreen',
         );

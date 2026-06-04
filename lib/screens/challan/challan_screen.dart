@@ -175,6 +175,7 @@ class _ChallanScreenState extends State<ChallanScreen>
   @override
   void initState() {
     super.initState();
+    print("CHALLAN INIT");
     ActivityService.logActivity(
       activityType: "SCREEN",
       activityName: "ChallanScreen",
@@ -302,6 +303,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: "ChallanEditDetailsScreen"),
         builder: (context) =>
             ChallanEditDetailsScreen(sp462: sp462, challanNo: challanNo),
       ),
