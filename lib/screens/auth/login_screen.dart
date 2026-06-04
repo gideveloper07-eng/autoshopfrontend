@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../home/home_screen.dart';
+import '../../services/activity_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -99,6 +100,18 @@ class _LoginScreenState extends State<LoginScreen> {
         companyCode: companyCodeCtrl.text.trim(),
         utg: res["utg"].toString(),
       );
+      // Log Login Activity
+      try {
+        await ActivityService.logActivity(
+          activityType: "LOGIN",
+          activityName: "User Login",
+          userId: res['userId']?.toString() ?? '',
+          userName: res['name']?.toString() ?? '',
+          screenName: 'LoginScreen',
+        );
+      } catch (e) {
+        debugPrint("Activity Log Error: $e");
+      }
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

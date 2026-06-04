@@ -3,6 +3,7 @@ import '../../services/api_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'challan_edit_details_screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../../services/activity_service.dart';
 
 class ChallanScreen extends StatefulWidget {
   const ChallanScreen({super.key});
@@ -174,6 +175,11 @@ class _ChallanScreenState extends State<ChallanScreen>
   @override
   void initState() {
     super.initState();
+    ActivityService.logActivity(
+      activityType: "SCREEN",
+      activityName: "ChallanScreen",
+      screenName: "ChallanScreen",
+    );
     _speech = stt.SpeechToText();
     _animController = AnimationController(
       vsync: this,
@@ -737,42 +743,42 @@ class _ChallanScreenState extends State<ChallanScreen>
                     ),
                   ),
                   const SizedBox(width: 12),
-               Expanded(
-  child: Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Flexible(
-        child: _FilterChip(
-          label: l10n.challanDate,
-          isSelected: _dateFilter == 'challan',
-          onTap: () {
-            if (_dateFilter != 'challan') {
-              setState(() {
-                _dateFilter = 'challan';
-              });
-              _loadData();
-            }
-          },
-        ),
-      ),
-      const SizedBox(width: 8),
-      Flexible(
-        child: _FilterChip(
-          label: l10n.expectedDelivery,
-          isSelected: _dateFilter == 'expected',
-          onTap: () {
-            if (_dateFilter != 'expected') {
-              setState(() {
-                _dateFilter = 'expected';
-              });
-              _loadData();
-            }
-          },
-        ),
-      ),
-    ],
-  ),
-),
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: _FilterChip(
+                            label: l10n.challanDate,
+                            isSelected: _dateFilter == 'challan',
+                            onTap: () {
+                              if (_dateFilter != 'challan') {
+                                setState(() {
+                                  _dateFilter = 'challan';
+                                });
+                                _loadData();
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: _FilterChip(
+                            label: l10n.expectedDelivery,
+                            isSelected: _dateFilter == 'expected',
+                            onTap: () {
+                              if (_dateFilter != 'expected') {
+                                setState(() {
+                                  _dateFilter = 'expected';
+                                });
+                                _loadData();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

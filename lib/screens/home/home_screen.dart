@@ -10,6 +10,7 @@ import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../theme/app_colors.dart';
+import '../../services/activity_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -28,6 +29,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    ActivityService.logActivity(
+      activityType: "SCREEN",
+      activityName: "HomeScreen",
+      screenName: "HomeScreen",
+    );
+
     loadSecurity();
     loadUnreadCount();
     requestNotificationPermission();
@@ -178,16 +185,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     if (confirm == true) {
       try {
-        // GET TOKEN
         final token = await ApiService.getToken();
 
-        // CALL LOGOUT API
+        // LOG USER ACTIVITY
+        await ActivityService.logActivity(
+          activityType: "LOGOUT",
+          activityName: "User Logout",
+          userId: await ApiService.getUserId(),
+          userName: await ApiService.getUserName(),
+          screenName: "HomeScreen",
+        );
+
+        // YOUR EXISTING LOGOUT API
         await ApiService.logout(token ?? "");
       } catch (e) {
         print("LOGOUT ERROR: $e");
       }
 
-      // CLEAR LOCAL SESSION
       await ApiService.clearSession();
 
       if (!mounted) return;
@@ -275,6 +289,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'NotificationScreen',
+                                    ),
                                     builder: (_) => const NotificationScreen(),
                                   ),
                                 );
@@ -348,6 +365,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
+                                settings: const RouteSettings(
+                                  name: 'SettingsScreen',
+                                ),
                                 builder: (_) => const SettingsScreen(),
                               ),
                             );
@@ -466,6 +486,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
+                                  settings: const RouteSettings(
+                                    name: 'ChallanScreen',
+                                  ),
                                   builder: (_) => const ChallanScreen(),
                                 ),
                               );

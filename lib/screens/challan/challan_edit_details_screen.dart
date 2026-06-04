@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/activity_service.dart';
 import '../../l10n/app_localizations.dart';
 
 class ChallanEditDetailsScreen extends StatefulWidget {
@@ -1766,14 +1767,16 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   ),
                 ),
                 child: Center(
-                  child: AnimatedContainer(
+                  child: AnimatedOpacity(
+                    opacity: _isRadioSelected ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutBack,
-                    width: _isRadioSelected ? 10 : 0,
-                    height: _isRadioSelected ? 10 : 0,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: _primary,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _primary,
+                      ),
                     ),
                   ),
                 ),
@@ -2174,8 +2177,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           duration: const Duration(seconds: 4),
           content: Row(
             children: [
-              const Icon(Icons.warning_amber_rounded,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -2240,8 +2246,11 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           duration: const Duration(seconds: 4),
           content: Row(
             children: [
-              const Icon(Icons.error_outline_rounded,
-                  color: Colors.white, size: 20),
+              const Icon(
+                Icons.error_outline_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
               const SizedBox(width: 10),
               const Expanded(
                 child: Text(
@@ -2578,6 +2587,11 @@ class _RejectDialogState extends State<_RejectDialog> {
   @override
   void initState() {
     super.initState();
+    ActivityService.logActivity(
+      activityType: "SCREEN",
+      activityName: "ChallanEdit",
+      screenName: "ChallanEdit",
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.hasCheckedFields) {
         widget.onSyncFromChecks();

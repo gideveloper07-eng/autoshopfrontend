@@ -12,9 +12,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'services/route_tracker.dart';
 
 void main() async {
-
   WidgetsFlutterBinding.ensureInitialized();
 
   // Disable screenshots for mobile and tablet (Android only)
@@ -28,49 +28,31 @@ void main() async {
   }
 
   try {
-
     // WEB
     if (kIsWeb) {
-
       await Firebase.initializeApp(
-
         options: const FirebaseOptions(
+          apiKey: "AIzaSyAWBceq-JXxrWuILWk0rhy6CjpC7o3jS1A",
 
-          apiKey:
-              "AIzaSyAWBceq-JXxrWuILWk0rhy6CjpC7o3jS1A",
+          appId: "1:754396208118:web:6859824d9b00b2694545d7",
 
-          appId:
-              "1:754396208118:web:6859824d9b00b2694545d7",
+          messagingSenderId: "754396208118",
 
-          messagingSenderId:
-              "754396208118",
+          projectId: "myautoshop-394f2",
 
-          projectId:
-              "myautoshop-394f2",
+          storageBucket: "myautoshop-394f2.firebasestorage.app",
 
-          storageBucket:
-              "myautoshop-394f2.firebasestorage.app",
-
-          authDomain:
-              "myautoshop-394f2.firebaseapp.com",
+          authDomain: "myautoshop-394f2.firebaseapp.com",
         ),
       );
-
     } else {
-
       // ANDROID / IOS
       await Firebase.initializeApp();
     }
 
-    print(
-      "FIREBASE INITIALIZED"
-    );
-
+    print("FIREBASE INITIALIZED");
   } catch (e) {
-
-    print(
-      "FIREBASE INIT ERROR:"
-    );
+    print("FIREBASE INIT ERROR:");
 
     print(e);
   }
@@ -84,7 +66,6 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-
   const MyApp({super.key});
 
   @override
@@ -92,14 +73,13 @@ class MyApp extends StatelessWidget {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
     return MaterialApp(
-
       debugShowCheckedModeBanner: false,
-      
+
       // Hide debug banner in web
       showPerformanceOverlay: false,
 
       title: 'MyAutoShop',
-      
+
       // Localization configuration
       locale: languageProvider.locale,
       localizationsDelegates: const [
@@ -123,52 +103,37 @@ class MyApp extends StatelessWidget {
       },
 
       theme: ThemeData(
-
         useMaterial3: true,
 
-        colorScheme:
-            ColorScheme.fromSeed(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF8B1E3F),
 
-          seedColor:
-              const Color(0xFF8B1E3F),
-
-          brightness:
-              Brightness.light,
+          brightness: Brightness.light,
         ),
 
-        primaryColor:
-            const Color(0xFF8B1E3F),
+        primaryColor: const Color(0xFF8B1E3F),
 
-        scaffoldBackgroundColor:
-            Colors.white,
+        scaffoldBackgroundColor: Colors.white,
 
-        textTheme:
-            GoogleFonts.poppinsTextTheme(),
+        textTheme: GoogleFonts.poppinsTextTheme(),
 
-        appBarTheme:
-            const AppBarTheme(
-
+        appBarTheme: const AppBarTheme(
           elevation: 0,
 
           centerTitle: true,
 
-          backgroundColor:
-              Colors.transparent,
+          backgroundColor: Colors.transparent,
 
-          foregroundColor:
-              Colors.black,
+          foregroundColor: Colors.black,
         ),
       ),
-
+      navigatorObservers: [RouteTracker()],
       initialRoute: '/',
 
       routes: {
+        '/': (_) => const SplashScreen(),
 
-        '/':
-            (_) => const SplashScreen(),
-
-        '/login':
-            (_) => const LoginScreen(),
+        '/login': (_) => const LoginScreen(),
       },
     );
   }

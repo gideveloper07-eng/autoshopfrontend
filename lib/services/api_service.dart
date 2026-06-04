@@ -66,6 +66,8 @@ class ApiService {
 
   static Future<String?> getUserId() => _storage.read(key: "userId");
 
+  static Future<String?> getUserName() => _storage.read(key: "userName");
+
   static Future<String> getClientIp() async {
     try {
       final res = await http
@@ -648,6 +650,35 @@ class ApiService {
       print("FCM TOKEN SAVED");
     } catch (e) {
       print("SAVE FCM TOKEN ERROR: $e");
+    }
+  }
+
+  static Future<void> activityLog({
+    required String activityType,
+    required String activityName,
+    String? userName,
+    String? screenName,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return;
+
+      await http.post(
+        Uri.parse("$baseUrl/api/auth/activity-log"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "activityType": activityType,
+          "activityName": activityName,
+          "userName": userName,
+          "screenName": screenName,
+        }),
+      );
+    } catch (e) {
+      print("ACTIVITY LOG ERROR: $e");
     }
   }
 }
