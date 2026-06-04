@@ -677,6 +677,8 @@ class ApiService {
           "activityName": activityName,
           "userName": userName,
           "screenName": screenName,
+          "deviceInfo": deviceInfo,
+          "appVersion": appVersion,
         }),
       );
       // Silently ignore if endpoint not available on server yet
