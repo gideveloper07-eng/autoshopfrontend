@@ -150,8 +150,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             Expanded(
               child: loading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
+                  : Container(
+                      color: const Color(0xFFECE5DD), // WhatsApp chat background
+                      child: ListView.builder(
                       controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: messages.length,
                       itemBuilder: (context, index) {
                         final msg = messages[index];
@@ -172,54 +175,84 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                               ? Alignment.centerRight
                               : Alignment.centerLeft,
                           child: Container(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
+                            margin: EdgeInsets.only(
+                              left: isMine ? 60 : 10,
+                              right: isMine ? 10 : 60,
+                              top: 4,
+                              bottom: 4,
                             ),
-                            padding: const EdgeInsets.all(10),
-                            constraints: const BoxConstraints(maxWidth: 350),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               color: isMine
-                                  ? const Color(0xFFDCF8C6)
+                                  ? const Color(0xFFDCF8C6) // WhatsApp green
                                   : Colors.white,
                               borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(12),
-                                topRight: const Radius.circular(12),
-                                bottomLeft: Radius.circular(isMine ? 12 : 0),
-                                bottomRight: Radius.circular(isMine ? 0 : 12),
+                                topLeft: const Radius.circular(18),
+                                topRight: const Radius.circular(18),
+                                bottomLeft: Radius.circular(isMine ? 18 : 4),
+                                bottomRight: Radius.circular(isMine ? 4 : 18),
                               ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
+                                // Show sender name only for others
                                 if (!isMine)
-                                  Text(
-                                    senderName,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
-                                      color: Colors.blue,
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(bottom: 3),
+                                    child: Text(
+                                      senderName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                        color: Color(0xFF075E54), // WhatsApp teal
+                                      ),
                                     ),
                                   ),
 
-                                const SizedBox(height: 4),
-
-                                Text(message),
-
-                                const SizedBox(height: 4),
-
                                 Text(
-                                  formatTime(messageTime),
+                                  message,
                                   style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
+                                    fontSize: 14,
+                                    color: Colors.black87,
                                   ),
+                                ),
+
+                                const SizedBox(height: 3),
+
+                                // Time aligned to bottom-right, mimicking WhatsApp
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Spacer(),
+                                    Text(
+                                      formatTime(messageTime),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.black.withValues(alpha: 0.45),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         );
                       },
+                    ),
                     ),
             ),
 
