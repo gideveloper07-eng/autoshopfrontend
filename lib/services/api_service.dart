@@ -653,6 +653,56 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getChatMessages(String challanId) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/$challanId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET CHAT ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> sendChatMessage({
+    required String challanId,
+    required String messageText,
+    required String senderName,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/chat/send"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "challanId": challanId,
+          "messageText": messageText,
+          "senderName": senderName,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("SEND CHAT ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<void> activityLog({
     required String activityType,
     required String activityName,

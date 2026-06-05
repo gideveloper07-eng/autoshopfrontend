@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/activity_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../chat/challan_chat_dialog.dart';
 
 class ChallanEditDetailsScreen extends StatefulWidget {
   final String sp462;
@@ -2153,6 +2154,27 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => ChallanChatDialog(
+                      challanId: widget.sp462, // Database key
+                      challanNo: widget.challanNo, // Challan Number
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat),
+                label: const Text("Chat"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                 ),
               ),
             ),
