@@ -1041,6 +1041,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   Map<String, dynamic>? _data;
   bool _processing = false;
   String loggedInUserId = '';
+  int _unreadChatCount = 0; // unread chat badge
   Set<String> _expandedSections = {'Basic Information'};
   final Set<String> _checkedRejectFields = {};
   final List<String> _rejectFieldOrder = [];
@@ -1139,6 +1140,16 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     loggedInUserId = uid ?? '';
     _restorePageState();
     _loadData();
+    _loadUnreadChatCount();
+  }
+
+  Future<void> _loadUnreadChatCount() async {
+    final count = await ApiService.getUnreadChatCount(widget.sp462);
+    if (mounted) {
+      setState(() {
+        _unreadChatCount = count;
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -2160,22 +2171,64 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             const SizedBox(width: 8),
 
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) => ChallanChatDialog(
-                      challanId: widget.sp462, // Database key
-                      challanNo: widget.challanNo, // Challan Number
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await showDialog(
+                          context: context,
+                          builder: (_) => ChallanChatDialog(
+                            challanId: widget.sp462,
+                            challanNo: widget.challanNo,
+                          ),
+                        );
+                        // Refresh badge after chat is closed
+                        _loadUnreadChatCount();
+                      },
+                      icon: const Icon(Icons.chat),
+                      label: const Text("Chat"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
                     ),
-                  );
-                },
-                icon: const Icon(Icons.chat),
-                label: const Text("Chat"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                ),
+                  ),
+                  if (_unreadChatCount > 0)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          _unreadChatCount > 99
+                              ? '99+'
+                              : '$_unreadChatCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],

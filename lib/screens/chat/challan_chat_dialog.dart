@@ -37,6 +37,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     super.initState();
 
     loadCurrentUser().then((_) {
+      // Mark messages as read as soon as the chat is opened
+      ApiService.markChatRead(widget.challanId);
       loadMessages();
     });
 
@@ -108,7 +110,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   String formatTime(String value) {
     try {
-      return DateFormat('hh:mm a').format(DateTime.parse(value));
+      return DateFormat('dd/MM/yyyy  hh:mm a').format(DateTime.parse(value));
     } catch (e) {
       return value;
     }

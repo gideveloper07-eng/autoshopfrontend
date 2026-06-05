@@ -703,6 +703,50 @@ class ApiService {
     }
   }
 
+  /// Marks all messages in a challan as read for the current user.
+  /// Should be called whenever the chat dialog is opened.
+  static Future<void> markChatRead(String challanId) async {
+    try {
+      final token = await getToken();
+      if (token == null) return;
+
+      await http.post(
+        Uri.parse("$baseUrl/api/chat/mark-read/$challanId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+    } catch (e) {
+      print("MARK CHAT READ ERROR: $e");
+    }
+  }
+
+  /// Returns the number of unread messages sent by others for a given challan.
+  static Future<int> getUnreadChatCount(String challanId) async {
+    try {
+      final token = await getToken();
+      if (token == null) return 0;
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/unread-count/$challanId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        return (body["count"] as num?)?.toInt() ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print("GET UNREAD CHAT COUNT ERROR: $e");
+      return 0;
+    }
+  }
+
   static Future<void> activityLog({
     required String activityType,
     required String activityName,
