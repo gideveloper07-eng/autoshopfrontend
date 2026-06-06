@@ -1,18 +1,83 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import '../l10n/app_localizations.dart';
 import 'services/activity_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:screen_protector/screen_protector.dart'; // Temporarily disabled
 
 import 'providers/language_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
-//import 'services/route_tracker.dart';
+import 'screens/chat/challan_chat_dialog.dart';
+
+// ── Global navigator key — lets us navigate from outside widget tree ──────────
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// ── Local notifications plugin instance ───────────────────────────────────────
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+/// Called when a FCM message arrives while the app is TERMINATED or in background.
+/// Must be a top-level function (not a class method).
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Show a local notification so it appears in the system tray
+  await _showLocalChatNotification(message);
+}
+
+/// Shows a local notification for a chat message.
+Future<void> _showLocalChatNotification(RemoteMessage message) async {
+  final title = message.notification?.title ?? message.data['senderName'] ?? 'New message';
+  final body = message.notification?.body ?? message.data['messageText'] ?? '';
+  final challanId = message.data['challanId'] ?? '';
+
+  const androidDetails = AndroidNotificationDetails(
+    'chat_messages',          // must match channelId sent from backend
+    'Chat Messages',
+    channelDescription: 'Push notifications for challan chat messages',
+    importance: Importance.max,
+    priority: Priority.high,
+    enableVibration: true,
+    playSound: true,
+  );
+
+  const notificationDetails = NotificationDetails(
+    android: androidDetails,
+    iOS: DarwinNotificationDetails(sound: 'default'),
+  );
+
+  // Use challanId hash as notification ID so same challan groups together
+  final notifId = challanId.isNotEmpty ? challanId.hashCode.abs() % 100000 : 9999;
+
+  await flutterLocalNotificationsPlugin.show(
+    notifId,
+    title,
+    body,
+    notificationDetails,
+    payload: challanId,  // passed back when user taps notification
+  );
+}
+
+/// Opens the chat dialog for [challanId] using the global navigator.
+void _openChatFromNotification(String challanId) {
+  if (challanId.isEmpty) return;
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  showDialog(
+    context: context,
+    builder: (_) => ChallanChatDialog(
+      challanId: challanId,
+      challanNo: challanId,
+    ),
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +121,42 @@ void main() async {
 
     print(e);
   }
+
+  // ── REGISTER BACKGROUND MESSAGE HANDLER ────────────────────────────────────
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // ── INIT LOCAL NOTIFICATIONS ────────────────────────────────────────────────
+  if (!kIsWeb) {
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const iosInit = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+    await flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(android: androidInit, iOS: iosInit),
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // User tapped a local notification — open chat
+        final challanId = response.payload ?? '';
+        _openChatFromNotification(challanId);
+      },
+    );
+
+    // Create the Android notification channel for chat messages
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'chat_messages',
+            'Chat Messages',
+            description: 'Push notifications for challan chat messages',
+            importance: Importance.max,
+            playSound: true,
+          ),
+        );
+  }
+
   await ActivityService.initialize();
   runApp(
     ChangeNotifierProvider(
@@ -65,14 +166,52 @@ void main() async {
   );
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+
+    if (!kIsWeb) {
+      // ── App FOREGROUND: show local notification ──────────────────────
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        print("FCM FOREGROUND: ${message.notification?.title}");
+        _showLocalChatNotification(message);
+      });
+
+      // ── App BACKGROUND → tapped notification ────────────────────────
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        final challanId = message.data['challanId'] ?? '';
+        print("NOTIFICATION TAPPED (background): challanId=$challanId");
+        _openChatFromNotification(challanId);
+      });
+
+      // ── App was TERMINATED → tapped notification ─────────────────────
+      FirebaseMessaging.instance.getInitialMessage().then((message) {
+        if (message != null) {
+          final challanId = message.data['challanId'] ?? '';
+          print("NOTIFICATION TAPPED (terminated): challanId=$challanId");
+          // Slight delay to ensure navigator is ready
+          Future.delayed(const Duration(milliseconds: 500), () {
+            _openChatFromNotification(challanId);
+          });
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
 
       // Hide debug banner in web
