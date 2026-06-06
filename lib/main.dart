@@ -33,8 +33,15 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 /// Shows a local notification for a chat message.
 Future<void> _showLocalChatNotification(RemoteMessage message) async {
-  final title = message.notification?.title ?? message.data['senderName'] ?? 'New message';
-  final body = message.notification?.body ?? message.data['messageText'] ?? '';
+  // With data-only FCM messages, title/body come from data map, not notification block
+  final title = message.notification?.title
+      ?? message.data['title']
+      ?? message.data['senderName']
+      ?? 'New message';
+  final body = message.notification?.body
+      ?? message.data['body']
+      ?? message.data['messageText']
+      ?? '';
   final challanId = message.data['challanId'] ?? '';
 
   const androidDetails = AndroidNotificationDetails(
