@@ -6,6 +6,7 @@ import '../../l10n/app_localizations.dart';
 //import '../../services/notification_service.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
+import '../chat/chat_list_screen.dart';
 import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -468,9 +469,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 24),
 
                   // ── DASHBOARD CARDS ───────────────────────────────────
-                  Row(
-                    children: [
-                      if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
+                  if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
+                    Row(
+                      children: [
                         Expanded(
                           child: _dashCard(
                             icon: Icons.receipt_long_rounded,
@@ -495,8 +496,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             },
                           ),
                         ),
-                    ],
-                  ),
+                      ],
+                    ),
+
+                  if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
+                      !isLoading)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _dashCard(
+                            icon: Icons.chat_rounded,
+                            label: "Chat",
+                            subtitle: "View messages on your challans",
+                            gradient: [
+                              const Color(0xFF0A5C2E), // dark green
+                              const Color(0xFF1A7A40), // medium green
+                              const Color(0xFF2EAA5C), // lighter green
+                            ],
+                            accentColor: const Color(0xFF4CD98A),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  settings: const RouteSettings(
+                                    name: 'ChatListScreen',
+                                  ),
+                                  builder: (_) => const ChatListScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
