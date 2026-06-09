@@ -24,12 +24,14 @@ class _ChallanScreenStateCache {
   final Set<String> checkedRejectFields;
   final bool isRadioSelected;
   final String rejectRemark;
+  final Set<String> reviewedHighlightedSections;
 
   const _ChallanScreenStateCache({
     required this.expandedSections,
     required this.checkedRejectFields,
     required this.isRadioSelected,
     required this.rejectRemark,
+    required this.reviewedHighlightedSections,
   });
 }
 
@@ -1043,6 +1045,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   String loggedInUserId = '';
   int _unreadChatCount = 0; // unread chat badge
   Set<String> _expandedSections = {'Basic Information'};
+  Set<String> _reviewedHighlightedSections = {};
   final Set<String> _checkedRejectFields = {};
   final List<String> _rejectFieldOrder = [];
   final Map<String, String> _fieldKeyToLabel = {};
@@ -1120,6 +1123,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
 
     if (cached != null) {
       _expandedSections = Set<String>.from(cached.expandedSections);
+      _reviewedHighlightedSections = Set<String>.from(cached.reviewedHighlightedSections);
       _checkedRejectFields.addAll(cached.checkedRejectFields);
       _isRadioSelected = cached.isRadioSelected;
       _rejectRemarkController.text = cached.rejectRemark;
@@ -1129,6 +1133,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   void _savePageState() {
     _pageStateCache[widget.sp462] = _ChallanScreenStateCache(
       expandedSections: Set<String>.from(_expandedSections),
+      reviewedHighlightedSections: Set<String>.from(_reviewedHighlightedSections),
       checkedRejectFields: Set<String>.from(_checkedRejectFields),
       isRadioSelected: _isRadioSelected,
       rejectRemark: _rejectRemarkController.text,
@@ -1933,6 +1938,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     final isExpanded = _expandedSections.contains(section.title);
 
     final hasCriticalField = section.fields.any((f) => f.critical);
+    final isReviewed = hasCriticalField && _reviewedHighlightedSections.contains(section.title);
     final summaryMaxWidth = MediaQuery.of(context).size.width < 700
         ? 130.0
         : 460.0;
@@ -1942,9 +1948,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         Container(
           decoration: BoxDecoration(
             color: hasCriticalField
-                ? const Color(
-                    0xFFFFEBEE,
-                  ) // Light red background for highlighted sections
+                ? isReviewed
+                    ? const Color(0xFFECFDF5) // Light green background when reviewed
+                    : const Color(0xFFFFEBEE) // Light red background when not yet reviewed
                 : Colors.transparent,
           ),
           child: Theme(
@@ -1963,14 +1969,18 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       height: 36,
                       decoration: BoxDecoration(
                         color: hasCriticalField
-                            ? const Color(0xFFFFE5E5)
+                            ? isReviewed
+                                ? const Color(0xFFD1FAE5) // Light green icon bg
+                                : const Color(0xFFFFE5E5) // Light red icon bg
                             : section.iconColor.withValues(alpha: 0.1),
 
                         borderRadius: BorderRadius.circular(8),
 
                         border: hasCriticalField
                             ? Border.all(
-                                color: const Color(0xFFFF6B6B),
+                                color: isReviewed
+                                    ? const Color(0xFF10B981) // Green border when reviewed
+                                    : const Color(0xFFFF6B6B), // Red border when not reviewed
                                 width: 1.2,
                               )
                             : null,
@@ -1979,7 +1989,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       child: Icon(
                         section.icon,
                         color: hasCriticalField
-                            ? const Color(0xFFDC2626)
+                            ? isReviewed
+                                ? const Color(0xFF059669) // Green icon when reviewed
+                                : const Color(0xFFDC2626) // Red icon when not reviewed
                             : section.iconColor,
                         size: 20,
                       ),
@@ -1993,13 +2005,15 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFDC2626),
+                            color: isReviewed
+                                ? const Color(0xFF059669) // Green badge when reviewed
+                                : const Color(0xFFDC2626), // Red badge when not reviewed
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
 
-                          child: const Icon(
-                            Icons.priority_high,
+                          child: Icon(
+                            isReviewed ? Icons.check : Icons.priority_high,
                             size: 10,
                             color: Colors.white,
                           ),
@@ -2014,7 +2028,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                     fontWeight: FontWeight.w700,
 
                     color: hasCriticalField
-                        ? const Color(0xFFB91C1C)
+                        ? isReviewed
+                            ? const Color(0xFF065F46) // Dark green text when reviewed
+                            : const Color(0xFFB91C1C) // Dark red text when not reviewed
                         : _textDark,
                   ),
                 ),
@@ -2052,6 +2068,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   setState(() {
                     if (expanded) {
                       _expandedSections.add(section.title);
+                      // Mark critical section as reviewed when user opens it
+                      if (hasCriticalField) {
+                        _reviewedHighlightedSections.add(section.title);
+                      }
                     } else {
                       _expandedSections.remove(section.title);
                     }
@@ -2245,11 +2265,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     final highlightedSections = sections
         .where((s) => s.fields.any((f) => f.critical))
         .toList();
-    final unopenedHighlighted = highlightedSections
-        .where((s) => !_expandedSections.contains(s.title))
+    // Allow approve if all highlighted sections have been reviewed (turned green)
+    // i.e. the user has opened each one at least once
+    final unreviewed = highlightedSections
+        .where((s) => !_reviewedHighlightedSections.contains(s.title))
         .toList();
 
-    if (unopenedHighlighted.isNotEmpty) {
+    if (unreviewed.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFFDC2626),
