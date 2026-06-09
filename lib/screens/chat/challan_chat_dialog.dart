@@ -97,6 +97,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       challanId: widget.challanId,
       messageText: messageController.text.trim(),
       senderName: currentUserName,
+      challanNo: widget.challanNo,
     );
 
     if (success) {

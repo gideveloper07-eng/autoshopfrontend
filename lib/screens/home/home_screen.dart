@@ -27,6 +27,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int unreadCount = 0;
   String utg = "";
   bool isLoading = true;
+  int _todayBooking = 0;
+  int _todaySale = 0;
   @override
   void initState() {
     super.initState();
@@ -38,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     loadSecurity();
     loadUnreadCount();
+    loadDashboardStats();
     requestNotificationPermission();
     generateFCMToken();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -55,6 +58,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       const Duration(minutes: 1),
       (_) => _checkPendingChallanNotifications(),
     );
+  }
+
+  Future<void> loadDashboardStats() async {
+    final stats = await ApiService.getDashboardStats();
+    if (mounted) {
+      setState(() {
+        _todayBooking = stats['todayBooking'] ?? 0;
+        _todaySale = stats['todaySale'] ?? 0;
+      });
+    }
   }
 
   Future<void> loadSecurity() async {
@@ -468,6 +481,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 24),
 
+                  // ── TODAY STATS ROW ───────────────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.bookmark_added_rounded,
+                          label: "Today Booking",
+                          value: _todayBooking.toString(),
+                          gradient: const [
+                            Color(0xFF0A3D8F),
+                            Color(0xFF1565C0),
+                            Color(0xFF1E88E5),
+                          ],
+                          accentColor: const Color(0xFF82CFFF),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _statCard(
+                          icon: Icons.sell_rounded,
+                          label: "Today Sale",
+                          value: _todaySale.toString(),
+                          gradient: const [
+                            Color(0xFF1B5E20),
+                            Color(0xFF2E7D32),
+                            Color(0xFF43A047),
+                          ],
+                          accentColor: const Color(0xFF80E27E),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
                   // ── DASHBOARD CARDS ───────────────────────────────────
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
                     Row(
@@ -531,6 +578,79 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _statCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required List<Color> gradient,
+    required Color accentColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: gradient[0].withOpacity(0.45),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.22),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.88),
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Container(
+            height: 3,
+            decoration: BoxDecoration(
+              color: accentColor.withOpacity(0.7),
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
         ],

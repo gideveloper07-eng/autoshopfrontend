@@ -244,13 +244,14 @@ class _ChallanScreenState extends State<ChallanScreen>
         text = text.split('T').first;
       }
 
-      // If the date is in yyyy-mm-dd form, convert to dd-mm-yyyy for display
+      // If the date is in yyyy-mm-dd form, convert to dd-mm-yy for display
       final parts = text.split('-');
       if (parts.length >= 3) {
         final y = parts[0];
         final m = parts[1];
         final d = parts[2];
-        text = '$d-$m-$y';
+        final yy = y.length >= 2 ? y.substring(y.length - 2) : y;
+        text = '$d-$m-$yy';
       }
     }
 

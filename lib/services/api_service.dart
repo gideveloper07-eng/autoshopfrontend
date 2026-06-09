@@ -487,6 +487,39 @@ class ApiService {
     }
   }
 
+  /// Fetches today's booking and sale counts for the dashboard
+  static Future<Map<String, int>> getDashboardStats() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {'todayBooking': 0, 'todaySale': 0};
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/dashboard-stats"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          final data = body['data'] as Map<String, dynamic>;
+          return {
+            'todayBooking': (data['todayBooking'] as num?)?.toInt() ?? 0,
+            'todaySale': (data['todaySale'] as num?)?.toInt() ?? 0,
+          };
+        }
+      }
+      return {'todayBooking': 0, 'todaySale': 0};
+    } catch (e) {
+      print("DASHBOARD STATS ERROR: $e");
+      return {'todayBooking': 0, 'todaySale': 0};
+    }
+  }
+
   static Future<void> logout(String token) async {
     try {
       await http.post(
@@ -677,6 +710,7 @@ class ApiService {
     required String challanId,
     required String messageText,
     required String senderName,
+    String challanNo = '',
   }) async {
     try {
       final token = await getToken();
@@ -693,6 +727,7 @@ class ApiService {
           "challanId": challanId,
           "messageText": messageText,
           "senderName": senderName,
+          "challanNo": challanNo,
         }),
       );
 

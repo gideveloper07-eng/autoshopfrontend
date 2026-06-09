@@ -43,9 +43,10 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
       ?? message.data['messageText']
       ?? '';
   final challanId = message.data['challanId'] ?? '';
+  final challanNo = message.data['challanNo'] ?? '';
 
   const androidDetails = AndroidNotificationDetails(
-    'chat_messages',          // must match channelId sent from backend
+    'chat_messages',
     'Chat Messages',
     channelDescription: 'Push notifications for challan chat messages',
     importance: Importance.max,
@@ -59,20 +60,21 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
     iOS: DarwinNotificationDetails(sound: 'default'),
   );
 
-  // Use challanId hash as notification ID so same challan groups together
   final notifId = challanId.isNotEmpty ? challanId.hashCode.abs() % 100000 : 9999;
+  // Store both IDs in payload so tap handler can open correct chat with correct title
+  final payload = '$challanId|$challanNo';
 
   await flutterLocalNotificationsPlugin.show(
     notifId,
     title,
     body,
     notificationDetails,
-    payload: challanId,  // passed back when user taps notification
+    payload: payload,
   );
 }
 
 /// Opens the chat dialog for [challanId] using the global navigator.
-void _openChatFromNotification(String challanId) {
+void _openChatFromNotification(String challanId, {String challanNo = ''}) {
   if (challanId.isEmpty) return;
   final context = navigatorKey.currentContext;
   if (context == null) return;
@@ -81,7 +83,7 @@ void _openChatFromNotification(String challanId) {
     context: context,
     builder: (_) => ChallanChatDialog(
       challanId: challanId,
-      challanNo: challanId,
+      challanNo: challanNo.isNotEmpty ? challanNo : challanId,
     ),
   );
 }
@@ -143,9 +145,12 @@ void main() async {
     await flutterLocalNotificationsPlugin.initialize(
       const InitializationSettings(android: androidInit, iOS: iosInit),
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // User tapped a local notification — open chat
-        final challanId = response.payload ?? '';
-        _openChatFromNotification(challanId);
+        // payload format: "challanId|challanNo"
+        final payload = response.payload ?? '';
+        final parts = payload.split('|');
+        final challanId = parts.isNotEmpty ? parts[0] : '';
+        final challanNo = parts.length > 1 ? parts[1] : '';
+        _openChatFromNotification(challanId, challanNo: challanNo);
       },
     );
 
@@ -195,18 +200,19 @@ class _MyAppState extends State<MyApp> {
       // ── App BACKGROUND → tapped notification ────────────────────────
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         final challanId = message.data['challanId'] ?? '';
-        print("NOTIFICATION TAPPED (background): challanId=$challanId");
-        _openChatFromNotification(challanId);
+        final challanNo = message.data['challanNo'] ?? '';
+        print("NOTIFICATION TAPPED (background): challanId=$challanId challanNo=$challanNo");
+        _openChatFromNotification(challanId, challanNo: challanNo);
       });
 
       // ── App was TERMINATED → tapped notification ─────────────────────
       FirebaseMessaging.instance.getInitialMessage().then((message) {
         if (message != null) {
           final challanId = message.data['challanId'] ?? '';
-          print("NOTIFICATION TAPPED (terminated): challanId=$challanId");
-          // Slight delay to ensure navigator is ready
+          final challanNo = message.data['challanNo'] ?? '';
+          print("NOTIFICATION TAPPED (terminated): challanId=$challanId challanNo=$challanNo");
           Future.delayed(const Duration(milliseconds: 500), () {
-            _openChatFromNotification(challanId);
+            _openChatFromNotification(challanId, challanNo: challanNo);
           });
         }
       });
