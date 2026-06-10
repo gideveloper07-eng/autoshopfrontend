@@ -12,6 +12,10 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   List<Map<String, dynamic>> challans = [];
+
+  /// challanId → {lastMessage, unreadCount}
+  final Map<String, ChatMeta> _chatMeta = {};
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -33,6 +37,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
         challans = data;
         isLoading = false;
       });
+
+      // Load chat meta (last message + unread count) for every challan in
+      // parallel, then refresh UI once all futures resolve.
+      _loadAllChatMeta(data);
     } catch (e) {
       setState(() {
         errorMessage = e.toString();
@@ -41,7 +49,36 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
   }
 
-  void _openChat(Map<String, dynamic> challan) {
+  Future<void> _loadAllChatMeta(List<Map<String, dynamic>> list) async {
+    await Future.wait(list.map((challan) async {
+      final challanId = challan['sp_462']?.toString() ?? '';
+      if (challanId.isEmpty) return;
+
+      final results = await Future.wait([
+        ApiService.getChatMessages(challanId),
+        ApiService.getUnreadChatCount(challanId),
+      ]);
+
+      final messages = results[0] as List<dynamic>;
+      final unread = results[1] as int;
+
+      String lastMsg = '';
+      if (messages.isNotEmpty) {
+        lastMsg = messages.last['MessageText']?.toString() ?? '';
+      }
+
+      if (mounted) {
+        setState(() {
+          _chatMeta[challanId] = ChatMeta(
+            lastMessage: lastMsg,
+            unreadCount: unread,
+          );
+        });
+      }
+    }));
+  }
+
+  void _openChat(Map<String, dynamic> challan) async {
     final challanId = challan['sp_462']?.toString() ?? '';
     final challanNo = challan['sp_468']?.toString() ?? '';
 
@@ -52,13 +89,40 @@ class _ChatListScreenState extends State<ChatListScreen> {
       return;
     }
 
-    showDialog(
+    await showDialog(
       context: context,
       builder: (_) => ChallanChatDialog(
         challanId: challanId,
         challanNo: challanNo,
       ),
     );
+
+    // After dialog closes, refresh meta for this challan so badge clears
+    _refreshSingleMeta(challanId);
+  }
+
+  Future<void> _refreshSingleMeta(String challanId) async {
+    final results = await Future.wait([
+      ApiService.getChatMessages(challanId),
+      ApiService.getUnreadChatCount(challanId),
+    ]);
+
+    final messages = results[0] as List<dynamic>;
+    final unread = results[1] as int;
+
+    String lastMsg = '';
+    if (messages.isNotEmpty) {
+      lastMsg = messages.last['MessageText']?.toString() ?? '';
+    }
+
+    if (mounted) {
+      setState(() {
+        _chatMeta[challanId] = ChatMeta(
+          lastMessage: lastMsg,
+          unreadCount: unread,
+        );
+      });
+    }
   }
 
   @override
@@ -163,12 +227,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         itemCount: challans.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
         itemBuilder: (context, index) {
           final challan = challans[index];
+          final challanId = challan['sp_462']?.toString() ?? '';
           final challanNo = challan['sp_468']?.toString() ?? 'N/A';
           final customerName = challan['sp_469']?.toString() ?? '';
           final date = challan['date']?.toString() ?? '';
+
+          final meta = _chatMeta[challanId];
+          final lastMessage = meta?.lastMessage ?? '';
+          final unreadCount = meta?.unreadCount ?? 0;
 
           return GestureDetector(
             onTap: () => _openChat(challan),
@@ -233,6 +302,26 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             ),
                           ),
                         ],
+
+                        // Last message preview
+                        if (lastMessage.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            lastMessage,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: unreadCount > 0
+                                  ? AppColors.textPrimary
+                                  : AppColors.textSecondary.withOpacity(0.7),
+                              fontWeight: unreadCount > 0
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+
                         if (date.isNotEmpty) ...[
                           const SizedBox(height: 2),
                           Text(
@@ -247,10 +336,35 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                   ),
 
-                  // Arrow
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.textSecondary.withOpacity(0.5),
+                  const SizedBox(width: 8),
+
+                  // Right side: unread badge + chevron
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      if (unreadCount > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.green,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary.withOpacity(0.5),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -261,3 +375,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 }
+
+/// Small holder for per-challan chat metadata shown in the list.
+class ChatMeta {
+  final String lastMessage;
+  final int unreadCount;
+
+  const ChatMeta({required this.lastMessage, required this.unreadCount});
+}
+
+// ignore_for_file: deprecated_member_use
