@@ -1051,6 +1051,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   final Map<String, String> _fieldKeyToLabel = {};
   final TextEditingController _rejectRemarkController = TextEditingController();
   bool _isRadioSelected = false;
+  final GlobalKey _checkboxRowKey = GlobalKey();
 
   static const Color _primary = Color(0xFF0D3F8A);
   static const Color _secondary = Color(0xFF2C6CE0);
@@ -1746,6 +1747,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
 
   Widget _buildControlsCard(AppLocalizations l10n) {
     return Container(
+      key: _checkboxRowKey,
       decoration: BoxDecoration(
         color: _cardBg,
         borderRadius: BorderRadius.circular(16),
@@ -2344,22 +2346,67 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     if (_data == null) return;
     final l10n = AppLocalizations.of(context)!;
 
-    // Validate: at least one checkbox must be selected before rejection
+    // If checkboxes are not yet enabled, turn them on and scroll to them so
+    // the user can select the rejection fields before proceeding.
+    if (!_isRadioSelected) {
+      setState(() {
+        _isRadioSelected = true;
+        _savePageState();
+      });
+      // Scroll the checkbox row into view
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _checkboxRowKey.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+            alignment: 0.8, // show near the bottom so sections above are visible
+          );
+        }
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFF0D3F8A),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+          content: Row(
+            children: [
+              Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Checkboxes enabled — please select the fields you want to flag, then tap Reject again.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Checkboxes are enabled but nothing selected yet
     if (_checkedRejectFields.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: const Color(0xFFDC2626),
           behavior: SnackBarBehavior.floating,
           duration: const Duration(seconds: 4),
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.error_outline_rounded,
                 color: Colors.white,
                 size: 20,
               ),
-              const SizedBox(width: 10),
-              const Expanded(
+              SizedBox(width: 10),
+              Expanded(
                 child: Text(
                   'To reject this challan, please select at least one issue from the highlighted fields.',
                   style: TextStyle(
