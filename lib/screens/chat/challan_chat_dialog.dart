@@ -220,8 +220,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    documentNo,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    "$documentType #$documentNo",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                   const Text("Tap to open"),
                 ],
@@ -363,10 +366,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                               documentId,
                                             )
                                           : Text(
-                                              "$documentType #$documentNo",
+                                              message,
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
                                                 fontSize: 14,
+                                                color: Colors.black87,
                                               ),
                                             ),
 
