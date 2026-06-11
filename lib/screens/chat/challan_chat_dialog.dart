@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'chat_document_picker_dialog.dart';
 
 import '../../services/api_service.dart';
 
@@ -24,7 +25,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   final TextEditingController messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _inputFocusNode = FocusNode();
-
+  String? selectedDocumentId;
+  String? selectedDocumentType;
   Timer? _refreshTimer;
   List<dynamic> messages = [];
   bool loading = true;
@@ -67,7 +69,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final atBottom = _scrollController.position.pixels >=
+    final atBottom =
+        _scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 50;
     if (atBottom) {
       if (_userScrolledUp) {
@@ -94,9 +97,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             curve: Curves.easeOut,
           );
         } else {
-          _scrollController.jumpTo(
-            _scrollController.position.maxScrollExtent,
-          );
+          _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
         }
       }
     });
@@ -157,9 +158,13 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
     final success = await ApiService.sendChatMessage(
       challanId: widget.challanId,
-      messageText: text,
+      messageText: messageController.text.trim(),
       senderName: currentUserName,
       challanNo: widget.challanNo,
+
+      messageType: selectedDocumentId == null ? "TEXT" : "DOCUMENT",
+
+      documentId: selectedDocumentId,
     );
 
     if (success) {
@@ -191,8 +196,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             // ── Header ──────────────────────────────────────────────
             Container(
               color: Colors.blue,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
               child: Row(
                 children: [
                   Expanded(
@@ -233,7 +237,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   msg["MessageText"]?.toString() ?? "";
                               final messageTime =
                                   msg["MessageTime"]?.toString() ?? "";
-                              final isMine = senderName.toLowerCase() ==
+                              final isMine =
+                                  senderName.toLowerCase() ==
                                   currentUserName.toLowerCase();
 
                               return Align(
@@ -258,15 +263,18 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(18),
                                       topRight: const Radius.circular(18),
-                                      bottomLeft:
-                                          Radius.circular(isMine ? 18 : 4),
-                                      bottomRight:
-                                          Radius.circular(isMine ? 4 : 18),
+                                      bottomLeft: Radius.circular(
+                                        isMine ? 18 : 4,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isMine ? 4 : 18,
+                                      ),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.08),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.08,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -280,7 +288,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                       if (!isMine)
                                         Padding(
                                           padding: const EdgeInsets.only(
-                                              bottom: 3),
+                                            bottom: 3,
+                                          ),
                                           child: Text(
                                             senderName,
                                             style: const TextStyle(
@@ -308,8 +317,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                             formatTime(messageTime),
                                             style: TextStyle(
                                               fontSize: 10,
-                                              color: Colors.black
-                                                  .withValues(alpha: 0.45),
+                                              color: Colors.black.withValues(
+                                                alpha: 0.45,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -340,14 +350,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 7),
+                                    horizontal: 14,
+                                    vertical: 7,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF075E54),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color:
-                                            Colors.black.withValues(alpha: 0.2),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
@@ -387,32 +400,42 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
               padding: const EdgeInsets.all(10),
               child: Row(
                 children: [
+                  IconButton(
+                    icon: const Icon(Icons.attach_file),
+                    onPressed: () async {
+                      final selectedDoc =
+                          await showDialog<Map<String, dynamic>>(
+                            context: context,
+                            builder: (_) => const ChatDocumentPickerDialog(),
+                          );
+
+                      if (selectedDoc != null) {
+                        selectedDocumentId = selectedDoc["DocumentId"]
+                            ?.toString();
+
+                        selectedDocumentType = selectedDoc["DocumentType"]
+                            ?.toString();
+
+                        messageController.text =
+                            selectedDoc["DocumentNo"]?.toString() ?? "";
+                      }
+                    },
+                  ),
+
                   Expanded(
-                    child: KeyboardListener(
-                      focusNode: FocusNode(),
-                      onKeyEvent: (event) {
-                        if (event is KeyDownEvent &&
-                            event.logicalKey == LogicalKeyboardKey.enter) {
-                          sendMessage();
-                        }
-                      },
-                      child: TextField(
-                        controller: messageController,
-                        focusNode: _inputFocusNode,
-                        decoration: const InputDecoration(
-                          hintText: "Type message...",
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                        ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => sendMessage(),
+                    child: TextField(
+                      controller: messageController,
+                      decoration: const InputDecoration(
+                        hintText: "Type message...",
+                        border: OutlineInputBorder(),
                       ),
                     ),
                   ),
+
                   const SizedBox(width: 10),
+
                   IconButton(
-                    icon: const Icon(Icons.send, color: Colors.blue),
+                    icon: const Icon(Icons.send),
                     onPressed: sendMessage,
                   ),
                 ],

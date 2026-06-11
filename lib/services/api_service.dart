@@ -491,7 +491,8 @@ class ApiService {
   static Future<Map<String, int>> getDashboardStats() async {
     try {
       final token = await getToken();
-      if (token == null || token.isEmpty) return {'todayBooking': 0, 'todaySale': 0};
+      if (token == null || token.isEmpty)
+        return {'todayBooking': 0, 'todaySale': 0};
 
       final res = await http
           .get(
@@ -710,7 +711,9 @@ class ApiService {
     required String challanId,
     required String messageText,
     required String senderName,
-    String challanNo = '',
+    required String challanNo,
+    String? messageType,
+    String? documentId,
   }) async {
     try {
       final token = await getToken();
@@ -728,6 +731,9 @@ class ApiService {
           "messageText": messageText,
           "senderName": senderName,
           "challanNo": challanNo,
+
+          "messageType": messageType,
+          "documentId": documentId,
         }),
       );
 
@@ -779,6 +785,37 @@ class ApiService {
     } catch (e) {
       print("GET UNREAD CHAT COUNT ERROR: $e");
       return 0;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getChatDocuments() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/documents"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        if (body["success"] == true && body["data"] is List) {
+          return List<Map<String, dynamic>>.from(
+            body["data"].map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("GET DOCUMENTS ERROR: $e");
+      return [];
     }
   }
 
