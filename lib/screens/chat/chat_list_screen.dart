@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'challan_chat_dialog.dart';
@@ -63,14 +64,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
       final unread = results[1] as int;
 
       String lastMsg = '';
+      String lastTime = '';
       if (messages.isNotEmpty) {
-        lastMsg = messages.last['MessageText']?.toString() ?? '';
+        final last = messages.last;
+        lastMsg = last['MessageText']?.toString() ?? '';
+        // For DOCUMENT messages show a nicer preview
+        if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
+          lastMsg =
+              '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+        }
+        lastTime = last['MessageTime']?.toString() ?? '';
       }
 
       if (mounted) {
         setState(() {
           _chatMeta[challanId] = ChatMeta(
             lastMessage: lastMsg,
+            lastTime: lastTime,
             unreadCount: unread,
           );
         });
@@ -94,6 +104,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       builder: (_) => ChallanChatDialog(
         challanId: challanId,
         challanNo: challanNo,
+        customerName: challan['sp_469']?.toString() ?? '',
       ),
     );
 
@@ -111,14 +122,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final unread = results[1] as int;
 
     String lastMsg = '';
+    String lastTime = '';
     if (messages.isNotEmpty) {
-      lastMsg = messages.last['MessageText']?.toString() ?? '';
+      final last = messages.last;
+      lastMsg = last['MessageText']?.toString() ?? '';
+      if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
+        lastMsg = '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+      }
+      lastTime = last['MessageTime']?.toString() ?? '';
     }
 
     if (mounted) {
       setState(() {
         _chatMeta[challanId] = ChatMeta(
           lastMessage: lastMsg,
+          lastTime: lastTime,
           unreadCount: unread,
         );
       });
@@ -238,6 +256,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
           final meta = _chatMeta[challanId];
           final lastMessage = meta?.lastMessage ?? '';
           final unreadCount = meta?.unreadCount ?? 0;
+          final lastTime = meta?.lastTime ?? '';
+
+          // Format lastTime as "hh:mm a" or "dd MMM"
+          String timeLabel = '';
+          if (lastTime.isNotEmpty) {
+            try {
+              final dt = DateTime.parse(lastTime);
+              final now = DateTime.now();
+              if (dt.year == now.year &&
+                  dt.month == now.month &&
+                  dt.day == now.day) {
+                timeLabel = DateFormat('hh:mm a').format(dt);
+              } else {
+                timeLabel = DateFormat('dd MMM').format(dt);
+              }
+            } catch (_) {}
+          }
 
           return GestureDetector(
             onTap: () => _openChat(challan),
@@ -338,10 +373,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
                   const SizedBox(width: 8),
 
-                  // Right side: unread badge + chevron
+                  // Right side: time + unread badge + chevron
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (timeLabel.isNotEmpty)
+                        Text(
+                          timeLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: unreadCount > 0
+                                ? Colors.green
+                                : AppColors.textSecondary.withOpacity(0.6),
+                            fontWeight: unreadCount > 0
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      const SizedBox(height: 4),
                       if (unreadCount > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -358,12 +408,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                        )
+                      else
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: AppColors.textSecondary.withOpacity(0.5),
                         ),
-                      const SizedBox(height: 4),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        color: AppColors.textSecondary.withOpacity(0.5),
-                      ),
                     ],
                   ),
                 ],
@@ -379,9 +429,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
 /// Small holder for per-challan chat metadata shown in the list.
 class ChatMeta {
   final String lastMessage;
+  final String lastTime;
   final int unreadCount;
 
-  const ChatMeta({required this.lastMessage, required this.unreadCount});
+  const ChatMeta({
+    required this.lastMessage,
+    required this.lastTime,
+    required this.unreadCount,
+  });
 }
 
 // ignore_for_file: deprecated_member_use
