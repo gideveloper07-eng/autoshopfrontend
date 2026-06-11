@@ -744,6 +744,32 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getDocument(String documentId) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/document/$documentId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        if (body["success"] == true) {
+          return body["data"];
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print(e);
+      return null;
+    }
+  }
+
   /// Marks all messages in a challan as read for the current user.
   /// Should be called whenever the chat dialog is opened.
   static Future<void> markChatRead(String challanId) async {

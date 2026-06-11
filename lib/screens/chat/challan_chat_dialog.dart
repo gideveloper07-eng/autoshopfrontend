@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'chat_document_picker_dialog.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
 
@@ -172,6 +173,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       _newWhileScrolledUp = 0;
       await loadMessages();
       scrollToBottom();
+      selectedDocumentId = null;
+      selectedDocumentType = null;
     } else {
       messageController.text = text;
     }
@@ -183,6 +186,49 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     } catch (e) {
       return value;
     }
+  }
+
+  Widget _buildDocumentMessage(String documentNo, String? documentId) {
+    return InkWell(
+      onTap: () async {
+        if (documentId == null) return;
+
+        final doc = await ApiService.getDocument(documentId);
+
+        if (doc == null) return;
+
+        final filePath = doc["FilePath"]?.toString() ?? "";
+
+        if (filePath.isEmpty) return;
+
+        final url = "https://myautoshop365.com/$filePath";
+
+        print("PDF URL = $url");
+
+        await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            const Icon(Icons.picture_as_pdf, color: Colors.red),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    documentNo,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const Text("Tap to open"),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -235,6 +281,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   msg["SenderName"]?.toString() ?? "";
                               final message =
                                   msg["MessageText"]?.toString() ?? "";
+                              final messageType =
+                                  msg["MessageType"]?.toString() ?? "TEXT";
+
+                              final documentId = msg["DocumentId"]?.toString();
                               final messageTime =
                                   msg["MessageTime"]?.toString() ?? "";
                               final isMine =
@@ -299,13 +349,18 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                             ),
                                           ),
                                         ),
-                                      Text(
-                                        message,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
+                                      messageType == "DOCUMENT"
+                                          ? _buildDocumentMessage(
+                                              message,
+                                              documentId,
+                                            )
+                                          : Text(
+                                              message,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black87,
+                                              ),
+                                            ),
                                       const SizedBox(height: 3),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,

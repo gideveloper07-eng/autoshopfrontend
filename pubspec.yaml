@@ -47,6 +47,7 @@ dependencies:
   flutter_local_notifications: ^17.2.3
   speech_to_text: ^7.0.0
   shared_preferences: ^2.2.2
+  url_launcher: ^6.3.0
   # screen_protector: Temporarily removed due to build compatibility issues
 
 dev_dependencies:
