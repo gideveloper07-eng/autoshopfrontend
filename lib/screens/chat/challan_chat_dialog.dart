@@ -159,12 +159,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
     final success = await ApiService.sendChatMessage(
       challanId: widget.challanId,
-      messageText: messageController.text.trim(),
+      messageText: text,
       senderName: currentUserName,
       challanNo: widget.challanNo,
-
       messageType: selectedDocumentId == null ? "TEXT" : "DOCUMENT",
-
       documentId: selectedDocumentId,
     );
 
@@ -188,7 +186,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     }
   }
 
-  Widget _buildDocumentMessage(String documentNo, String? documentId) {
+  Widget _buildDocumentMessage(
+    String documentNo,
+    String documentType,
+    String? documentId,
+  ) {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -201,7 +203,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
         if (filePath.isEmpty) return;
 
-        final url = "https://myautoshop365.com/$filePath";
+        final url = "http://myautoshop365.com/$filePath";
 
         print("PDF URL = $url");
 
@@ -285,6 +287,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   msg["MessageType"]?.toString() ?? "TEXT";
 
                               final documentId = msg["DocumentId"]?.toString();
+                              final documentNo =
+                                  msg["DocumentNo"]?.toString() ?? "";
+
+                              final documentType =
+                                  msg["DocumentType"]?.toString() ?? "";
                               final messageTime =
                                   msg["MessageTime"]?.toString() ?? "";
                               final isMine =
@@ -351,16 +358,19 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                         ),
                                       messageType == "DOCUMENT"
                                           ? _buildDocumentMessage(
-                                              message,
+                                              documentNo,
+                                              documentType,
                                               documentId,
                                             )
                                           : Text(
-                                              message,
+                                              "$documentType #$documentNo",
                                               style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
                                                 fontSize: 14,
-                                                color: Colors.black87,
                                               ),
                                             ),
+
+                                      const SizedBox(height: 4),
                                       const SizedBox(height: 3),
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
