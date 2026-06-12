@@ -121,6 +121,78 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             const Text("Group Chat", style: TextStyle(fontSize: 12)),
           ],
         ),
+
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+
+            onSelected: (value) {
+              switch (value) {
+                case "members":
+                  // Open Members Screen
+                  break;
+
+                case "add":
+                  // Open Add Member Screen
+                  break;
+
+                case "remove":
+                  // Open Remove Member Screen
+                  break;
+
+                case "info":
+                  // Open Group Info Screen
+                  break;
+              }
+            },
+
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: "members",
+                child: Row(
+                  children: [
+                    Icon(Icons.people, size: 18),
+                    SizedBox(width: 8),
+                    Text("View Members"),
+                  ],
+                ),
+              ),
+
+              PopupMenuItem(
+                value: "add",
+                child: Row(
+                  children: [
+                    Icon(Icons.person_add, size: 18),
+                    SizedBox(width: 8),
+                    Text("Add Member"),
+                  ],
+                ),
+              ),
+
+              PopupMenuItem(
+                value: "remove",
+                child: Row(
+                  children: [
+                    Icon(Icons.person_remove, size: 18),
+                    SizedBox(width: 8),
+                    Text("Remove Member"),
+                  ],
+                ),
+              ),
+
+              PopupMenuItem(
+                value: "info",
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 18),
+                    SizedBox(width: 8),
+                    Text("Group Info"),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
 
       body: Column(
