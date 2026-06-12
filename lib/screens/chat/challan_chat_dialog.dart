@@ -1431,8 +1431,7 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
                             user['UserId']?.toString() ?? '';
                         final userName =
                             user['UserName']?.toString() ?? userId;
-                        final group =
-                            user['UserGroup']?.toString() ?? '';
+                        // HeadName no longer returned — subtitle omitted
                         final isAdding = _adding.contains(userId);
                         final isAdded = _added.contains(userId);
 
@@ -1459,11 +1458,7 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
                               style: const TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14)),
-                          subtitle: group.isNotEmpty
-                              ? Text(group,
-                                  style: const TextStyle(
-                                      fontSize: 11, color: Colors.grey))
-                              : null,
+                          subtitle: null,
                           trailing: isAdded
                               ? const Text("Added",
                                   style: TextStyle(

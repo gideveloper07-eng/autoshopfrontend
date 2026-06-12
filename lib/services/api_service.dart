@@ -909,13 +909,14 @@ class ApiService {
     }
   }
 
-  /// Returns all company users (for the Add Member picker).
+  /// Returns all company employees (for the Add Member picker).
+  /// Calls GET /api/group/users — served from groupRoutes.js
   static Future<List<Map<String, dynamic>>> getCompanyUsers() async {
     try {
       final token = await getToken();
       if (token == null) return [];
       final response = await http.get(
-        Uri.parse("$baseUrl/api/chat/users"),
+        Uri.parse("$baseUrl/api/group/users"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
