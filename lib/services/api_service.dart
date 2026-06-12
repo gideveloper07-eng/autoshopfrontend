@@ -880,6 +880,115 @@ class ApiService {
     }
   }
 
+  // ───────────────── CHAT MEMBERS ─────────────────
+
+  /// Returns all active members of a challan chat group.
+  static Future<List<Map<String, dynamic>>> getChatMembers(
+      String challanId) async {
+    try {
+      final token = await getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/members/$challanId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("GET CHAT MEMBERS ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns all company users (for the Add Member picker).
+  static Future<List<Map<String, dynamic>>> getCompanyUsers() async {
+    try {
+      final token = await getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/users"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("GET COMPANY USERS ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Adds a user as a member of a challan chat group.
+  static Future<bool> addChatMember({
+    required String challanId,
+    required String userId,
+    required String userName,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/chat/members/add"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "challanId": challanId,
+          "userId": userId,
+          "userName": userName,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("ADD CHAT MEMBER ERROR: $e");
+      return false;
+    }
+  }
+
+  /// Removes a member from a challan chat group (soft-delete).
+  static Future<bool> removeChatMember({
+    required String challanId,
+    required String userId,
+    required String userName,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+      final response = await http.delete(
+        Uri.parse("$baseUrl/api/chat/members/remove"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "challanId": challanId,
+          "userId": userId,
+          "userName": userName,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("REMOVE CHAT MEMBER ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<List<dynamic>> getMyGroups() async {
     try {
       final token = await getToken();
