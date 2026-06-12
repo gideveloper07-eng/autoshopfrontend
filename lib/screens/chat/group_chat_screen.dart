@@ -70,6 +70,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         messages = data;
         loading = false;
       });
+
+      scrollToBottom();
     } catch (e) {
       print(e);
     }
@@ -129,19 +131,27 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             onSelected: (value) {
               switch (value) {
                 case "members":
-                  // Open Members Screen
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("View Members")));
                   break;
 
                 case "add":
-                  // Open Add Member Screen
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("Add Member")));
                   break;
 
                 case "remove":
-                  // Open Remove Member Screen
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Remove Member")),
+                  );
                   break;
 
                 case "info":
-                  // Open Group Info Screen
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("Group Info")));
                   break;
               }
             },
@@ -152,40 +162,37 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 child: Row(
                   children: [
                     Icon(Icons.people, size: 18),
-                    SizedBox(width: 8),
+                    SizedBox(width: 10),
                     Text("View Members"),
                   ],
                 ),
               ),
-
               PopupMenuItem(
                 value: "add",
                 child: Row(
                   children: [
                     Icon(Icons.person_add, size: 18),
-                    SizedBox(width: 8),
+                    SizedBox(width: 10),
                     Text("Add Member"),
                   ],
                 ),
               ),
-
               PopupMenuItem(
                 value: "remove",
                 child: Row(
                   children: [
                     Icon(Icons.person_remove, size: 18),
-                    SizedBox(width: 8),
+                    SizedBox(width: 10),
                     Text("Remove Member"),
                   ],
                 ),
               ),
-
               PopupMenuItem(
                 value: "info",
                 child: Row(
                   children: [
                     Icon(Icons.info_outline, size: 18),
-                    SizedBox(width: 8),
+                    SizedBox(width: 10),
                     Text("Group Info"),
                   ],
                 ),
@@ -225,8 +232,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           constraints: const BoxConstraints(maxWidth: 300),
                           decoration: BoxDecoration(
                             color: isMine
-                                ? const Color(0xFFDCF8C6)
-                                : Colors.white,
+                                ? Colors.green.shade100
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(

@@ -93,6 +93,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
               leading: CircleAvatar(
                 radius: 24,
+                backgroundColor: Colors.blue.shade100,
                 child: Text(
                   avatarText,
                   style: const TextStyle(fontWeight: FontWeight.bold),
@@ -109,7 +110,13 @@ class _GroupListScreenState extends State<GroupListScreen> {
 
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text("$memberCount Members"),
+                child: Row(
+                  children: [
+                    const Icon(Icons.people, size: 14, color: Colors.grey),
+                    const SizedBox(width: 4),
+                    Text("$memberCount Members"),
+                  ],
+                ),
               ),
 
               trailing: const Icon(Icons.chevron_right),

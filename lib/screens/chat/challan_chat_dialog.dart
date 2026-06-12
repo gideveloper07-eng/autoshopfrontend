@@ -87,7 +87,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final atBottom = _scrollController.position.pixels >=
+    final atBottom =
+        _scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 50;
     if (atBottom) {
       if (_userScrolledUp) {
@@ -187,7 +188,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     if (_matchIndices.isEmpty) return;
     setState(() {
       _currentMatchIndex =
-          (_currentMatchIndex - 1 + _matchIndices.length) % _matchIndices.length;
+          (_currentMatchIndex - 1 + _matchIndices.length) %
+          _matchIndices.length;
     });
     _scrollToMessageIndex(_matchIndices[_currentMatchIndex]);
   }
@@ -296,8 +298,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       }
     }
     try {
-      final prev =
-          DateTime.parse(messages[index - 1]['MessageTime'].toString());
+      final prev = DateTime.parse(
+        messages[index - 1]['MessageTime'].toString(),
+      );
       final curr = DateTime.parse(messages[index]['MessageTime'].toString());
       if (prev.year != curr.year ||
           prev.month != curr.month ||
@@ -311,7 +314,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   // ── Widgets ──────────────────────────────────────────────────────
 
   Widget _buildDocumentMessage(
-      String documentNo, String documentType, String? documentId) {
+    String documentNo,
+    String documentType,
+    String? documentId,
+  ) {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -342,7 +348,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                   Text(
                     "$documentType #$documentNo",
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   const Text(
                     "PDF Document · Tap to open",
@@ -372,8 +380,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   /// Highlight matched text inside a message bubble with a yellow background
   Widget _buildHighlightedText(String text, String query) {
     if (query.isEmpty) {
-      return Text(text,
-          style: const TextStyle(fontSize: 14, color: Colors.black87));
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+      );
     }
     final lowerText = text.toLowerCase();
     final lowerQuery = query.toLowerCase();
@@ -382,27 +392,33 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     int idx;
     while ((idx = lowerText.indexOf(lowerQuery, start)) != -1) {
       if (idx > start) {
-        spans.add(TextSpan(
-          text: text.substring(start, idx),
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
-        ));
+        spans.add(
+          TextSpan(
+            text: text.substring(start, idx),
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        );
       }
-      spans.add(TextSpan(
-        text: text.substring(idx, idx + query.length),
-        style: const TextStyle(
-          fontSize: 14,
-          color: Colors.black87,
-          backgroundColor: Color(0xFFFFE082), // yellow highlight
-          fontWeight: FontWeight.bold,
+      spans.add(
+        TextSpan(
+          text: text.substring(idx, idx + query.length),
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.black87,
+            backgroundColor: Color(0xFFFFE082), // yellow highlight
+            fontWeight: FontWeight.bold,
+          ),
         ),
-      ));
+      );
       start = idx + query.length;
     }
     if (start < text.length) {
-      spans.add(TextSpan(
-        text: text.substring(start),
-        style: const TextStyle(fontSize: 14, color: Colors.black87),
-      ));
+      spans.add(
+        TextSpan(
+          text: text.substring(start),
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+      );
     }
     return RichText(text: TextSpan(children: spans));
   }
@@ -426,8 +442,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                 color: Color(0xFF075E54),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   if (!_isSearching) ...[
@@ -439,8 +454,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.receipt_long,
-                          color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.receipt_long,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -478,7 +496,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         decoration: InputDecoration(
                           hintText: "Search messages…",
                           hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6)),
+                            color: Colors.white.withValues(alpha: 0.6),
+                          ),
                           border: InputBorder.none,
                           isDense: true,
                           contentPadding: EdgeInsets.zero,
@@ -498,7 +517,66 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                     onPressed: _toggleSearch,
                   ),
 
-                  // Close dialog — only visible in normal mode
+                  // WhatsApp Style 3 Dot Menu
+                  if (!_isSearching)
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: Colors.white),
+                      onSelected: (value) {
+                        switch (value) {
+                          case "chatInfo":
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Chat Info")),
+                            );
+                            break;
+
+                          case "export":
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Export Chat")),
+                            );
+                            break;
+
+                          case "clear":
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Clear Chat")),
+                            );
+                            break;
+                        }
+                      },
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: "chatInfo",
+                          child: Row(
+                            children: [
+                              Icon(Icons.info_outline, size: 18),
+                              SizedBox(width: 8),
+                              Text("Chat Info"),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: "export",
+                          child: Row(
+                            children: [
+                              Icon(Icons.download, size: 18),
+                              SizedBox(width: 8),
+                              Text("Export Chat"),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: "clear",
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_outline, size: 18),
+                              SizedBox(width: 8),
+                              Text("Clear Chat"),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  // Close Dialog
                   if (!_isSearching)
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.white),
@@ -512,8 +590,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             if (_isSearching)
               Container(
                 color: const Color(0xFF128C7E),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -521,8 +601,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         searchQuery.isEmpty
                             ? "Type to search…"
                             : _matchIndices.isEmpty
-                                ? "No results"
-                                : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
+                            ? "No results"
+                            : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.9),
                           fontSize: 13,
@@ -531,8 +611,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                     ),
                     if (_matchIndices.isNotEmpty) ...[
                       IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_up,
-                            color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_up,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         tooltip: "Previous",
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -540,8 +623,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.white, size: 20),
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                         tooltip: "Next",
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -576,17 +662,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   msg["MessageText"]?.toString() ?? "";
                               final messageType =
                                   msg["MessageType"]?.toString() ?? "TEXT";
-                              final documentId =
-                                  msg["DocumentId"]?.toString();
+                              final documentId = msg["DocumentId"]?.toString();
                               final documentNo =
                                   msg["DocumentNo"]?.toString() ?? "";
                               final documentType =
                                   msg["DocumentType"]?.toString() ?? "";
                               final messageTime =
                                   msg["MessageTime"]?.toString() ?? "";
-                              final isRead = (msg["IsRead"] == true ||
-                                  msg["IsRead"] == 1);
-                              final isMine = senderName.toLowerCase() ==
+                              final isRead =
+                                  (msg["IsRead"] == true || msg["IsRead"] == 1);
+                              final isMine =
+                                  senderName.toLowerCase() ==
                                   currentUserName.toLowerCase();
 
                               // Is this message a search match?
@@ -600,15 +686,19 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   if (separator != null)
                                     Padding(
                                       padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
+                                        vertical: 10,
+                                      ),
                                       child: Center(
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 4),
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFD1E8D5),
-                                            borderRadius:
-                                                BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           child: Text(
                                             separator,
@@ -628,8 +718,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                         ? Alignment.centerRight
                                         : Alignment.centerLeft,
                                     child: AnimatedContainer(
-                                      duration:
-                                          const Duration(milliseconds: 200),
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
                                       margin: EdgeInsets.only(
                                         left: isMine ? 60 : 10,
                                         right: isMine ? 10 : 60,
@@ -637,33 +728,39 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                         bottom: 2,
                                       ),
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
                                       decoration: BoxDecoration(
                                         // Active match: light yellow bg; other match: subtle highlight
                                         color: isActiveMatch
                                             ? const Color(0xFFFFF176)
                                             : isMatch
-                                                ? const Color(0xFFFFF9C4)
-                                                : isMine
-                                                    ? const Color(0xFFDCF8C6)
-                                                    : Colors.white,
+                                            ? const Color(0xFFFFF9C4)
+                                            : isMine
+                                            ? const Color(0xFFDCF8C6)
+                                            : Colors.white,
                                         borderRadius: BorderRadius.only(
                                           topLeft: const Radius.circular(18),
                                           topRight: const Radius.circular(18),
                                           bottomLeft: Radius.circular(
-                                              isMine ? 18 : 4),
+                                            isMine ? 18 : 4,
+                                          ),
                                           bottomRight: Radius.circular(
-                                              isMine ? 4 : 18),
+                                            isMine ? 4 : 18,
+                                          ),
                                         ),
                                         border: isActiveMatch
                                             ? Border.all(
                                                 color: const Color(0xFFFFB300),
-                                                width: 1.5)
+                                                width: 1.5,
+                                              )
                                             : null,
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.08),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.08,
+                                            ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -677,7 +774,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                           if (!isMine)
                                             Padding(
                                               padding: const EdgeInsets.only(
-                                                  bottom: 3),
+                                                bottom: 3,
+                                              ),
                                               child: Text(
                                                 senderName,
                                                 style: const TextStyle(
@@ -694,15 +792,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                                   documentId,
                                                 )
                                               : _isSearching && isMatch
-                                                  ? _buildHighlightedText(
-                                                      message, searchQuery)
-                                                  : Text(
-                                                      message,
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color: Colors.black87,
-                                                      ),
-                                                    ),
+                                              ? _buildHighlightedText(
+                                                  message,
+                                                  searchQuery,
+                                                )
+                                              : Text(
+                                                  message,
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    color: Colors.black87,
+                                                  ),
+                                                ),
                                           const SizedBox(height: 3),
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
@@ -747,14 +847,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 7),
+                                    horizontal: 14,
+                                    vertical: 7,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF075E54),
                                     borderRadius: BorderRadius.circular(20),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.2),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.2,
+                                        ),
                                         blurRadius: 6,
                                         offset: const Offset(0, 2),
                                       ),
@@ -764,9 +867,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Icon(
-                                          Icons.keyboard_arrow_down_rounded,
-                                          color: Colors.white,
-                                          size: 18),
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
                                       const SizedBox(width: 4),
                                       Text(
                                         '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
@@ -800,18 +904,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                           : () async {
                               final selectedDoc =
                                   await showDialog<Map<String, dynamic>>(
-                                context: context,
-                                builder: (_) =>
-                                    const ChatDocumentPickerDialog(),
-                              );
+                                    context: context,
+                                    builder: (_) =>
+                                        const ChatDocumentPickerDialog(),
+                                  );
                               if (selectedDoc != null) {
-                                selectedDocumentId =
-                                    selectedDoc["DocumentId"]?.toString();
+                                selectedDocumentId = selectedDoc["DocumentId"]
+                                    ?.toString();
                                 selectedDocumentType =
                                     selectedDoc["DocumentType"]?.toString();
                                 messageController.text =
-                                    selectedDoc["DocumentNo"]?.toString() ??
-                                        "";
+                                    selectedDoc["DocumentNo"]?.toString() ?? "";
                               }
                             },
                     ),
@@ -832,7 +935,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                             hintText: _sending ? "Sending…" : "Type message...",
                             border: const OutlineInputBorder(),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                           ),
                           textInputAction: TextInputAction.send,
                           onSubmitted: (_) {
@@ -848,12 +953,13 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                       child: _sending
                           ? const Padding(
                               padding: EdgeInsets.all(8),
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : IconButton(
-                              icon: const Icon(Icons.send,
-                                  color: Color(0xFF075E54)),
+                              icon: const Icon(
+                                Icons.send,
+                                color: Color(0xFF075E54),
+                              ),
                               onPressed: sendMessage,
                             ),
                     ),
