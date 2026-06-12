@@ -879,4 +879,76 @@ class ApiService {
       // Silently ignore activity log errors to avoid breaking main flow
     }
   }
+
+  static Future<List<dynamic>> getMyGroups() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/my-groups"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET GROUPS ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<List<dynamic>> getGroupMessages(String groupId) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/messages/$groupId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET GROUP MESSAGES ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> sendGroupMessage({
+    required String groupId,
+    required String messageText,
+    String? messageType,
+    String? documentId,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/send-message"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "groupId": groupId,
+          "messageText": messageText,
+          "messageType": messageType ?? "TEXT",
+          "documentId": documentId,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("SEND GROUP MESSAGE ERROR: $e");
+      return false;
+    }
+  }
 }

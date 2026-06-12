@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'challan_chat_dialog.dart';
+import 'group_list_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -11,19 +12,30 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ChatListScreenState extends State<ChatListScreen>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> challans = [];
 
   /// challanId → {lastMessage, unreadCount}
   final Map<String, ChatMeta> _chatMeta = {};
 
   bool isLoading = true;
+  late TabController _tabController;
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
+
+    _tabController = TabController(length: 2, vsync: this);
+
     _loadChallans();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadChallans() async {
@@ -51,41 +63,43 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _loadAllChatMeta(List<Map<String, dynamic>> list) async {
-    await Future.wait(list.map((challan) async {
-      final challanId = challan['sp_462']?.toString() ?? '';
-      if (challanId.isEmpty) return;
+    await Future.wait(
+      list.map((challan) async {
+        final challanId = challan['sp_462']?.toString() ?? '';
+        if (challanId.isEmpty) return;
 
-      final results = await Future.wait([
-        ApiService.getChatMessages(challanId),
-        ApiService.getUnreadChatCount(challanId),
-      ]);
+        final results = await Future.wait([
+          ApiService.getChatMessages(challanId),
+          ApiService.getUnreadChatCount(challanId),
+        ]);
 
-      final messages = results[0] as List<dynamic>;
-      final unread = results[1] as int;
+        final messages = results[0] as List<dynamic>;
+        final unread = results[1] as int;
 
-      String lastMsg = '';
-      String lastTime = '';
-      if (messages.isNotEmpty) {
-        final last = messages.last;
-        lastMsg = last['MessageText']?.toString() ?? '';
-        // For DOCUMENT messages show a nicer preview
-        if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
-          lastMsg =
-              '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+        String lastMsg = '';
+        String lastTime = '';
+        if (messages.isNotEmpty) {
+          final last = messages.last;
+          lastMsg = last['MessageText']?.toString() ?? '';
+          // For DOCUMENT messages show a nicer preview
+          if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
+            lastMsg =
+                '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+          }
+          lastTime = last['MessageTime']?.toString() ?? '';
         }
-        lastTime = last['MessageTime']?.toString() ?? '';
-      }
 
-      if (mounted) {
-        setState(() {
-          _chatMeta[challanId] = ChatMeta(
-            lastMessage: lastMsg,
-            lastTime: lastTime,
-            unreadCount: unread,
-          );
-        });
-      }
-    }));
+        if (mounted) {
+          setState(() {
+            _chatMeta[challanId] = ChatMeta(
+              lastMessage: lastMsg,
+              lastTime: lastTime,
+              unreadCount: unread,
+            );
+          });
+        }
+      }),
+    );
   }
 
   void _openChat(Map<String, dynamic> challan) async {
@@ -127,7 +141,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
       final last = messages.last;
       lastMsg = last['MessageText']?.toString() ?? '';
       if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
-        lastMsg = '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+        lastMsg =
+            '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
       }
       lastTime = last['MessageTime']?.toString() ?? '';
     }
@@ -151,9 +166,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: AppColors.vibrantGradient,
-          ),
+          decoration: BoxDecoration(gradient: AppColors.vibrantGradient),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -164,6 +177,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
             fontSize: 18,
           ),
         ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.person), text: "Individual"),
+            Tab(icon: Icon(Icons.groups), text: "Groups"),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: Colors.white),
@@ -171,13 +191,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage != null
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // Individual Chats
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : errorMessage != null
               ? _buildError()
               : challans.isEmpty
-                  ? _buildEmpty()
-                  : _buildList(),
+              ? _buildEmpty()
+              : _buildList(),
+
+          // Groups
+          const GroupListScreen(),
+        ],
+      ),
     );
   }
 
@@ -395,7 +424,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       if (unreadCount > 0)
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 3),
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green,
                             borderRadius: BorderRadius.circular(12),
