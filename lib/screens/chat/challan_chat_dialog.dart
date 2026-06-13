@@ -704,18 +704,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10)),
                       onSelected: (value) {
-                        switch (value) {
-                          case 'newGroup':
-                            _showNewGroupFlow();
-                          case 'viewMembers':
-                            _showViewMembers();
-                          case 'addMember':
-                            _showAddMember();
-                          case 'removeMember':
-                            _showRemoveMember();
-                          case 'groupInfo':
-                            _showGroupInfo();
-                        }
+                        if (value == 'newGroup') _showNewGroupFlow();
                       },
                       itemBuilder: (_) => [
                         const PopupMenuItem(
@@ -723,33 +712,6 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                           child: _MenuRow(
                               icon: Icons.group_add_outlined,
                               label: 'New Group'),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem(
-                          value: 'viewMembers',
-                          child: _MenuRow(
-                              icon: Icons.people_outline,
-                              label: 'View Members'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'addMember',
-                          child: _MenuRow(
-                              icon: Icons.person_add_alt_1_outlined,
-                              label: 'Add Member'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'removeMember',
-                          child: _MenuRow(
-                              icon: Icons.person_remove_outlined,
-                              label: 'Remove Member',
-                              danger: true),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem(
-                          value: 'groupInfo',
-                          child: _MenuRow(
-                              icon: Icons.info_outline,
-                              label: 'Group Info'),
                         ),
                       ],
                     ),

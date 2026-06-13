@@ -117,7 +117,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           final last = msgs.last;
           lastMsg = last['MessageText']?.toString() ?? '';
           if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
-            lastMsg = '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+            lastMsg =
+                '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
           }
           lastTime = last['MessageTime']?.toString() ?? '';
         }
@@ -604,20 +605,40 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             icon: Icons.receipt_long_rounded,
                             label: "Challan",
                             subtitle: "View & manage challans",
-                            gradient: [
-                              const Color(0xFF0A2E5C), // dark blue
-                              const Color(0xFF3B2A96), // deep purple
-                              const Color(0xFF6A4BD8), // lighter purple
+                            gradient: const [
+                              Color(0xFF0A2E5C),
+                              Color(0xFF3B2A96),
+                              Color(0xFF6A4BD8),
                             ],
                             accentColor: AppColors.secondary,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  settings: const RouteSettings(
-                                    name: 'ChallanScreen',
-                                  ),
                                   builder: (_) => const ChallanScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _dashCard(
+                            icon: Icons.chat_rounded,
+                            label: "Chat",
+                            subtitle: "Open chats & groups",
+                            gradient: const [
+                              Color(0xFF4A148C), // Deep Purple
+                              Color(0xFF7B1FA2), // Purple
+                              Color(0xFFAB47BC), // Light Purple
+                            ],
+                            accentColor: Color(0xFFE1BEE7),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ChatListScreen(),
                                 ),
                               );
                             },
@@ -683,7 +704,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 borderRadius: BorderRadius.vertical(
                   top: const Radius.circular(20),
                   bottom: Radius.circular(
-                      (isEmpty || _chatPreviewLoading) ? 20 : 0),
+                    (isEmpty || _chatPreviewLoading) ? 20 : 0,
+                  ),
                 ),
               ),
               child: Row(
@@ -695,8 +717,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.chat_rounded,
-                        color: Colors.white, size: 20),
+                    child: const Icon(
+                      Icons.chat_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -716,8 +741,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          settings:
-                              const RouteSettings(name: 'ChatListScreen'),
+                          settings: const RouteSettings(name: 'ChatListScreen'),
                           builder: (_) => const ChatListScreen(),
                         ),
                       );
@@ -730,25 +754,33 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         color: Colors.white.withOpacity(0.15),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.search,
-                          color: Colors.white, size: 18),
+                      child: const Icon(
+                        Icons.search,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 6),
                   // Three-dot menu
                   PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert,
-                        color: Colors.white, size: 20),
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     tooltip: "Menu",
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                     onSelected: (v) {
                       if (v == 'open') {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            settings:
-                                const RouteSettings(name: 'ChatListScreen'),
+                            settings: const RouteSettings(
+                              name: 'ChatListScreen',
+                            ),
                             builder: (_) => const ChatListScreen(),
                           ),
                         ).then((_) => _loadChatPreview());
@@ -759,11 +791,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         value: 'open',
                         child: Row(
                           children: [
-                            Icon(Icons.open_in_new,
-                                size: 18, color: Colors.black87),
+                            Icon(
+                              Icons.open_in_new,
+                              size: 18,
+                              color: Colors.black87,
+                            ),
                             SizedBox(width: 10),
-                            Text("Open Chat",
-                                style: TextStyle(fontSize: 14)),
+                            Text("Open Chat", style: TextStyle(fontSize: 14)),
                           ],
                         ),
                       ),
@@ -780,28 +814,32 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(child: CircularProgressIndicator()),
             )
-
           // ── Empty state ──────────────────────────────────────────
           else if (isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Column(
                 children: [
-                  Icon(Icons.chat_bubble_outline_rounded,
-                      size: 40,
-                      color: Colors.grey.withOpacity(0.4)),
+                  Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 40,
+                    color: Colors.grey.withOpacity(0.4),
+                  ),
                   const SizedBox(height: 8),
-                  const Text("No chats yet",
-                      style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const Text(
+                    "No chats yet",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
                 ],
               ),
             )
-
           else ...[
             // ── Individual Chats ─────────────────────────────────
             if (hasChallans) ...[
               _previewSectionHeader(
-                  icon: Icons.person_outline, label: "Individual Chats"),
+                icon: Icons.person_outline,
+                label: "Individual Chats",
+              ),
               ..._previewChallans.map((challan) {
                 final challanId = challan['sp_462']?.toString() ?? '';
                 final challanNo = challan['sp_468']?.toString() ?? '';
@@ -844,24 +882,24 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // ── Groups ───────────────────────────────────────────
             if (hasGroups) ...[
               _previewSectionHeader(
-                  icon: Icons.groups_outlined, label: "Groups"),
+                icon: Icons.groups_outlined,
+                label: "Groups",
+              ),
               ..._previewGroups.asMap().entries.map((entry) {
                 final idx = entry.key;
                 final group = entry.value;
                 final groupId = group['GroupId']?.toString() ?? '';
-                final groupName =
-                    group['GroupName']?.toString() ?? 'Group';
+                final groupName = group['GroupName']?.toString() ?? 'Group';
                 final memberCount =
                     (group['MemberCount'] as num?)?.toInt() ?? 0;
-                final lastMsgTime =
-                    group['LastMessageTime']?.toString() ?? '';
-                final lastMsg =
-                    group['LastMessage']?.toString() ?? '';
+                final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
+                final lastMsg = group['LastMessage']?.toString() ?? '';
                 final avatarLetter = groupName.isNotEmpty
                     ? groupName[0].toUpperCase()
                     : 'G';
                 final timeLabel = _fmtTime(
-                    lastMsgTime.isNotEmpty ? lastMsgTime : null);
+                  lastMsgTime.isNotEmpty ? lastMsgTime : null,
+                );
 
                 return _previewChatTile(
                   avatarLetter: avatarLetter,
@@ -895,8 +933,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    settings:
-                        const RouteSettings(name: 'ChatListScreen'),
+                    settings: const RouteSettings(name: 'ChatListScreen'),
                     builder: (_) => const ChatListScreen(),
                   ),
                 );
@@ -907,10 +944,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F5),
                   borderRadius: const BorderRadius.vertical(
-                      bottom: Radius.circular(20)),
+                    bottom: Radius.circular(20),
+                  ),
                   border: Border(
-                    top: BorderSide(
-                        color: Colors.grey.withOpacity(0.15)),
+                    top: BorderSide(color: Colors.grey.withOpacity(0.15)),
                   ),
                 ),
                 child: const Center(
@@ -931,8 +968,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _previewSectionHeader(
-      {required IconData icon, required String label}) {
+  Widget _previewSectionHeader({
+    required IconData icon,
+    required String label,
+  }) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       decoration: BoxDecoration(
@@ -978,9 +1017,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           color: Colors.white,
           border: isLast
               ? null
-              : Border(
-                  bottom: BorderSide(color: Colors.grey.withOpacity(0.1)),
-                ),
+              : Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.1))),
         ),
         child: Row(
           children: [
@@ -1032,9 +1069,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           timeLabel,
                           style: TextStyle(
                             fontSize: 11,
-                            color: unreadCount > 0
-                                ? _chatGreen
-                                : Colors.grey,
+                            color: unreadCount > 0 ? _chatGreen : Colors.grey,
                             fontWeight: unreadCount > 0
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -1066,7 +1101,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: _chatGreen,
                             borderRadius: BorderRadius.circular(10),
