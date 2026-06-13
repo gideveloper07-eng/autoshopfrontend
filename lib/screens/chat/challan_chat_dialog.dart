@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'chat_document_picker_dialog.dart';
+import 'group_chat_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
@@ -200,7 +201,64 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   bool _isCurrentMatch(int msgIndex) =>
       _matchIndices.isNotEmpty && _matchIndices[_currentMatchIndex] == msgIndex;
 
-  // ── Members ──────────────────────────────────────────────────────
+  // ── New Group flow (Step 1: pick members → Step 2: name) ────────
+
+  void _showNewGroupFlow() async {
+    // Step 1 — pick members
+    final allUsers = await ApiService.getCompanyUsers();
+    if (!mounted) return;
+
+    final pickedIds = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => _PickMembersDialog(allUsers: allUsers),
+    );
+    if (pickedIds == null || pickedIds.isEmpty) return;
+
+    // Step 2 — name the group
+    if (!mounted) return;
+    final groupName = await showDialog<String>(
+      context: context,
+      builder: (_) => const _NameGroupDialog(),
+    );
+    if (groupName == null || groupName.trim().isEmpty) return;
+
+    // Create
+    final result = await ApiService.createGroup(
+      groupName: groupName.trim(),
+      memberIds: pickedIds,
+    );
+
+    if (!mounted) return;
+    if (result['success'] == true) {
+      final groupId = result['groupId']?.toString() ?? '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFF075E54),
+          content: Text('Group "$groupName" created!'),
+        ),
+      );
+      if (groupId.isNotEmpty) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => GroupChatScreen(
+              groupId: groupId,
+              groupName: groupName.trim(),
+            ),
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Failed to create group. Try again.'),
+        ),
+      );
+    }
+  }
+
+  // ── Challan Members ──────────────────────────────────────────────
 
   Future<void> _loadMembers() async {
     final data = await ApiService.getChatMembers(widget.challanId);
@@ -647,6 +705,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                           borderRadius: BorderRadius.circular(10)),
                       onSelected: (value) {
                         switch (value) {
+                          case 'newGroup':
+                            _showNewGroupFlow();
                           case 'viewMembers':
                             _showViewMembers();
                           case 'addMember':
@@ -658,6 +718,13 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         }
                       },
                       itemBuilder: (_) => [
+                        const PopupMenuItem(
+                          value: 'newGroup',
+                          child: _MenuRow(
+                              icon: Icons.group_add_outlined,
+                              label: 'New Group'),
+                        ),
+                        const PopupMenuDivider(),
                         const PopupMenuItem(
                           value: 'viewMembers',
                           child: _MenuRow(
@@ -1507,6 +1574,253 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: const Text("Done"),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Step 1: Pick Members Dialog ──────────────────────────────────────────────
+// Multi-select user list. Returns List<String> of selected userIds.
+
+class _PickMembersDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> allUsers;
+  const _PickMembersDialog({required this.allUsers});
+
+  @override
+  State<_PickMembersDialog> createState() => _PickMembersDialogState();
+}
+
+class _PickMembersDialogState extends State<_PickMembersDialog> {
+  final TextEditingController _filter = TextEditingController();
+  final Set<String> _selected = {};
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _filter.text.trim().toLowerCase();
+    if (q.isEmpty) return widget.allUsers;
+    return widget.allUsers.where((u) {
+      final name = (u['UserName']?.toString() ?? '').toLowerCase();
+      final id = (u['UserId']?.toString() ?? '').toLowerCase();
+      return name.contains(q) || id.contains(q);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filtered;
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                "Add Group Members",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (_selected.isNotEmpty)
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  "${_selected.length} selected",
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+      ),
+      content: SizedBox(
+        width: 400,
+        height: 420,
+        child: Column(
+          children: [
+            TextField(
+              controller: _filter,
+              decoration: InputDecoration(
+                hintText: "Search users…",
+                prefixIcon: const Icon(Icons.search, size: 18),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(
+                      child: Text("No users found",
+                          style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) {
+                        final user = filtered[i];
+                        final userId = user['UserId']?.toString() ?? '';
+                        final userName =
+                            user['UserName']?.toString() ?? userId;
+                        final isSelected = _selected.contains(userId);
+
+                        return CheckboxListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 0),
+                          activeColor: const Color(0xFF075E54),
+                          value: isSelected,
+                          onChanged: (v) {
+                            setState(() {
+                              if (v == true) {
+                                _selected.add(userId);
+                              } else {
+                                _selected.remove(userId);
+                              }
+                            });
+                          },
+                          secondary: CircleAvatar(
+                            backgroundColor: isSelected
+                                ? const Color(0xFF075E54)
+                                : const Color(0xFF128C7E),
+                            child: isSelected
+                                ? const Icon(Icons.check,
+                                    color: Colors.white, size: 16)
+                                : Text(
+                                    userName.isNotEmpty
+                                        ? userName[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13),
+                                  ),
+                          ),
+                          title: Text(userName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 14)),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF075E54),
+            foregroundColor: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: _selected.isEmpty
+              ? null
+              : () => Navigator.pop(context, _selected.toList()),
+          child: Text("Next  (${_selected.length})"),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Step 2: Name Group Dialog ─────────────────────────────────────────────────
+
+class _NameGroupDialog extends StatefulWidget {
+  const _NameGroupDialog();
+
+  @override
+  State<_NameGroupDialog> createState() => _NameGroupDialogState();
+}
+
+class _NameGroupDialogState extends State<_NameGroupDialog> {
+  final TextEditingController _ctrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: const Row(
+          children: [
+            Icon(Icons.group, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Text(
+              "Name Your Group",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+      content: TextField(
+        controller: _ctrl,
+        autofocus: true,
+        maxLength: 50,
+        decoration: const InputDecoration(
+          hintText: "Group name…",
+          border: OutlineInputBorder(),
+          prefixIcon: Icon(Icons.edit),
+        ),
+        onSubmitted: (v) {
+          if (v.trim().isNotEmpty) Navigator.pop(context, v.trim());
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF075E54),
+            foregroundColor: Colors.white,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          onPressed: () {
+            final name = _ctrl.text.trim();
+            if (name.isNotEmpty) Navigator.pop(context, name);
+          },
+          child: const Text("Create Group"),
         ),
       ],
     );

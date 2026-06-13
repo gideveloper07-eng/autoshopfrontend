@@ -991,6 +991,103 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> createGroup({
+    required String groupName,
+    required List<String> memberIds,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return {'success': false};
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/create"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "groupName": groupName,
+          "members": memberIds,
+        }),
+      );
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+      return {'success': false};
+    } catch (e) {
+      print("CREATE GROUP ERROR: $e");
+      return {'success': false};
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getGroupMembers(
+      String groupId) async {
+    try {
+      final token = await getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/members/$groupId"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("GET GROUP MEMBERS ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<bool> addGroupMember({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/add-member"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"groupId": groupId, "userId": userId}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("ADD GROUP MEMBER ERROR: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> removeGroupMember({
+    required String groupId,
+    required String userId,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/remove-member"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"groupId": groupId, "userId": userId}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("REMOVE GROUP MEMBER ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<List<dynamic>> getMyGroups() async {
     try {
       final token = await getToken();
