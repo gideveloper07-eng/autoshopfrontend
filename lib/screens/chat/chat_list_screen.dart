@@ -172,12 +172,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
       return;
     }
 
-    await showDialog(
-      context: context,
-      builder: (_) => ChallanChatDialog(
-        challanId: challanId,
-        challanNo: challanNo,
-        customerName: challan['sp_469']?.toString() ?? '',
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChallanChatDialog(
+          challanId: challanId,
+          challanNo: challanNo,
+          customerName: challan['sp_469']?.toString() ?? '',
+        ),
       ),
     );
 

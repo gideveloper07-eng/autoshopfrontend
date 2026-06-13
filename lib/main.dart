@@ -79,11 +79,12 @@ void _openChatFromNotification(String challanId, {String challanNo = ''}) {
   final context = navigatorKey.currentContext;
   if (context == null) return;
 
-  showDialog(
-    context: context,
-    builder: (_) => ChallanChatDialog(
-      challanId: challanId,
-      challanNo: challanNo.isNotEmpty ? challanNo : challanId,
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      builder: (_) => ChallanChatDialog(
+        challanId: challanId,
+        challanNo: challanNo.isNotEmpty ? challanNo : challanId,
+      ),
     ),
   );
 }

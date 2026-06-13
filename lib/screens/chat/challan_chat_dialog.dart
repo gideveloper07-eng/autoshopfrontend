@@ -605,525 +605,498 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   Widget build(BuildContext context) {
     final searchQuery = _searchController.text.trim().toLowerCase();
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SizedBox(
-        width: 700,
-        height: 620,
-        child: Column(
-          children: [
-            // ── Header ────────────────────────────────────────────
-            Container(
-              decoration: const BoxDecoration(
-                color: _headerColor,
-                borderRadius:
-                    BorderRadius.vertical(top: Radius.circular(12)),
-              ),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
+    return Scaffold(
+      backgroundColor: const Color(0xFFECE5DD),
+      appBar: AppBar(
+        backgroundColor: _headerColor,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleSpacing: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                style: const TextStyle(color: Colors.white),
+                cursorColor: Colors.white,
+                decoration: InputDecoration(
+                  hintText: "Search messages…",
+                  hintStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onChanged: (_) => setState(() {}),
+              )
+            : Row(
                 children: [
-                  if (!_isSearching) ...[
-                    Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.receipt_long,
-                          color: Colors.white, size: 20),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Challan #${widget.challanNo}",
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold),
-                          ),
-                          if (widget.customerName != null &&
-                              widget.customerName!.isNotEmpty)
-                            Text(
-                              widget.customerName!,
-                              style: TextStyle(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.85),
-                                  fontSize: 12),
-                            )
-                          else if (_members.isNotEmpty)
-                            Text(
-                              "${_members.length} member${_members.length == 1 ? '' : 's'}",
-                              style: TextStyle(
-                                  color:
-                                      Colors.white.withValues(alpha: 0.75),
-                                  fontSize: 12),
-                            ),
-                        ],
+                    child: Center(
+                      child: Text(
+                        (widget.customerName != null &&
+                                widget.customerName!.isNotEmpty)
+                            ? widget.customerName![0].toUpperCase()
+                            : widget.challanNo.isNotEmpty
+                                ? widget.challanNo[0].toUpperCase()
+                                : 'C',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 17),
                       ),
                     ),
-                  ] else ...[
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        focusNode: _searchFocusNode,
-                        style: const TextStyle(color: Colors.white),
-                        cursorColor: Colors.white,
-                        decoration: InputDecoration(
-                          hintText: "Search messages…",
-                          hintStyle: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.6)),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                        ),
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                  ],
-
-                  // Search icon
-                  IconButton(
-                    icon: Icon(
-                        _isSearching ? Icons.close : Icons.search,
-                        color: Colors.white),
-                    tooltip: _isSearching ? "Close search" : "Search",
-                    onPressed: _toggleSearch,
                   ),
-
-                  // ── Three-dot menu ──────────────────────────────
-                  if (!_isSearching)
-                    PopupMenuButton<String>(
-                      icon:
-                          const Icon(Icons.more_vert, color: Colors.white),
-                      tooltip: "Menu",
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      onSelected: (value) {
-                        if (value == 'newGroup') _showNewGroupFlow();
-                      },
-                      itemBuilder: (_) => [
-                        const PopupMenuItem(
-                          value: 'newGroup',
-                          child: _MenuRow(
-                              icon: Icons.group_add_outlined,
-                              label: 'New Group'),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.customerName != null &&
+                                  widget.customerName!.isNotEmpty
+                              ? widget.customerName!
+                              : "Challan #${widget.challanNo}",
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          "Challan #${widget.challanNo}",
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12),
                         ),
                       ],
                     ),
-
-                  // Close dialog
-                  if (!_isSearching)
-                    IconButton(
-                      icon:
-                          const Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                  ),
                 ],
               ),
-            ),
+        actions: [
+          // Search icon
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search,
+                color: Colors.white),
+            tooltip: _isSearching ? "Close search" : "Search",
+            onPressed: _toggleSearch,
+          ),
 
-            // ── Search result bar ──────────────────────────────────
-            if (_isSearching)
-              Container(
-                color: _subHeaderColor,
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        searchQuery.isEmpty
-                            ? "Type to search…"
-                            : _matchIndices.isEmpty
-                                ? "No results"
-                                : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontSize: 13),
-                      ),
-                    ),
-                    if (_matchIndices.isNotEmpty) ...[
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_up,
-                            color: Colors.white, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: _goToPrevMatch,
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.white, size: 20),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: _goToNextMatch,
-                      ),
-                    ],
-                  ],
+          // Three-dot menu
+          if (!_isSearching)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+              tooltip: "Menu",
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              onSelected: (value) {
+                if (value == 'newGroup') _showNewGroupFlow();
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'newGroup',
+                  child: _MenuRow(
+                      icon: Icons.group_add_outlined, label: 'New Group'),
                 ),
-              ),
+              ],
+            ),
+        ],
+        bottom: _isSearching
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(36),
+                child: Container(
+                  color: _subHeaderColor,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          searchQuery.isEmpty
+                              ? "Type to search…"
+                              : _matchIndices.isEmpty
+                                  ? "No results"
+                                  : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
+                          style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13),
+                        ),
+                      ),
+                      if (_matchIndices.isNotEmpty) ...[
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_up,
+                              color: Colors.white, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: _goToPrevMatch,
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_down,
+                              color: Colors.white, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: _goToNextMatch,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              )
+            : null,
+      ),
+      body: Column(
+        children: [
+          // ── Message list ───────────────────────────────────────
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Stack(
+                    children: [
+                      Container(
+                        color: const Color(0xFFECE5DD),
+                        child: ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: messages.length,
+                          itemBuilder: (context, index) {
+                            _itemKeys[index] ??= GlobalKey();
+                            final separator = _dateSeparator(index);
+                            final msg = messages[index];
+                            final senderName =
+                                msg["SenderName"]?.toString() ?? "";
+                            final message =
+                                msg["MessageText"]?.toString() ?? "";
+                            final messageType =
+                                msg["MessageType"]?.toString() ?? "TEXT";
+                            final documentId =
+                                msg["DocumentId"]?.toString();
+                            final documentNo =
+                                msg["DocumentNo"]?.toString() ?? "";
+                            final documentType =
+                                msg["DocumentType"]?.toString() ?? "";
+                            final messageTime =
+                                msg["MessageTime"]?.toString() ?? "";
+                            final isRead = (msg["IsRead"] == true ||
+                                msg["IsRead"] == 1);
 
-            // ── Message list ───────────────────────────────────────
-            Expanded(
-              child: loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Stack(
-                      children: [
-                        Container(
-                          color: const Color(0xFFECE5DD),
-                          child: ListView.builder(
-                            controller: _scrollController,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              _itemKeys[index] ??= GlobalKey();
-                              final separator = _dateSeparator(index);
-                              final msg = messages[index];
-                              final senderName =
-                                  msg["SenderName"]?.toString() ?? "";
-                              final message =
-                                  msg["MessageText"]?.toString() ?? "";
-                              final messageType =
-                                  msg["MessageType"]?.toString() ??
-                                      "TEXT";
-                              final documentId =
-                                  msg["DocumentId"]?.toString();
-                              final documentNo =
-                                  msg["DocumentNo"]?.toString() ?? "";
-                              final documentType =
-                                  msg["DocumentType"]?.toString() ?? "";
-                              final messageTime =
-                                  msg["MessageTime"]?.toString() ?? "";
-                              final isRead = (msg["IsRead"] == true ||
-                                  msg["IsRead"] == 1);
+                            // System messages (member add/remove)
+                            if (messageType == "SYSTEM") {
+                              return Padding(
+                                key: _itemKeys[index],
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 6),
+                                child: Center(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFD1E8D5),
+                                      borderRadius:
+                                          BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      message,
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Color(0xFF4A4A4A),
+                                          fontStyle: FontStyle.italic),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
 
-                              // System messages (member add/remove)
-                              if (messageType == "SYSTEM") {
-                                return Padding(
-                                  key: _itemKeys[index],
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 6),
-                                  child: Center(
-                                    child: Container(
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 14, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            const Color(0xFFD1E8D5),
-                                        borderRadius:
-                                            BorderRadius.circular(12),
-                                      ),
-                                      child: Text(
-                                        message,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF4A4A4A),
-                                            fontStyle: FontStyle.italic),
-                                        textAlign: TextAlign.center,
+                            final isMine = senderName.toLowerCase() ==
+                                currentUserName.toLowerCase();
+                            final isMatch = _matchIndices.contains(index);
+                            final isActiveMatch = _isCurrentMatch(index);
+
+                            return Column(
+                              key: _itemKeys[index],
+                              children: [
+                                // Date separator
+                                if (separator != null)
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10),
+                                    child: Center(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFD1E8D5),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: Text(
+                                          separator,
+                                          style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFF4A4A4A),
+                                              fontWeight: FontWeight.w500),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                );
-                              }
 
-                              final isMine = senderName.toLowerCase() ==
-                                  currentUserName.toLowerCase();
-                              final isMatch =
-                                  _matchIndices.contains(index);
-                              final isActiveMatch =
-                                  _isCurrentMatch(index);
-
-                              return Column(
-                                key: _itemKeys[index],
-                                children: [
-                                  // Date separator
-                                  if (separator != null)
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          vertical: 10),
-                                      child: Center(
-                                        child: Container(
-                                          padding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                const Color(0xFFD1E8D5),
-                                            borderRadius:
-                                                BorderRadius.circular(
-                                                    10),
-                                          ),
-                                          child: Text(
-                                            separator,
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: Color(0xFF4A4A4A),
-                                                fontWeight:
-                                                    FontWeight.w500),
-                                          ),
-                                        ),
+                                // Bubble
+                                Align(
+                                  alignment: isMine
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: AnimatedContainer(
+                                    duration:
+                                        const Duration(milliseconds: 200),
+                                    margin: EdgeInsets.only(
+                                        left: isMine ? 60 : 10,
+                                        right: isMine ? 10 : 60,
+                                        top: 2,
+                                        bottom: 2),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isActiveMatch
+                                          ? const Color(0xFFFFF176)
+                                          : isMatch
+                                              ? const Color(0xFFFFF9C4)
+                                              : isMine
+                                                  ? const Color(0xFFDCF8C6)
+                                                  : Colors.white,
+                                      borderRadius: BorderRadius.only(
+                                        topLeft: const Radius.circular(18),
+                                        topRight: const Radius.circular(18),
+                                        bottomLeft:
+                                            Radius.circular(isMine ? 18 : 4),
+                                        bottomRight:
+                                            Radius.circular(isMine ? 4 : 18),
                                       ),
+                                      border: isActiveMatch
+                                          ? Border.all(
+                                              color: const Color(0xFFFFB300),
+                                              width: 1.5)
+                                          : null,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black
+                                              .withValues(alpha: 0.08),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
                                     ),
-
-                                  // Bubble
-                                  Align(
-                                    alignment: isMine
-                                        ? Alignment.centerRight
-                                        : Alignment.centerLeft,
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                          milliseconds: 200),
-                                      margin: EdgeInsets.only(
-                                          left: isMine ? 60 : 10,
-                                          right: isMine ? 10 : 60,
-                                          top: 2,
-                                          bottom: 2),
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: isActiveMatch
-                                            ? const Color(0xFFFFF176)
-                                            : isMatch
-                                                ? const Color(0xFFFFF9C4)
-                                                : isMine
-                                                    ? const Color(
-                                                        0xFFDCF8C6)
-                                                    : Colors.white,
-                                        borderRadius: BorderRadius.only(
-                                          topLeft:
-                                              const Radius.circular(18),
-                                          topRight:
-                                              const Radius.circular(18),
-                                          bottomLeft: Radius.circular(
-                                              isMine ? 18 : 4),
-                                          bottomRight: Radius.circular(
-                                              isMine ? 4 : 18),
-                                        ),
-                                        border: isActiveMatch
-                                            ? Border.all(
-                                                color: const Color(
-                                                    0xFFFFB300),
-                                                width: 1.5)
-                                            : null,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black
-                                                .withValues(alpha: 0.08),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (!isMine)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 3),
+                                            child: Text(
+                                              senderName,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  color: Color(0xFF075E54)),
+                                            ),
                                           ),
-                                        ],
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (!isMine)
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.only(
-                                                      bottom: 3),
-                                              child: Text(
-                                                senderName,
-                                                style: const TextStyle(
-                                                    fontWeight:
-                                                        FontWeight.bold,
-                                                    fontSize: 12,
-                                                    color: Color(
-                                                        0xFF075E54)),
+                                        messageType == "DOCUMENT"
+                                            ? _buildDocumentMessage(
+                                                documentNo,
+                                                documentType,
+                                                documentId)
+                                            : (_isSearching && isMatch)
+                                                ? _buildHighlightedText(
+                                                    message, searchQuery)
+                                                : Text(message,
+                                                    style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color:
+                                                            Colors.black87)),
+                                        const SizedBox(height: 3),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Spacer(),
+                                            Text(
+                                              formatTime(messageTime),
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.black
+                                                    .withValues(alpha: 0.45),
                                               ),
                                             ),
-                                          messageType == "DOCUMENT"
-                                              ? _buildDocumentMessage(
-                                                  documentNo,
-                                                  documentType,
-                                                  documentId)
-                                              : (_isSearching && isMatch)
-                                                  ? _buildHighlightedText(
-                                                      message,
-                                                      searchQuery)
-                                                  : Text(message,
-                                                      style: const TextStyle(
-                                                          fontSize: 14,
-                                                          color: Colors
-                                                              .black87)),
-                                          const SizedBox(height: 3),
-                                          Row(
-                                            mainAxisSize:
-                                                MainAxisSize.min,
-                                            children: [
-                                              const Spacer(),
-                                              Text(
-                                                formatTime(messageTime),
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.black
-                                                      .withValues(
-                                                          alpha: 0.45),
-                                                ),
-                                              ),
-                                              _buildTicks(isMine, isRead),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
+                                            _buildTicks(isMine, isRead),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
-                              );
-                            },
-                          ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
+                      ),
 
-                        // New messages banner
-                        if (_newWhileScrolledUp > 0 && !_isSearching)
-                          Positioned(
-                            bottom: 10,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _userScrolledUp = false;
-                                    _newWhileScrolledUp = 0;
-                                  });
-                                  scrollToBottom();
-                                  ApiService.markChatRead(
-                                      widget.challanId);
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 7),
-                                  decoration: BoxDecoration(
-                                    color: _headerColor,
-                                    borderRadius:
-                                        BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.2),
-                                        blurRadius: 6,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(
-                                          Icons.keyboard_arrow_down_rounded,
+                      // New messages banner
+                      if (_newWhileScrolledUp > 0 && !_isSearching)
+                        Positioned(
+                          bottom: 10,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _userScrolledUp = false;
+                                  _newWhileScrolledUp = 0;
+                                });
+                                scrollToBottom();
+                                ApiService.markChatRead(widget.challanId);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: _headerColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color:
+                                          Colors.black.withValues(alpha: 0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: Colors.white,
+                                        size: 18),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
+                                      style: const TextStyle(
                                           color: Colors.white,
-                                          size: 18),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
-                                        style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600),
-                                      ),
-                                    ],
-                                  ),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                      ],
-                    ),
-            ),
+                        ),
+                    ],
+                  ),
+          ),
 
-            // ── Input bar ─────────────────────────────────────────
-            if (!_isSearching) ...[
-              const Divider(height: 1),
-              Padding(
-                padding: const EdgeInsets.all(10),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.attach_file),
-                      onPressed: _sending
-                          ? null
-                          : () async {
-                              final selectedDoc =
-                                  await showDialog<Map<String, dynamic>>(
-                                context: context,
-                                builder: (_) =>
-                                    const ChatDocumentPickerDialog(),
-                              );
-                              if (selectedDoc != null) {
-                                selectedDocumentId = selectedDoc[
-                                        "DocumentId"]
-                                    ?.toString();
-                                selectedDocumentType = selectedDoc[
-                                        "DocumentType"]
-                                    ?.toString();
-                                messageController.text =
-                                    selectedDoc["DocumentNo"]
-                                            ?.toString() ??
-                                        "";
-                              }
-                            },
-                    ),
-                    Expanded(
-                      child: KeyboardListener(
-                        focusNode: FocusNode(),
-                        onKeyEvent: (event) {
-                          if (event is KeyDownEvent &&
-                              event.logicalKey ==
-                                  LogicalKeyboardKey.enter) {
-                            if (!_sending) sendMessage();
-                          }
-                        },
-                        child: TextField(
-                          controller: messageController,
-                          focusNode: _inputFocusNode,
-                          enabled: !_sending,
-                          decoration: InputDecoration(
-                            hintText:
-                                _sending ? "Sending…" : "Type message...",
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 10),
-                          ),
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) {
-                            if (!_sending) sendMessage();
+          // ── Input bar ─────────────────────────────────────────
+          if (!_isSearching) ...[
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.attach_file),
+                    onPressed: _sending
+                        ? null
+                        : () async {
+                            final selectedDoc =
+                                await showDialog<Map<String, dynamic>>(
+                              context: context,
+                              builder: (_) => const ChatDocumentPickerDialog(),
+                            );
+                            if (selectedDoc != null) {
+                              selectedDocumentId =
+                                  selectedDoc["DocumentId"]?.toString();
+                              selectedDocumentType =
+                                  selectedDoc["DocumentType"]?.toString();
+                              messageController.text =
+                                  selectedDoc["DocumentNo"]?.toString() ?? "";
+                            }
                           },
+                  ),
+                  Expanded(
+                    child: KeyboardListener(
+                      focusNode: FocusNode(),
+                      onKeyEvent: (event) {
+                        // Ctrl+Enter or Shift+Enter sends on desktop
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.enter) {
+                          final isCtrl = HardwareKeyboard.instance.isControlPressed;
+                          final isShift = HardwareKeyboard.instance.isShiftPressed;
+                          if ((isCtrl || isShift) && !_sending) {
+                            sendMessage();
+                          }
+                        }
+                      },
+                      child: TextField(
+                        controller: messageController,
+                        focusNode: _inputFocusNode,
+                        enabled: !_sending,
+                        maxLines: null,
+                        minLines: 1,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        decoration: InputDecoration(
+                          hintText:
+                              _sending ? "Sending…" : "Type message...",
+                          filled: true,
+                          fillColor: const Color(0xFFF0F0F0),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: _sending
-                          ? const Padding(
-                              padding: EdgeInsets.all(8),
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2))
-                          : IconButton(
-                              icon: const Icon(Icons.send,
-                                  color: _headerColor),
-                              onPressed: sendMessage,
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: _sending
+                        ? const Padding(
+                            padding: EdgeInsets.all(10),
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2))
+                        : Material(
+                            color: _headerColor,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: sendMessage,
+                              child: const Icon(Icons.send,
+                                  color: Colors.white, size: 20),
                             ),
-                    ),
-                  ],
-                ),
+                          ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

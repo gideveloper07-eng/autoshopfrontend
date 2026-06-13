@@ -865,18 +865,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   unreadCount: unread,
                   isLast: _previewChallans.last == challan && !hasGroups,
                   onTap: () async {
-                    await showDialog(
-                      context: context,
-                      builder: (_) => ChallanChatDialog(
-                        challanId: challanId,
-                        challanNo: challanNo,
-                        customerName: customerName,
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ChallanChatDialog(
+                          challanId: challanId,
+                          challanNo: challanNo,
+                          customerName: customerName,
+                        ),
                       ),
                     );
                     _loadChatPreview();
                   },
-                );
-              }),
+                );              }),
             ],
 
             // ── Groups ───────────────────────────────────────────

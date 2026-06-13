@@ -647,15 +647,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   child: KeyboardListener(
                     focusNode: FocusNode(),
                     onKeyEvent: (event) {
+                      // Ctrl+Enter or Shift+Enter sends on desktop
                       if (event is KeyDownEvent &&
                           event.logicalKey == LogicalKeyboardKey.enter) {
-                        if (!_sending) _sendMessage();
+                        final isCtrl = HardwareKeyboard.instance.isControlPressed;
+                        final isShift = HardwareKeyboard.instance.isShiftPressed;
+                        if ((isCtrl || isShift) && !_sending) {
+                          _sendMessage();
+                        }
                       }
                     },
                     child: TextField(
                       controller: _msgCtrl,
                       focusNode: _inputFocus,
                       enabled: !_sending,
+                      maxLines: null,
+                      minLines: 1,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
                       decoration: InputDecoration(
                         hintText: _sending ? "Sending…" : "Type message…",
                         filled: true,
@@ -667,10 +676,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 10),
                       ),
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) {
-                        if (!_sending) _sendMessage();
-                      },
                     ),
                   ),
                 ),
