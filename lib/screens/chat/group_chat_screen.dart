@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
+import 'chat_document_picker_dialog.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
@@ -33,6 +35,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   int _newWhileScrolledUp = 0;
   String currentUserName = "";
   String currentUserId = "";
+
+  // ── Selected document (PDF attachment) ─────────────────────────
+  String? _selectedDocumentId;
+  String? _selectedDocumentType;
+  String? _selectedDocumentNo;
 
   // ── Members ────────────────────────────────────────────────────
   List<Map<String, dynamic>> _members = [];
@@ -142,17 +149,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _selectedDocumentId == null) return;
     setState(() => _sending = true);
     _msgCtrl.clear();
 
     final ok = await ApiService.sendGroupMessage(
       groupId: widget.groupId,
-      messageText: text,
+      messageText: text.isNotEmpty ? text : (_selectedDocumentNo ?? ''),
+      messageType: _selectedDocumentId != null ? 'DOCUMENT' : 'TEXT',
+      documentId: _selectedDocumentId,
     );
 
     if (!mounted) return;
     if (ok) {
+      _selectedDocumentId = null;
+      _selectedDocumentType = null;
+      _selectedDocumentNo = null;
       _userScrolledUp = false;
       _newWhileScrolledUp = 0;
       await _loadMessages();
@@ -327,6 +339,55 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return null;
   }
 
+  // ── Document message bubble ────────────────────────────────────
+
+  Widget _buildDocumentMessage(
+      String documentNo, String documentType, String? documentId) {
+    return InkWell(
+      onTap: () async {
+        if (documentId == null) return;
+        final doc = await ApiService.getDocument(documentId);
+        if (doc == null) return;
+        final filePath = doc["FilePath"]?.toString() ?? "";
+        if (filePath.isEmpty) return;
+        final url = "http://myautoshop365.com/$filePath";
+        await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.red.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.picture_as_pdf, color: Colors.red, size: 28),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "$documentType #$documentNo",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const Text(
+                    "PDF Document · Tap to open",
+                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────
 
   @override
@@ -446,6 +507,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           final msgTime = msg['MessageTime']?.toString() ?? '';
                           final msgType =
                               msg['MessageType']?.toString() ?? 'TEXT';
+                          final documentId = msg['DocumentId']?.toString();
+                          final documentNo = msg['DocumentNo']?.toString() ?? '';
+                          final documentType = msg['DocumentType']?.toString() ?? '';
                           final isMine = senderName.toLowerCase() ==
                               currentUserName.toLowerCase();
 
@@ -555,12 +619,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                             ),
                                           ),
                                         ),
-                                      Text(
-                                        text,
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black87),
-                                      ),
+                                      msgType == 'DOCUMENT'
+                                          ? _buildDocumentMessage(
+                                              documentNo,
+                                              documentType,
+                                              documentId)
+                                          : Text(
+                                              text,
+                                              style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87),
+                                            ),
                                       const SizedBox(height: 3),
                                       Align(
                                         alignment: Alignment.bottomRight,
@@ -641,62 +710,139 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Expanded(
-                  child: KeyboardListener(
-                    focusNode: FocusNode(),
-                    onKeyEvent: (event) {
-                      // Ctrl+Enter or Shift+Enter sends on desktop
-                      if (event is KeyDownEvent &&
-                          event.logicalKey == LogicalKeyboardKey.enter) {
-                        final isCtrl = HardwareKeyboard.instance.isControlPressed;
-                        final isShift = HardwareKeyboard.instance.isShiftPressed;
-                        if ((isCtrl || isShift) && !_sending) {
-                          _sendMessage();
-                        }
-                      }
-                    },
-                    child: TextField(
-                      controller: _msgCtrl,
-                      focusNode: _inputFocus,
-                      enabled: !_sending,
-                      maxLines: null,
-                      minLines: 1,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.newline,
-                      decoration: InputDecoration(
-                        hintText: _sending ? "Sending…" : "Type message…",
-                        filled: true,
-                        fillColor: const Color(0xFFF0F0F0),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                      ),
+                // PDF attachment preview bar
+                if (_selectedDocumentId != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.red.shade200),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: _sending
-                      ? const Padding(
-                          padding: EdgeInsets.all(10),
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : Material(
-                          color: _green,
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: _sendMessage,
-                            child: const Icon(Icons.send,
-                                color: Colors.white, size: 20),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.picture_as_pdf,
+                            color: Colors.red, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "${_selectedDocumentType ?? 'Document'} #${_selectedDocumentNo ?? ''}",
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            _selectedDocumentId = null;
+                            _selectedDocumentType = null;
+                            _selectedDocumentNo = null;
+                            _msgCtrl.clear();
+                          }),
+                          child: const Icon(Icons.close,
+                              size: 18, color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Input row
+                Row(
+                  children: [
+                    // Attach button
+                    IconButton(
+                      icon: const Icon(Icons.attach_file),
+                      onPressed: _sending
+                          ? null
+                          : () async {
+                              final selectedDoc =
+                                  await showDialog<Map<String, dynamic>>(
+                                context: context,
+                                builder: (_) =>
+                                    const ChatDocumentPickerDialog(),
+                              );
+                              if (selectedDoc != null && mounted) {
+                                setState(() {
+                                  _selectedDocumentId =
+                                      selectedDoc["DocumentId"]?.toString();
+                                  _selectedDocumentType =
+                                      selectedDoc["DocumentType"]?.toString();
+                                  _selectedDocumentNo =
+                                      selectedDoc["DocumentNo"]?.toString();
+                                  _msgCtrl.text =
+                                      selectedDoc["DocumentNo"]?.toString() ??
+                                          "";
+                                });
+                              }
+                            },
+                    ),
+                    Expanded(
+                      child: KeyboardListener(
+                        focusNode: FocusNode(),
+                        onKeyEvent: (event) {
+                          // Ctrl+Enter or Shift+Enter sends on desktop
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.enter) {
+                            final isCtrl =
+                                HardwareKeyboard.instance.isControlPressed;
+                            final isShift =
+                                HardwareKeyboard.instance.isShiftPressed;
+                            if ((isCtrl || isShift) && !_sending) {
+                              _sendMessage();
+                            }
+                          }
+                        },
+                        child: TextField(
+                          controller: _msgCtrl,
+                          focusNode: _inputFocus,
+                          enabled: !_sending,
+                          maxLines: null,
+                          minLines: 1,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.newline,
+                          decoration: InputDecoration(
+                            hintText:
+                                _sending ? "Sending…" : "Type message…",
+                            filled: true,
+                            fillColor: const Color(0xFFF0F0F0),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 10),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: _sending
+                          ? const Padding(
+                              padding: EdgeInsets.all(10),
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2))
+                          : Material(
+                              color: _green,
+                              shape: const CircleBorder(),
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: _sendMessage,
+                                child: const Icon(Icons.send,
+                                    color: Colors.white, size: 20),
+                              ),
+                            ),
+                    ),
+                  ],
                 ),
               ],
             ),
