@@ -7,11 +7,14 @@ import '../../l10n/app_localizations.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
 import '../chat/chat_list_screen.dart';
+import '../chat/challan_chat_dialog.dart';
+import '../chat/group_chat_screen.dart';
 import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../theme/app_colors.dart';
 import '../../services/activity_service.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -29,6 +32,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoading = true;
   int _todayBooking = 0;
   int _todaySale = 0;
+
+  // ── Chat preview state ────────────────────────────────────────────
+  List<Map<String, dynamic>> _previewChallans = [];
+  final Map<String, _HomeChatMeta> _previewMeta = {};
+  List<dynamic> _previewGroups = [];
+  bool _chatPreviewLoading = false;
+
+  static const Color _chatGreen = Color(0xFF075E54);
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     loadSecurity();
     loadUnreadCount();
     loadDashboardStats();
+    _loadChatPreview();
     requestNotificationPermission();
     generateFCMToken();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -67,6 +80,73 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _todayBooking = stats['todayBooking'] ?? 0;
         _todaySale = stats['todaySale'] ?? 0;
       });
+    }
+  }
+
+  // ── Chat preview loader ───────────────────────────────────────────
+
+  Future<void> _loadChatPreview() async {
+    setState(() => _chatPreviewLoading = true);
+    try {
+      final results = await Future.wait([
+        ApiService.getChallanRetailIncentive(),
+        ApiService.getMyGroups(),
+      ]);
+
+      final challanList = results[0] as List<Map<String, dynamic>>;
+      final groupList = results[1] as List<dynamic>;
+
+      if (!mounted) return;
+      setState(() {
+        // Show up to 3 most recent challans
+        _previewChallans = challanList.take(3).toList();
+        // Show up to 3 most recent groups
+        _previewGroups = groupList.take(3).toList();
+        _chatPreviewLoading = false;
+      });
+
+      // Load last message + unread for each preview challan
+      for (final c in _previewChallans) {
+        final challanId = c['sp_462']?.toString() ?? '';
+        if (challanId.isEmpty) continue;
+        final msgs = await ApiService.getChatMessages(challanId);
+        final unread = await ApiService.getUnreadChatCount(challanId);
+        String lastMsg = '';
+        String lastTime = '';
+        if (msgs.isNotEmpty) {
+          final last = msgs.last;
+          lastMsg = last['MessageText']?.toString() ?? '';
+          if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
+            lastMsg = '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+          }
+          lastTime = last['MessageTime']?.toString() ?? '';
+        }
+        if (mounted) {
+          setState(() {
+            _previewMeta[challanId] = _HomeChatMeta(
+              lastMessage: lastMsg,
+              lastTime: lastTime,
+              unreadCount: unread,
+            );
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _chatPreviewLoading = false);
+    }
+  }
+
+  String _fmtTime(String? raw) {
+    if (raw == null || raw.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(raw);
+      final now = DateTime.now();
+      if (dt.year == now.year && dt.month == now.month && dt.day == now.day) {
+        return DateFormat('hh:mm a').format(dt);
+      }
+      return DateFormat('dd MMM').format(dt);
+    } catch (_) {
+      return '';
     }
   }
 
@@ -548,39 +628,466 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                   if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
                       !isLoading)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _dashCard(
-                            icon: Icons.chat_rounded,
-                            label: "Chat",
-                            subtitle: "View messages on your challans",
-                            gradient: [
-                              const Color(0xFF0A5C2E), // dark green
-                              const Color(0xFF1A7A40), // medium green
-                              const Color(0xFF2EAA5C), // lighter green
-                            ],
-                            accentColor: const Color(0xFF4CD98A),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  settings: const RouteSettings(
-                                    name: 'ChatListScreen',
-                                  ),
-                                  builder: (_) => const ChatListScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildChatPreviewCard(),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── Chat preview card (WhatsApp-style on home screen) ────────────
+
+  Widget _buildChatPreviewCard() {
+    final hasChallans = _previewChallans.isNotEmpty;
+    final hasGroups = _previewGroups.isNotEmpty;
+    final isEmpty = !hasChallans && !hasGroups;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF075E54).withOpacity(0.15),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // ── Header row ──────────────────────────────────────────
+          GestureDetector(
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  settings: const RouteSettings(name: 'ChatListScreen'),
+                  builder: (_) => const ChatListScreen(),
+                ),
+              );
+              _loadChatPreview();
+            },
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF075E54), Color(0xFF128C7E)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.vertical(
+                  top: const Radius.circular(20),
+                  bottom: Radius.circular(
+                      (isEmpty || _chatPreviewLoading) ? 20 : 0),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.chat_rounded,
+                        color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Chat",
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  // Search icon
+                  GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          settings:
+                              const RouteSettings(name: 'ChatListScreen'),
+                          builder: (_) => const ChatListScreen(),
+                        ),
+                      );
+                      _loadChatPreview();
+                    },
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.search,
+                          color: Colors.white, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Three-dot menu
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert,
+                        color: Colors.white, size: 20),
+                    tooltip: "Menu",
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    onSelected: (v) {
+                      if (v == 'open') {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            settings:
+                                const RouteSettings(name: 'ChatListScreen'),
+                            builder: (_) => const ChatListScreen(),
+                          ),
+                        ).then((_) => _loadChatPreview());
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'open',
+                        child: Row(
+                          children: [
+                            Icon(Icons.open_in_new,
+                                size: 18, color: Colors.black87),
+                            SizedBox(width: 10),
+                            Text("Open Chat",
+                                style: TextStyle(fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Loading ──────────────────────────────────────────────
+          if (_chatPreviewLoading)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator()),
+            )
+
+          // ── Empty state ──────────────────────────────────────────
+          else if (isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  Icon(Icons.chat_bubble_outline_rounded,
+                      size: 40,
+                      color: Colors.grey.withOpacity(0.4)),
+                  const SizedBox(height: 8),
+                  const Text("No chats yet",
+                      style: TextStyle(color: Colors.grey, fontSize: 13)),
+                ],
+              ),
+            )
+
+          else ...[
+            // ── Individual Chats ─────────────────────────────────
+            if (hasChallans) ...[
+              _previewSectionHeader(
+                  icon: Icons.person_outline, label: "Individual Chats"),
+              ..._previewChallans.map((challan) {
+                final challanId = challan['sp_462']?.toString() ?? '';
+                final challanNo = challan['sp_468']?.toString() ?? '';
+                final customerName = challan['sp_469']?.toString() ?? '';
+                final meta = _previewMeta[challanId];
+                final lastMsg = meta?.lastMessage ?? '';
+                final unread = meta?.unreadCount ?? 0;
+                final timeLabel = _fmtTime(meta?.lastTime);
+                final avatarLetter = customerName.isNotEmpty
+                    ? customerName[0].toUpperCase()
+                    : 'C';
+
+                return _previewChatTile(
+                  avatarLetter: avatarLetter,
+                  avatarColor: const Color(0xFF075E54),
+                  title: customerName.isNotEmpty
+                      ? customerName
+                      : "Challan #$challanNo",
+                  subtitle: lastMsg.isNotEmpty
+                      ? lastMsg
+                      : "Challan #$challanNo",
+                  timeLabel: timeLabel,
+                  unreadCount: unread,
+                  isLast: _previewChallans.last == challan && !hasGroups,
+                  onTap: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (_) => ChallanChatDialog(
+                        challanId: challanId,
+                        challanNo: challanNo,
+                        customerName: customerName,
+                      ),
+                    );
+                    _loadChatPreview();
+                  },
+                );
+              }),
+            ],
+
+            // ── Groups ───────────────────────────────────────────
+            if (hasGroups) ...[
+              _previewSectionHeader(
+                  icon: Icons.groups_outlined, label: "Groups"),
+              ..._previewGroups.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final group = entry.value;
+                final groupId = group['GroupId']?.toString() ?? '';
+                final groupName =
+                    group['GroupName']?.toString() ?? 'Group';
+                final memberCount =
+                    (group['MemberCount'] as num?)?.toInt() ?? 0;
+                final lastMsgTime =
+                    group['LastMessageTime']?.toString() ?? '';
+                final lastMsg =
+                    group['LastMessage']?.toString() ?? '';
+                final avatarLetter = groupName.isNotEmpty
+                    ? groupName[0].toUpperCase()
+                    : 'G';
+                final timeLabel = _fmtTime(
+                    lastMsgTime.isNotEmpty ? lastMsgTime : null);
+
+                return _previewChatTile(
+                  avatarLetter: avatarLetter,
+                  avatarColor: const Color(0xFF1565C0),
+                  title: groupName,
+                  subtitle: lastMsg.isNotEmpty
+                      ? lastMsg
+                      : "$memberCount member${memberCount == 1 ? '' : 's'}",
+                  timeLabel: timeLabel,
+                  unreadCount: 0,
+                  isLast: idx == _previewGroups.length - 1,
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => GroupChatScreen(
+                          groupId: groupId,
+                          groupName: groupName,
+                        ),
+                      ),
+                    );
+                    _loadChatPreview();
+                  },
+                );
+              }),
+            ],
+
+            // ── "View all" footer ────────────────────────────────
+            GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    settings:
+                        const RouteSettings(name: 'ChatListScreen'),
+                    builder: (_) => const ChatListScreen(),
+                  ),
+                );
+                _loadChatPreview();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: const BorderRadius.vertical(
+                      bottom: Radius.circular(20)),
+                  border: Border(
+                    top: BorderSide(
+                        color: Colors.grey.withOpacity(0.15)),
+                  ),
+                ),
+                child: const Center(
+                  child: Text(
+                    "View all chats →",
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF075E54),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _previewSectionHeader(
+      {required IconData icon, required String label}) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0F0),
+        border: Border(
+          top: BorderSide(color: Colors.grey.withOpacity(0.15)),
+          bottom: BorderSide(color: Colors.grey.withOpacity(0.15)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF075E54)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF555555),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewChatTile({
+    required String avatarLetter,
+    required Color avatarColor,
+    required String title,
+    required String subtitle,
+    required String timeLabel,
+    required int unreadCount,
+    required bool isLast,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: isLast
+              ? null
+              : Border(
+                  bottom: BorderSide(color: Colors.grey.withOpacity(0.1)),
+                ),
+        ),
+        child: Row(
+          children: [
+            // Avatar circle
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: avatarColor,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  avatarLetter,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Text content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: unreadCount > 0
+                                ? FontWeight.w700
+                                : FontWeight.w600,
+                            color: const Color(0xFF1A1A1A),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (timeLabel.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          timeLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: unreadCount > 0
+                                ? _chatGreen
+                                : Colors.grey,
+                            fontWeight: unreadCount > 0
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: unreadCount > 0
+                                ? const Color(0xFF222222)
+                                : Colors.grey,
+                            fontWeight: unreadCount > 0
+                                ? FontWeight.w500
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                      if (unreadCount > 0) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _chatGreen,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -751,3 +1258,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 }
+
+// ── Simple holder for per-challan chat metadata shown on home screen ──────────
+
+class _HomeChatMeta {
+  final String lastMessage;
+  final String lastTime;
+  final int unreadCount;
+
+  const _HomeChatMeta({
+    required this.lastMessage,
+    required this.lastTime,
+    required this.unreadCount,
+  });
+}
+
+// ignore_for_file: deprecated_member_use
