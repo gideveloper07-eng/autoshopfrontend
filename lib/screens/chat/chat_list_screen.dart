@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
-import '../../theme/app_colors.dart';
 import 'challan_chat_dialog.dart';
 import 'group_chat_screen.dart';
 
@@ -14,7 +13,11 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> {
+class _ChatListScreenState extends State<ChatListScreen>
+    with SingleTickerProviderStateMixin {
+  // ── Tabs ─────────────────────────────────────────────────────────
+  late TabController _tabController;
+
   // ── Data ────────────────────────────────────────────────────────
   List<Map<String, dynamic>> challans = [];
   final Map<String, _ChatMeta> _chatMeta = {};
@@ -36,6 +39,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadAll();
     _pollTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -45,6 +49,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   void dispose() {
+    _tabController.dispose();
     _pollTimer?.cancel();
     _searchCtrl.dispose();
     super.dispose();
@@ -307,7 +312,29 @@ class _ChatListScreenState extends State<ChatListScreen> {
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
               ? _buildError()
-              : _buildBody(),
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildChatsTab(),
+                    _buildGroupsTab(),
+                  ],
+                ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _tabController,
+        builder: (context, _) {
+          // Only show FAB on Groups tab (index 1)
+          if (_tabController.index != 1 || isLoading) {
+            return const SizedBox.shrink();
+          }
+          return FloatingActionButton(
+            backgroundColor: _green,
+            foregroundColor: Colors.white,
+            tooltip: "New Group",
+            onPressed: _showNewGroupFlow,
+            child: const Icon(Icons.group_add_outlined),
+          );
+        },
+      ),
     );
   }
 
@@ -405,14 +432,86 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ],
           ),
       ],
+      // ── Tab bar ──────────────────────────────────────────────────
+      bottom: TabBar(
+        controller: _tabController,
+        indicatorColor: Colors.white,
+        indicatorWeight: 3,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white60,
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 14,
+          letterSpacing: 0.4,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
+        ),
+        tabs: [
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person_outline, size: 18),
+                const SizedBox(width: 6),
+                const Text("Chats"),
+                if (_totalUnread > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _totalUnread > 99 ? '99+' : '$_totalUnread',
+                      style: const TextStyle(
+                          fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Tab(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.groups_outlined, size: 18),
+                const SizedBox(width: 6),
+                const Text("Groups"),
+                if (_groups.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      '${_groups.length}',
+                      style: const TextStyle(
+                          fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody() {
-    final indChats = _filteredChallans;
-    final grps = _filteredGroups;
+  // ── Chats Tab ─────────────────────────────────────────────────────
 
-    if (indChats.isEmpty && grps.isEmpty) {
+  Widget _buildChatsTab() {
+    final indChats = _filteredChallans;
+
+    if (indChats.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -420,20 +519,20 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Icon(Icons.chat_bubble_outline_rounded,
                 size: 64, color: Colors.grey.withOpacity(0.4)),
             const SizedBox(height: 16),
-            const Text(
-              "No chats found",
-              style: TextStyle(
+            Text(
+              _isSearching ? "No chats found" : "No chats yet",
+              style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.grey),
             ),
             const SizedBox(height: 6),
-            if (_isSearching)
-              const Text("Try a different search term",
-                  style: TextStyle(fontSize: 13, color: Colors.grey))
-            else
-              const Text("Your chats will appear here",
-                  style: TextStyle(fontSize: 13, color: Colors.grey)),
+            Text(
+              _isSearching
+                  ? "Try a different search term"
+                  : "Your challan chats will appear here",
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
           ],
         ),
       );
@@ -441,105 +540,81 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     return RefreshIndicator(
       onRefresh: () => _loadAll(),
-      child: ListView(
+      color: _green,
+      child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
-        children: [
-          // ── Individual Chats Section ──────────────────────────────
-          if (indChats.isNotEmpty) ...[
-            _sectionHeader(
-                icon: Icons.person_outline,
-                title: "Individual Chats",
-                count: indChats.length),
-            ...indChats.map((challan) => _buildIndividualTile(challan)),
-          ],
+        itemCount: indChats.length,
+        itemBuilder: (context, index) =>
+            _buildIndividualTile(indChats[index]),
+      ),
+    );
+  }
 
-          // ── Groups Section ────────────────────────────────────────
-          if (grps.isNotEmpty) ...[
-            _sectionHeader(
-                icon: Icons.groups_outlined,
-                title: "Groups",
-                count: grps.length),
-            ...grps.map((group) => _buildGroupTile(group)),
-          ],
+  // ── Groups Tab ────────────────────────────────────────────────────
 
-          // ── New Group CTA if no groups yet ────────────────────────
-          if (grps.isEmpty && !_isSearching)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _green,
-                  side: const BorderSide(color: _green),
+  Widget _buildGroupsTab() {
+    final grps = _filteredGroups;
+
+    if (grps.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.groups_outlined,
+                size: 64, color: Colors.grey.withOpacity(0.4)),
+            const SizedBox(height: 16),
+            Text(
+              _isSearching ? "No groups found" : "No groups yet",
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey),
+            ),
+            const SizedBox(height: 6),
+            if (!_isSearching) ...[
+              const Text(
+                "Create a group to chat with multiple people",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _green,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 24, vertical: 14),
                 ),
                 icon: const Icon(Icons.group_add_outlined),
                 label: const Text("Create New Group",
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                    style: TextStyle(
+                        fontSize: 15, fontWeight: FontWeight.w600)),
                 onPressed: _showNewGroupFlow,
               ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  // ── Section header widget ─────────────────────────────────────────
-
-  Widget _sectionHeader(
-      {required IconData icon,
-      required String title,
-      required int count}) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(0, 12, 0, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          left: BorderSide(color: _green, width: 4),
+            ] else
+              const Text(
+                "Try a different search term",
+                style: TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: _green),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF1A1A1A),
-              letterSpacing: 0.3,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: _green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '$count',
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: _green),
-            ),
-          ),
-        ],
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () => _loadAll(),
+      color: _green,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(bottom: 24),
+        itemCount: grps.length,
+        itemBuilder: (context, index) => _buildGroupTile(grps[index]),
       ),
     );
   }
+
+  // unused cast suppressed below
+
 
   // ── Individual chat tile ──────────────────────────────────────────
 
