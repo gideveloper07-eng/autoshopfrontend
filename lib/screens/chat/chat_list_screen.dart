@@ -456,7 +456,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 const Icon(Icons.person_outline, size: 18),
                 const SizedBox(width: 6),
                 const Text("Chats"),
-                if (_totalUnread > 0) ...[
+                if (challans.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -466,7 +466,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      _totalUnread > 99 ? '99+' : '$_totalUnread',
+                      challans.length > 99 ? '99+' : '${challans.length}',
                       style: const TextStyle(
                           fontSize: 10, fontWeight: FontWeight.bold),
                     ),
