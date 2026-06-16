@@ -94,11 +94,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await ApiService.saveUserSession(
         token: res['token'],
         userId: res['userId']?.toString() ?? userIdCtrl.text.trim(),
+        isAdmin: res['isAdmin'] ?? false,
+        utg: res["utg"]?.toString() ?? "",
         userName: res['name']?.toString() ?? userIdCtrl.text.trim(),
         userEmail: res['email']?.toString() ?? '',
         databaseName: res['databaseName']?.toString() ?? databaseName,
         companyCode: companyCodeCtrl.text.trim(),
-        utg: res["utg"].toString(),
       );
       // Log Login Activity
       try {
