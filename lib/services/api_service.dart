@@ -21,12 +21,15 @@ class ApiService {
   static Future<String?> getToken() => _storage.read(key: "token");
 
   static Future<void> clearToken() => _storage.delete(key: "token");
-
+  static Future<bool> isAdmin() async {
+    return (await _storage.read(key: "isAdmin")) == "true";
+  }
   // ───────────────── SESSION ─────────────────
 
   static Future<void> saveUserSession({
     required String token,
     required String userId,
+    required bool isAdmin,
     required String utg,
     required String userName,
     required String userEmail,
@@ -36,6 +39,7 @@ class ApiService {
     await Future.wait([
       _storage.write(key: "token", value: token),
       _storage.write(key: "userId", value: userId),
+      _storage.write(key: "isAdmin", value: isAdmin.toString()),
       _storage.write(key: "utg", value: utg),
       _storage.write(key: "userName", value: userName),
       _storage.write(key: "userEmail", value: userEmail),
@@ -56,6 +60,7 @@ class ApiService {
     return {
       "token": token,
       "userId": await _storage.read(key: "userId") ?? "",
+      "isAdmin": await _storage.read(key: "isAdmin") ?? "false",
       "utg": await _storage.read(key: "utg") ?? "",
       "userName": await _storage.read(key: "userName") ?? "",
       "userEmail": await _storage.read(key: "userEmail") ?? "",
@@ -108,6 +113,7 @@ class ApiService {
     await Future.wait([
       _storage.delete(key: "token"),
       _storage.delete(key: "userId"),
+      _storage.delete(key: "isAdmin"),
       _storage.delete(key: "utg"),
       _storage.delete(key: "userName"),
       _storage.delete(key: "userEmail"),
@@ -588,6 +594,7 @@ class ApiService {
         if (data['token'] != null) {
           await saveUserSession(
             token: data['token'],
+            isAdmin: data["isAdmin"] ?? false,
             userId: data['userId']?.toString() ?? userId,
             utg: data['utg']?.toString() ?? "",
             userName: data['name']?.toString() ?? userId,
@@ -1004,10 +1011,7 @@ class ApiService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({
-          "groupName": groupName,
-          "members": memberIds,
-        }),
+        body: jsonEncode({"groupName": groupName, "members": memberIds}),
       );
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
@@ -1020,7 +1024,8 @@ class ApiService {
   }
 
   static Future<List<Map<String, dynamic>>> getGroupMembers(
-      String groupId) async {
+    String groupId,
+  ) async {
     try {
       final token = await getToken();
       if (token == null) return [];
