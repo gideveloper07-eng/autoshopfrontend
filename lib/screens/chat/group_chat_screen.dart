@@ -195,7 +195,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (!mounted) return;
     final existingIds = _members.map((m) => m['UserId']?.toString()).toSet();
     final available =
-        allUsers.where((u) => !existingIds.contains(u['UserId']?.toString())).toList();
+        allUsers.where((u) => !existingIds.contains(u['id']?.toString())).toList();
 
     showDialog(
       context: context,
@@ -1118,8 +1118,8 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
     final q = _filter.text.trim().toLowerCase();
     if (q.isEmpty) return widget.availableUsers;
     return widget.availableUsers.where((u) {
-      final name = (u['UserName']?.toString() ?? '').toLowerCase();
-      final id = (u['UserId']?.toString() ?? '').toLowerCase();
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
     }).toList();
   }
@@ -1185,13 +1185,14 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
                           const Divider(height: 1),
                       itemBuilder: (context, i) {
                         final user = filtered[i];
-                        final userId = user['UserId']?.toString() ?? '';
+                        final userId = user['id']?.toString() ?? '';
                         final userName =
-                            user['UserName']?.toString() ?? userId;
+                            user['name']?.toString() ?? userId;
                         final isAdding = _adding.contains(userId);
                         final isAdded = _added.contains(userId);
 
                         return ListTile(
+                          key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
                           leading: CircleAvatar(

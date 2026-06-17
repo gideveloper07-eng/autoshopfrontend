@@ -950,8 +950,8 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
     final q = _filter.text.trim().toLowerCase();
     if (q.isEmpty) return widget.allUsers;
     return widget.allUsers.where((u) {
-      final name = (u['UserName']?.toString() ?? '').toLowerCase();
-      final id = (u['UserId']?.toString() ?? '').toLowerCase();
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
     }).toList();
   }
@@ -1032,25 +1032,28 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final user = filtered[i];
-                        final userId = user['UserId']?.toString() ?? '';
+                        final userId = user['id']?.toString() ?? '';
                         final userName =
-                            user['UserName']?.toString() ?? userId;
+                            user['name']?.toString() ?? userId;
                         final isSelected = _selected.contains(userId);
 
                         return CheckboxListTile(
+                          key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 0),
                           activeColor: const Color(0xFF075E54),
                           value: isSelected,
-                          onChanged: (v) {
-                            setState(() {
-                              if (v == true) {
-                                _selected.add(userId);
-                              } else {
-                                _selected.remove(userId);
-                              }
-                            });
-                          },
+                          onChanged: userId.isEmpty
+                              ? null
+                              : (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selected.add(userId);
+                                    } else {
+                                      _selected.remove(userId);
+                                    }
+                                  });
+                                },
                           secondary: CircleAvatar(
                             backgroundColor: isSelected
                                 ? const Color(0xFF075E54)

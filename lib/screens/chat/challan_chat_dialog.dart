@@ -89,7 +89,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final atBottom = _scrollController.position.pixels >=
+    final atBottom =
+        _scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 50;
     if (atBottom) {
       if (_userScrolledUp) {
@@ -176,8 +177,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       }
     });
     if (_isSearching) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _searchFocusNode.requestFocus());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _searchFocusNode.requestFocus(),
+      );
     }
   }
 
@@ -185,7 +187,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     if (_matchIndices.isEmpty) return;
     setState(() {
       _currentMatchIndex =
-          (_currentMatchIndex - 1 + _matchIndices.length) % _matchIndices.length;
+          (_currentMatchIndex - 1 + _matchIndices.length) %
+          _matchIndices.length;
     });
     _scrollToMessageIndex(_matchIndices[_currentMatchIndex]);
   }
@@ -241,10 +244,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => GroupChatScreen(
-              groupId: groupId,
-              groupName: groupName.trim(),
-            ),
+            builder: (_) =>
+                GroupChatScreen(groupId: groupId, groupName: groupName.trim()),
           ),
         );
       }
@@ -293,8 +294,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     final users = await ApiService.getCompanyUsers();
     if (!mounted) return;
     final existingIds = _members.map((m) => m['UserId']?.toString()).toSet();
+
     final available = users
-        .where((u) => !existingIds.contains(u['UserId']?.toString()))
+        .where((u) => !existingIds.contains(u['id']?.toString()))
         .toList();
 
     showDialog(
@@ -319,9 +321,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   void _showRemoveMember() {
     if (_members.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No members to remove.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("No members to remove.")));
       return;
     }
     showDialog(
@@ -358,9 +360,14 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                  color: _headerColor, shape: BoxShape.circle),
-              child: const Icon(Icons.receipt_long,
-                  color: Colors.white, size: 18),
+                color: _headerColor,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_long,
+                color: Colors.white,
+                size: 18,
+              ),
             ),
             const SizedBox(width: 10),
             const Text("Group Info"),
@@ -371,8 +378,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _infoRow(Icons.tag, "Challan No", widget.challanNo),
-            if (widget.customerName != null &&
-                widget.customerName!.isNotEmpty)
+            if (widget.customerName != null && widget.customerName!.isNotEmpty)
               _infoRow(Icons.person, "Customer", widget.customerName!),
             _infoRow(Icons.group, "Members", "${_members.length}"),
             _infoRow(Icons.message, "Messages", "${messages.length}"),
@@ -395,13 +401,15 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
         children: [
           Icon(icon, size: 18, color: _headerColor),
           const SizedBox(width: 10),
-          Text("$label: ",
-              style: const TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 13)),
+          Text(
+            "$label: ",
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
           Expanded(
-            child: Text(value,
-                style:
-                    const TextStyle(fontSize: 13, color: Colors.black87)),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
           ),
         ],
       ),
@@ -498,8 +506,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       }
     }
     try {
-      final prev =
-          DateTime.parse(messages[index - 1]['MessageTime'].toString());
+      final prev = DateTime.parse(
+        messages[index - 1]['MessageTime'].toString(),
+      );
       final curr = DateTime.parse(messages[index]['MessageTime'].toString());
       if (prev.year != curr.year ||
           prev.month != curr.month ||
@@ -513,7 +522,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   // ── Widgets ──────────────────────────────────────────────────────
 
   Widget _buildDocumentMessage(
-      String documentNo, String documentType, String? documentId) {
+    String documentNo,
+    String documentType,
+    String? documentId,
+  ) {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -541,11 +553,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("$documentType #$documentNo",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13)),
-                  const Text("PDF Document · Tap to open",
-                      style: TextStyle(fontSize: 11, color: Colors.black54)),
+                  Text(
+                    "$documentType #$documentNo",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const Text(
+                    "PDF Document · Tap to open",
+                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
                 ],
               ),
             ),
@@ -569,8 +587,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   Widget _buildHighlightedText(String text, String query) {
     if (query.isEmpty) {
-      return Text(text,
-          style: const TextStyle(fontSize: 14, color: Colors.black87));
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+      );
     }
     final lowerText = text.toLowerCase();
     final spans = <TextSpan>[];
@@ -578,23 +598,33 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     int idx;
     while ((idx = lowerText.indexOf(query, start)) != -1) {
       if (idx > start) {
-        spans.add(TextSpan(
+        spans.add(
+          TextSpan(
             text: text.substring(start, idx),
-            style: const TextStyle(fontSize: 14, color: Colors.black87)));
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        );
       }
-      spans.add(TextSpan(
+      spans.add(
+        TextSpan(
           text: text.substring(idx, idx + query.length),
           style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              backgroundColor: Color(0xFFFFE082),
-              fontWeight: FontWeight.bold)));
+            fontSize: 14,
+            color: Colors.black87,
+            backgroundColor: Color(0xFFFFE082),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
       start = idx + query.length;
     }
     if (start < text.length) {
-      spans.add(TextSpan(
+      spans.add(
+        TextSpan(
           text: text.substring(start),
-          style: const TextStyle(fontSize: 14, color: Colors.black87)));
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+      );
     }
     return RichText(text: TextSpan(children: spans));
   }
@@ -623,8 +653,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                 cursorColor: Colors.white,
                 decoration: InputDecoration(
                   hintText: "Search messages…",
-                  hintStyle:
-                      TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                  hintStyle: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
                   border: InputBorder.none,
                   isDense: true,
                   contentPadding: EdgeInsets.zero,
@@ -646,12 +677,13 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                 widget.customerName!.isNotEmpty)
                             ? widget.customerName![0].toUpperCase()
                             : widget.challanNo.isNotEmpty
-                                ? widget.challanNo[0].toUpperCase()
-                                : 'C',
+                            ? widget.challanNo[0].toUpperCase()
+                            : 'C',
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 17),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
                       ),
                     ),
                   ),
@@ -666,17 +698,19 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                               ? widget.customerName!
                               : "Challan #${widget.challanNo}",
                           style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold),
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           "Challan #${widget.challanNo}",
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12),
+                            color: Colors.white.withValues(alpha: 0.8),
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ),
@@ -686,8 +720,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
         actions: [
           // Search icon
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search,
-                color: Colors.white),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Colors.white,
+            ),
             tooltip: _isSearching ? "Close search" : "Search",
             onPressed: _toggleSearch,
           ),
@@ -698,7 +734,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
               icon: const Icon(Icons.more_vert, color: Colors.white),
               tooltip: "Menu",
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
               onSelected: (value) {
                 if (value == 'newGroup') _showNewGroupFlow();
               },
@@ -706,7 +743,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                 const PopupMenuItem(
                   value: 'newGroup',
                   child: _MenuRow(
-                      icon: Icons.group_add_outlined, label: 'New Group'),
+                    icon: Icons.group_add_outlined,
+                    label: 'New Group',
+                  ),
                 ),
               ],
             ),
@@ -716,8 +755,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                 preferredSize: const Size.fromHeight(36),
                 child: Container(
                   color: _subHeaderColor,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -725,25 +766,32 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                           searchQuery.isEmpty
                               ? "Type to search…"
                               : _matchIndices.isEmpty
-                                  ? "No results"
-                                  : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
+                              ? "No results"
+                              : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
                           style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13),
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                       if (_matchIndices.isNotEmpty) ...[
                         IconButton(
-                          icon: const Icon(Icons.keyboard_arrow_up,
-                              color: Colors.white, size: 20),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_up,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: _goToPrevMatch,
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.keyboard_arrow_down,
-                              color: Colors.white, size: 20),
+                          icon: const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                           onPressed: _goToNextMatch,
@@ -779,38 +827,40 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                 msg["MessageText"]?.toString() ?? "";
                             final messageType =
                                 msg["MessageType"]?.toString() ?? "TEXT";
-                            final documentId =
-                                msg["DocumentId"]?.toString();
+                            final documentId = msg["DocumentId"]?.toString();
                             final documentNo =
                                 msg["DocumentNo"]?.toString() ?? "";
                             final documentType =
                                 msg["DocumentType"]?.toString() ?? "";
                             final messageTime =
                                 msg["MessageTime"]?.toString() ?? "";
-                            final isRead = (msg["IsRead"] == true ||
-                                msg["IsRead"] == 1);
+                            final isRead =
+                                (msg["IsRead"] == true || msg["IsRead"] == 1);
 
                             // System messages (member add/remove)
                             if (messageType == "SYSTEM") {
                               return Padding(
                                 key: _itemKeys[index],
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                ),
                                 child: Center(
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 5),
+                                      horizontal: 14,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFD1E8D5),
-                                      borderRadius:
-                                          BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       message,
                                       style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Color(0xFF4A4A4A),
-                                          fontStyle: FontStyle.italic),
+                                        fontSize: 12,
+                                        color: Color(0xFF4A4A4A),
+                                        fontStyle: FontStyle.italic,
+                                      ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -818,7 +868,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                               );
                             }
 
-                            final isMine = senderName.toLowerCase() ==
+                            final isMine =
+                                senderName.toLowerCase() ==
                                 currentUserName.toLowerCase();
                             final isMatch = _matchIndices.contains(index);
                             final isActiveMatch = _isCurrentMatch(index);
@@ -830,22 +881,27 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                 if (separator != null)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
+                                      vertical: 10,
+                                    ),
                                     child: Center(
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 4),
+                                          horizontal: 12,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFD1E8D5),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                         child: Text(
                                           separator,
                                           style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF4A4A4A),
-                                              fontWeight: FontWeight.w500),
+                                            fontSize: 12,
+                                            color: Color(0xFF4A4A4A),
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -857,40 +913,46 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                       ? Alignment.centerRight
                                       : Alignment.centerLeft,
                                   child: AnimatedContainer(
-                                    duration:
-                                        const Duration(milliseconds: 200),
+                                    duration: const Duration(milliseconds: 200),
                                     margin: EdgeInsets.only(
-                                        left: isMine ? 60 : 10,
-                                        right: isMine ? 10 : 60,
-                                        top: 2,
-                                        bottom: 2),
+                                      left: isMine ? 60 : 10,
+                                      right: isMine ? 10 : 60,
+                                      top: 2,
+                                      bottom: 2,
+                                    ),
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 8),
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: isActiveMatch
                                           ? const Color(0xFFFFF176)
                                           : isMatch
-                                              ? const Color(0xFFFFF9C4)
-                                              : isMine
-                                                  ? const Color(0xFFDCF8C6)
-                                                  : Colors.white,
+                                          ? const Color(0xFFFFF9C4)
+                                          : isMine
+                                          ? const Color(0xFFDCF8C6)
+                                          : Colors.white,
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(18),
                                         topRight: const Radius.circular(18),
-                                        bottomLeft:
-                                            Radius.circular(isMine ? 18 : 4),
-                                        bottomRight:
-                                            Radius.circular(isMine ? 4 : 18),
+                                        bottomLeft: Radius.circular(
+                                          isMine ? 18 : 4,
+                                        ),
+                                        bottomRight: Radius.circular(
+                                          isMine ? 4 : 18,
+                                        ),
                                       ),
                                       border: isActiveMatch
                                           ? Border.all(
                                               color: const Color(0xFFFFB300),
-                                              width: 1.5)
+                                              width: 1.5,
+                                            )
                                           : null,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black
-                                              .withValues(alpha: 0.08),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.08,
+                                          ),
                                           blurRadius: 4,
                                           offset: const Offset(0, 2),
                                         ),
@@ -904,28 +966,35 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                         if (!isMine)
                                           Padding(
                                             padding: const EdgeInsets.only(
-                                                bottom: 3),
+                                              bottom: 3,
+                                            ),
                                             child: Text(
                                               senderName,
                                               style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                  color: Color(0xFF075E54)),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                                color: Color(0xFF075E54),
+                                              ),
                                             ),
                                           ),
                                         messageType == "DOCUMENT"
                                             ? _buildDocumentMessage(
                                                 documentNo,
                                                 documentType,
-                                                documentId)
+                                                documentId,
+                                              )
                                             : (_isSearching && isMatch)
-                                                ? _buildHighlightedText(
-                                                    message, searchQuery)
-                                                : Text(message,
-                                                    style: const TextStyle(
-                                                        fontSize: 14,
-                                                        color:
-                                                            Colors.black87)),
+                                            ? _buildHighlightedText(
+                                                message,
+                                                searchQuery,
+                                              )
+                                            : Text(
+                                                message,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
                                         const SizedBox(height: 3),
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -935,8 +1004,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                               formatTime(messageTime),
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: Colors.black
-                                                    .withValues(alpha: 0.45),
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.45,
+                                                ),
                                               ),
                                             ),
                                             _buildTicks(isMine, isRead),
@@ -970,14 +1040,17 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 7),
+                                  horizontal: 14,
+                                  vertical: 7,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _headerColor,
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.2),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -987,16 +1060,18 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        color: Colors.white,
-                                        size: 18),
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
                                       style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1022,14 +1097,15 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         : () async {
                             final selectedDoc =
                                 await showDialog<Map<String, dynamic>>(
-                              context: context,
-                              builder: (_) => const ChatDocumentPickerDialog(),
-                            );
+                                  context: context,
+                                  builder: (_) =>
+                                      const ChatDocumentPickerDialog(),
+                                );
                             if (selectedDoc != null) {
-                              selectedDocumentId =
-                                  selectedDoc["DocumentId"]?.toString();
-                              selectedDocumentType =
-                                  selectedDoc["DocumentType"]?.toString();
+                              selectedDocumentId = selectedDoc["DocumentId"]
+                                  ?.toString();
+                              selectedDocumentType = selectedDoc["DocumentType"]
+                                  ?.toString();
                               messageController.text =
                                   selectedDoc["DocumentNo"]?.toString() ?? "";
                             }
@@ -1042,8 +1118,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         // Ctrl+Enter or Shift+Enter sends on desktop
                         if (event is KeyDownEvent &&
                             event.logicalKey == LogicalKeyboardKey.enter) {
-                          final isCtrl = HardwareKeyboard.instance.isControlPressed;
-                          final isShift = HardwareKeyboard.instance.isShiftPressed;
+                          final isCtrl =
+                              HardwareKeyboard.instance.isControlPressed;
+                          final isShift =
+                              HardwareKeyboard.instance.isShiftPressed;
                           if ((isCtrl || isShift) && !_sending) {
                             sendMessage();
                           }
@@ -1058,8 +1136,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
-                          hintText:
-                              _sending ? "Sending…" : "Type message...",
+                          hintText: _sending ? "Sending…" : "Type message...",
                           filled: true,
                           fillColor: const Color(0xFFF0F0F0),
                           border: OutlineInputBorder(
@@ -1067,7 +1144,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
@@ -1079,16 +1158,19 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                     child: _sending
                         ? const Padding(
                             padding: EdgeInsets.all(10),
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2))
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : Material(
                             color: _headerColor,
                             shape: const CircleBorder(),
                             child: InkWell(
                               customBorder: const CircleBorder(),
                               onTap: sendMessage,
-                              child: const Icon(Icons.send,
-                                  color: Colors.white, size: 20),
+                              child: const Icon(
+                                Icons.send,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             ),
                           ),
                   ),
@@ -1109,8 +1191,11 @@ class _MenuRow extends StatelessWidget {
   final String label;
   final bool danger;
 
-  const _MenuRow(
-      {required this.icon, required this.label, this.danger = false});
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1182,9 +1267,10 @@ class _MembersDialogState extends State<_MembersDialog> {
             Text(
               widget.removeMode ? "Remove Member" : "Group Members",
               style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const Spacer(),
             Container(
@@ -1196,9 +1282,10 @@ class _MembersDialogState extends State<_MembersDialog> {
               child: Text(
                 "${_list.length}",
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -1214,8 +1301,10 @@ class _MembersDialogState extends State<_MembersDialog> {
                   children: [
                     Icon(Icons.group_off, size: 48, color: Colors.grey),
                     SizedBox(height: 12),
-                    Text("No members yet",
-                        style: TextStyle(color: Colors.grey)),
+                    Text(
+                      "No members yet",
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               )
@@ -1232,97 +1321,124 @@ class _MembersDialogState extends State<_MembersDialog> {
 
                   String timeLabel = '';
                   try {
-                    timeLabel = DateFormat('dd MMM yyyy')
-                        .format(DateTime.parse(addedOn));
+                    timeLabel = DateFormat(
+                      'dd MMM yyyy',
+                    ).format(DateTime.parse(addedOn));
                   } catch (_) {}
 
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     leading: CircleAvatar(
                       backgroundColor: const Color(0xFF075E54),
                       child: Text(
-                        userName.isNotEmpty
-                            ? userName[0].toUpperCase()
-                            : '?',
+                        userName.isNotEmpty ? userName[0].toUpperCase() : '?',
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     title: Row(
                       children: [
                         Expanded(
-                          child: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
+                          child: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                         if (isMe)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF075E54),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text("You",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 10)),
+                            child: const Text(
+                              "You",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     subtitle: timeLabel.isNotEmpty
-                        ? Text("Added $timeLabel",
+                        ? Text(
+                            "Added $timeLabel",
                             style: const TextStyle(
-                                fontSize: 11, color: Colors.grey))
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
+                          )
                         : null,
                     trailing: widget.removeMode && !isMe
                         ? isRemoving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2))
-                            : IconButton(
-                                icon: const Icon(Icons.remove_circle,
-                                    color: Colors.red, size: 22),
-                                onPressed: () async {
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text("Remove Member"),
-                                      content: Text(
-                                          "Remove $userName from this chat?"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: const Text("Cancel"),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red,
+                                    size: 22,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        title: const Text("Remove Member"),
+                                        content: Text(
+                                          "Remove $userName from this chat?",
                                         ),
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          child: const Text("Remove",
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: const Text("Cancel"),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: const Text(
+                                              "Remove",
                                               style: TextStyle(
-                                                  color: Colors.red)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm != true) return;
-                                  setState(() => _removing.add(userId));
-                                  final ok = await widget.onRemoved(
-                                      userId, userName);
-                                  if (ok && mounted) {
-                                    setState(() {
-                                      _list.removeAt(i);
-                                      _removing.remove(userId);
-                                    });
-                                  } else {
-                                    setState(() => _removing.remove(userId));
-                                  }
-                                },
-                              )
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm != true) return;
+                                    setState(() => _removing.add(userId));
+                                    final ok = await widget.onRemoved(
+                                      userId,
+                                      userName,
+                                    );
+                                    if (ok && mounted) {
+                                      setState(() {
+                                        _list.removeAt(i);
+                                        _removing.remove(userId);
+                                      });
+                                    } else {
+                                      setState(() => _removing.remove(userId));
+                                    }
+                                  },
+                                )
                         : null,
                   );
                 },
@@ -1344,8 +1460,7 @@ class _AddMemberDialog extends StatefulWidget {
   final List<Map<String, dynamic>> availableUsers;
   final Future<bool> Function(String userId, String userName) onAdd;
 
-  const _AddMemberDialog(
-      {required this.availableUsers, required this.onAdd});
+  const _AddMemberDialog({required this.availableUsers, required this.onAdd});
 
   @override
   State<_AddMemberDialog> createState() => _AddMemberDialogState();
@@ -1360,8 +1475,8 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
     final q = _filter.text.trim().toLowerCase();
     if (q.isEmpty) return widget.availableUsers;
     return widget.availableUsers.where((u) {
-      final name = (u['UserName']?.toString() ?? '').toLowerCase();
-      final id = (u['UserId']?.toString() ?? '').toLowerCase();
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
     }).toList();
   }
@@ -1387,14 +1502,20 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
           children: [
-            Icon(Icons.person_add_alt_1_outlined,
-                color: Colors.white, size: 20),
+            Icon(
+              Icons.person_add_alt_1_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
             SizedBox(width: 10),
-            Text("Add Member",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              "Add Member",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -1410,10 +1531,13 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
                 hintText: "Search users…",
                 prefixIcon: const Icon(Icons.search, size: 18),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -1422,82 +1546,98 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
             Expanded(
               child: filtered.isEmpty
                   ? const Center(
-                      child: Text("No users found",
-                          style: TextStyle(color: Colors.grey)))
+                      child: Text(
+                        "No users found",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.separated(
                       itemCount: filtered.length,
                       separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) {
                         final user = filtered[i];
-                        final userId =
-                            user['UserId']?.toString() ?? '';
-                        final userName =
-                            user['UserName']?.toString() ?? userId;
+                        final userId = user['id']?.toString() ?? '';
+                        final userName = user['name']?.toString() ?? userId;
                         // HeadName no longer returned — subtitle omitted
                         final isAdding = _adding.contains(userId);
                         final isAdded = _added.contains(userId);
 
                         return ListTile(
+                          key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           leading: CircleAvatar(
                             backgroundColor: isAdded
                                 ? Colors.green
                                 : const Color(0xFF128C7E),
                             child: isAdded
-                                ? const Icon(Icons.check,
-                                    color: Colors.white, size: 18)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 18,
+                                  )
                                 : Text(
                                     userName.isNotEmpty
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                           ),
-                          title: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
+                          title: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                           subtitle: null,
                           trailing: isAdded
-                              ? const Text("Added",
+                              ? const Text(
+                                  "Added",
                                   style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600))
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                )
                               : isAdding
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))
-                                  : ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF075E54),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
-                                        minimumSize: const Size(60, 32),
-                                        textStyle: const TextStyle(
-                                            fontSize: 12),
-                                      ),
-                                      onPressed: () async {
-                                        setState(
-                                            () => _adding.add(userId));
-                                        final ok = await widget.onAdd(
-                                            userId, userName);
-                                        if (mounted) {
-                                          setState(() {
-                                            _adding.remove(userId);
-                                            if (ok) _added.add(userId);
-                                          });
-                                        }
-                                      },
-                                      child: const Text("Add"),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF075E54),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
                                     ),
+                                    minimumSize: const Size(60, 32),
+                                    textStyle: const TextStyle(fontSize: 12),
+                                  ),
+                                  onPressed: () async {
+                                    setState(() => _adding.add(userId));
+                                    final ok = await widget.onAdd(
+                                      userId,
+                                      userName,
+                                    );
+                                    if (mounted) {
+                                      setState(() {
+                                        _adding.remove(userId);
+                                        if (ok) _added.add(userId);
+                                      });
+                                    }
+                                  },
+                                  child: const Text("Add"),
+                                ),
                         );
                       },
                     ),
@@ -1534,8 +1674,8 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
     final q = _filter.text.trim().toLowerCase();
     if (q.isEmpty) return widget.allUsers;
     return widget.allUsers.where((u) {
-      final name = (u['UserName']?.toString() ?? '').toLowerCase();
-      final id = (u['UserId']?.toString() ?? '').toLowerCase();
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
     }).toList();
   }
@@ -1566,15 +1706,15 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
               child: Text(
                 "Add Group Members",
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             if (_selected.isNotEmpty)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(12),
@@ -1597,11 +1737,14 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
               decoration: InputDecoration(
                 hintText: "Search users…",
                 prefixIcon: const Icon(Icons.search, size: 18),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -1609,51 +1752,66 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
             Expanded(
               child: filtered.isEmpty
                   ? const Center(
-                      child: Text("No users found",
-                          style: TextStyle(color: Colors.grey)))
+                      child: Text(
+                        "No users found",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.builder(
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final user = filtered[i];
-                        final userId = user['UserId']?.toString() ?? '';
-                        final userName =
-                            user['UserName']?.toString() ?? userId;
+                        final userId = user['id']?.toString() ?? '';
+                        final userName = user['name']?.toString() ?? userId;
                         final isSelected = _selected.contains(userId);
 
                         return CheckboxListTile(
+                          key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 0),
+                            horizontal: 8,
+                            vertical: 0,
+                          ),
                           activeColor: const Color(0xFF075E54),
                           value: isSelected,
-                          onChanged: (v) {
-                            setState(() {
-                              if (v == true) {
-                                _selected.add(userId);
-                              } else {
-                                _selected.remove(userId);
-                              }
-                            });
-                          },
+                          onChanged: userId.isEmpty
+                              ? null
+                              : (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selected.add(userId);
+                                    } else {
+                                      _selected.remove(userId);
+                                    }
+                                  });
+                                },
                           secondary: CircleAvatar(
                             backgroundColor: isSelected
                                 ? const Color(0xFF075E54)
                                 : const Color(0xFF128C7E),
                             child: isSelected
-                                ? const Icon(Icons.check,
-                                    color: Colors.white, size: 16)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
                                 : Text(
                                     userName.isNotEmpty
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                           ),
-                          title: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600, fontSize: 14)),
+                          title: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -1670,8 +1828,9 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: _selected.isEmpty
               ? null
@@ -1719,9 +1878,10 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
             Text(
               "Name Your Group",
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -1748,8 +1908,9 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: () {
             final name = _ctrl.text.trim();
