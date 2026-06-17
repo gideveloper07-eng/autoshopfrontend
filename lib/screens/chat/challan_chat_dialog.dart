@@ -1672,8 +1672,12 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
 
   List<Map<String, dynamic>> get _filtered {
     final q = _filter.text.trim().toLowerCase();
-    if (q.isEmpty) return widget.allUsers;
-    return widget.allUsers.where((u) {
+    // Only include users with a valid (non-empty) id to avoid duplicate-key issues
+    final valid = widget.allUsers
+        .where((u) => (u['id']?.toString() ?? '').isNotEmpty)
+        .toList();
+    if (q.isEmpty) return valid;
+    return valid.where((u) {
       final name = (u['name']?.toString() ?? '').toLowerCase();
       final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
