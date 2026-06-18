@@ -599,54 +599,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                   // ── DASHBOARD CARDS ───────────────────────────────────
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
-                    Row(
+                    Column(
                       children: [
-                        Expanded(
-                          child: _dashCard(
-                            icon: Icons.receipt_long_rounded,
-                            label: "Challan",
-                            subtitle: "View & manage challans",
-                            gradient: const [
-                              Color(0xFF0A2E5C),
-                              Color(0xFF3B2A96),
-                              Color(0xFF6A4BD8),
-                            ],
-                            accentColor: AppColors.secondary,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ChallanScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _dashCard(
-                            icon: Icons.chat_rounded,
-                            label: "Chat",
-                            subtitle: "Open chats & groups",
-                            gradient: const [
-                              Color(0xFF4A148C), // Deep Purple
-                              Color(0xFF7B1FA2), // Purple
-                              Color(0xFFAB47BC), // Light Purple
-                            ],
-                            accentColor: Color(0xFFE1BEE7),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ChatListScreen(),
-                                ),
-                              );
-                            },
-                          ),
+                        // Row 1: Challan + Chat
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _dashCard(
+                                icon: Icons.receipt_long_rounded,
+                                label: "Challan",
+                                subtitle: "View & manage challans",
+                                gradient: const [
+                                  Color(0xFF0A2E5C),
+                                  Color(0xFF3B2A96),
+                                  Color(0xFF6A4BD8),
+                                ],
+                                accentColor: AppColors.secondary,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ChallanScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _dashCard(
+                                icon: Icons.chat_rounded,
+                                label: "Chat",
+                                subtitle: "Open chats & groups",
+                                gradient: const [
+                                  Color(0xFF4A148C),
+                                  Color(0xFF7B1FA2),
+                                  Color(0xFFAB47BC),
+                                ],
+                                accentColor: Color(0xFFE1BEE7),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ChatListScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
-
+                        // Row 2: Tasks full width
                         _dashCard(
                           icon: Icons.task_alt,
                           label: "Tasks",
@@ -1236,85 +1240,101 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: gradient[0].withOpacity(0.4),
-              blurRadius: 18,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Icon bubble
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 26),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Scale down elements when card is narrow (e.g. three cards on small screen)
+          final w = constraints.maxWidth;
+          final pad = w < 100 ? 10.0 : w < 130 ? 14.0 : 20.0;
+          final iconSize = w < 100 ? 30.0 : w < 130 ? 38.0 : 48.0;
+          final iconInner = w < 100 ? 16.0 : w < 130 ? 20.0 : 26.0;
+          final arrowSize = w < 100 ? 20.0 : w < 130 ? 24.0 : 28.0;
+          final arrowIconSize = w < 100 ? 9.0 : w < 130 ? 11.0 : 13.0;
+          final labelSize = w < 100 ? 12.0 : w < 130 ? 14.0 : 17.0;
+          final subSize = w < 100 ? 9.0 : w < 130 ? 10.0 : 11.0;
+
+          return Container(
+            padding: EdgeInsets.all(pad),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient[0].withOpacity(0.4),
+                  blurRadius: 18,
+                  offset: const Offset(0, 7),
                 ),
-                // Arrow chip
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 13,
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Icon bubble
+                    Container(
+                      width: iconSize,
+                      height: iconSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: iconInner),
+                    ),
+                    // Arrow chip
+                    Container(
+                      width: arrowSize,
+                      height: arrowSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: arrowIconSize,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: w < 100 ? 8 : 18),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.w800,
                     color: Colors.white,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                SizedBox(height: w < 100 ? 2 : 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: subSize,
+                    color: Colors.white.withOpacity(0.78),
+                    height: 1.3,
+                  ),
+                ),
+                SizedBox(height: w < 100 ? 8 : 14),
+                // Bottom accent bar
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 18),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.78),
-                height: 1.3,
-              ),
-            ),
-            const SizedBox(height: 14),
-            // Bottom accent bar
-            Container(
-              height: 3,
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.6),
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
