@@ -25,6 +25,14 @@ class GroupChatScreen extends StatefulWidget {
 class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Messaging ──────────────────────────────────────────────────
   final TextEditingController _msgCtrl = TextEditingController();
+  final TextEditingController _taskTitleCtrl = TextEditingController();
+  final TextEditingController _taskDescCtrl = TextEditingController();
+
+  String? _selectedTaskUserId;
+  String _selectedPriority = 'Medium';
+
+  DateTime? _startDate;
+  DateTime? _dueDate;
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
 
@@ -79,7 +87,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
-    final atBottom = _scrollCtrl.position.pixels >=
+    final atBottom =
+        _scrollCtrl.position.pixels >=
         _scrollCtrl.position.maxScrollExtent - 50;
     if (atBottom) {
       if (_userScrolledUp) {
@@ -194,8 +203,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final allUsers = await ApiService.getCompanyUsers();
     if (!mounted) return;
     final existingIds = _members.map((m) => m['UserId']?.toString()).toSet();
-    final available =
-        allUsers.where((u) => !existingIds.contains(u['id']?.toString())).toList();
+    final available = allUsers
+        .where((u) => !existingIds.contains(u['id']?.toString()))
+        .toList();
 
     showDialog(
       context: context,
@@ -218,9 +228,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   void _showRemoveMember() {
     if (_members.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No members to remove.")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("No members to remove.")));
       return;
     }
     showDialog(
@@ -265,9 +275,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 child: Text(
                   widget.groupName,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -283,10 +294,156 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Close")),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
         ],
       ),
+    );
+  }
+
+  void _showAssignTaskDialog() {
+    _taskTitleCtrl.clear();
+    _taskDescCtrl.clear();
+
+    _selectedTaskUserId = null;
+    _selectedPriority = "Medium";
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Assign Task"),
+
+              content: SizedBox(
+                width: 450,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _taskTitleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: "Task Title",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: _taskDescCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: "Description",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedTaskUserId,
+                        decoration: const InputDecoration(
+                          labelText: "Assign To",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _members.map((m) {
+                          return DropdownMenuItem<String>(
+                            value: m['UserId'].toString(),
+                            child: Text(
+                              m['UserName']?.toString() ??
+                                  m['UserId'].toString(),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          setDialogState(() {
+                            _selectedTaskUserId = v;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedPriority,
+                        decoration: const InputDecoration(
+                          labelText: "Priority",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'Low', child: Text('Low')),
+                          DropdownMenuItem(
+                            value: 'Medium',
+                            child: Text('Medium'),
+                          ),
+                          DropdownMenuItem(value: 'High', child: Text('High')),
+                        ],
+                        onChanged: (v) {
+                          setDialogState(() {
+                            _selectedPriority = v!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_taskTitleCtrl.text.trim().isEmpty) {
+                      return;
+                    }
+
+                    if (_selectedTaskUserId == null) {
+                      return;
+                    }
+
+                    // API call next phase
+
+                    final ok = await ApiService.createTask(
+                      groupId: widget.groupId,
+                      taskTitle: _taskTitleCtrl.text.trim(),
+                      taskDescription: _taskDescCtrl.text.trim(),
+                      assignedTo: _selectedTaskUserId!,
+                      priority: _selectedPriority,
+                    );
+
+                    if (!mounted) return;
+
+                    if (ok) {
+                      Navigator.pop(context);
+
+                      await _loadMessages();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Task assigned successfully"),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Failed to assign task")),
+                      );
+                    }
+                  },
+                  child: const Text("Assign"),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
@@ -297,11 +454,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           Icon(icon, size: 18, color: _green),
           const SizedBox(width: 10),
-          Text("$label: ",
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text(
+            "$label: ",
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+          ),
           Expanded(
-            child: Text(value,
-                style: const TextStyle(fontSize: 13, color: Colors.black87)),
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
+            ),
           ),
         ],
       ),
@@ -321,14 +482,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   String? _dateSeparator(int index) {
     if (index == 0) {
       try {
-        return DateFormat('dd MMM yyyy')
-            .format(DateTime.parse(messages[0]['MessageTime'].toString()));
+        return DateFormat(
+          'dd MMM yyyy',
+        ).format(DateTime.parse(messages[0]['MessageTime'].toString()));
       } catch (_) {
         return null;
       }
     }
     try {
-      final prev = DateTime.parse(messages[index - 1]['MessageTime'].toString());
+      final prev = DateTime.parse(
+        messages[index - 1]['MessageTime'].toString(),
+      );
       final curr = DateTime.parse(messages[index]['MessageTime'].toString());
       if (prev.year != curr.year ||
           prev.month != curr.month ||
@@ -342,7 +506,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Document message bubble ────────────────────────────────────
 
   Widget _buildDocumentMessage(
-      String documentNo, String documentType, String? documentId) {
+    String documentNo,
+    String documentType,
+    String? documentId,
+  ) {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -373,7 +540,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   Text(
                     "$documentType #$documentNo",
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 13),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                   const Text(
                     "PDF Document · Tap to open",
@@ -388,6 +557,99 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
+  Widget _buildTaskMessage(dynamic msg) {
+    final taskId = msg['TaskId']?.toString() ?? '';
+
+    final currentStatus = msg['TaskStatus']?.toString() ?? "Pending";
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.task_alt, color: Colors.orange.shade700, size: 20),
+              const SizedBox(width: 6),
+              const Text(
+                "TASK",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            msg['MessageText']?.toString() ?? '',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text(
+            "Assigned To: ${msg['AssignedTo'] ?? ''}",
+            style: const TextStyle(fontSize: 13),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            "Priority: ${msg['Priority'] ?? ''}",
+            style: const TextStyle(fontSize: 13),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            "Status: $currentStatus",
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+
+          const SizedBox(height: 10),
+
+          DropdownButtonFormField<String>(
+            value: currentStatus,
+            items: const [
+              DropdownMenuItem(value: "Pending", child: Text("Pending")),
+              DropdownMenuItem(
+                value: "In Progress",
+                child: Text("In Progress"),
+              ),
+              DropdownMenuItem(value: "Completed", child: Text("Completed")),
+              DropdownMenuItem(value: "Cancelled", child: Text("Cancelled")),
+            ],
+            onChanged: (value) async {
+              if (value == null) return;
+
+              final ok = await ApiService.updateTaskStatus(
+                taskId: taskId,
+                status: value,
+              );
+
+              if (ok) {
+                await _loadMessages();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Task marked as $value")),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
   // ── Build ──────────────────────────────────────────────────────
 
   @override
@@ -413,9 +675,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ? widget.groupName[0].toUpperCase()
                       : 'G',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -427,17 +690,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   Text(
                     widget.groupName,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
                     _members.isEmpty
                         ? "Group"
                         : "${_members.length} member${_members.length == 1 ? '' : 's'}",
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 12),
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -447,8 +712,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             onSelected: (v) {
               switch (v) {
                 case 'viewMembers':
@@ -457,6 +723,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   _showAddMember();
                 case 'removeMember':
                   _showRemoveMember();
+                case 'assignTask':
+                  _showAssignTaskDialog();
                 case 'groupInfo':
                   _showGroupInfo();
               }
@@ -464,20 +732,31 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             itemBuilder: (_) => const [
               PopupMenuItem(
                 value: 'viewMembers',
-                child: _GMenuRow(icon: Icons.people_outline, label: 'View Members'),
+                child: _GMenuRow(
+                  icon: Icons.people_outline,
+                  label: 'View Members',
+                ),
               ),
               PopupMenuItem(
                 value: 'addMember',
-                child: _GMenuRow(icon: Icons.person_add_alt_1_outlined, label: 'Add Member'),
+                child: _GMenuRow(
+                  icon: Icons.person_add_alt_1_outlined,
+                  label: 'Add Member',
+                ),
               ),
               PopupMenuItem(
                 value: 'removeMember',
                 child: _GMenuRow(
-                    icon: Icons.person_remove_outlined,
-                    label: 'Remove Member',
-                    danger: true),
+                  icon: Icons.person_remove_outlined,
+                  label: 'Remove Member',
+                  danger: true,
+                ),
               ),
               PopupMenuDivider(),
+              PopupMenuItem(
+                value: 'assignTask',
+                child: _GMenuRow(icon: Icons.task_alt, label: 'Assign Task'),
+              ),
               PopupMenuItem(
                 value: 'groupInfo',
                 child: _GMenuRow(icon: Icons.info_outline, label: 'Group Info'),
@@ -508,9 +787,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           final msgType =
                               msg['MessageType']?.toString() ?? 'TEXT';
                           final documentId = msg['DocumentId']?.toString();
-                          final documentNo = msg['DocumentNo']?.toString() ?? '';
-                          final documentType = msg['DocumentType']?.toString() ?? '';
-                          final isMine = senderName.toLowerCase() ==
+                          final documentNo =
+                              msg['DocumentNo']?.toString() ?? '';
+                          final documentType =
+                              msg['DocumentType']?.toString() ?? '';
+                          final isMine =
+                              senderName.toLowerCase() ==
                               currentUserName.toLowerCase();
 
                           // System pill
@@ -520,7 +802,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               child: Center(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 14, vertical: 5),
+                                    horizontal: 14,
+                                    vertical: 5,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFD1E8D5),
                                     borderRadius: BorderRadius.circular(12),
@@ -528,9 +812,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                   child: Text(
                                     text,
                                     style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Color(0xFF4A4A4A),
-                                        fontStyle: FontStyle.italic),
+                                      fontSize: 12,
+                                      color: Color(0xFF4A4A4A),
+                                      fontStyle: FontStyle.italic,
+                                    ),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -544,22 +829,25 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               if (separator != null)
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
-                                      vertical: 10),
+                                    vertical: 10,
+                                  ),
                                   child: Center(
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 4),
+                                        horizontal: 12,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFD1E8D5),
-                                        borderRadius:
-                                            BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
                                         separator,
                                         style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Color(0xFF4A4A4A),
-                                            fontWeight: FontWeight.w500),
+                                          fontSize: 12,
+                                          color: Color(0xFF4A4A4A),
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -578,7 +866,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                     bottom: 2,
                                   ),
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: isMine
                                         ? const Color(0xFFDCF8C6)
@@ -586,15 +876,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(18),
                                       topRight: const Radius.circular(18),
-                                      bottomLeft:
-                                          Radius.circular(isMine ? 18 : 4),
-                                      bottomRight:
-                                          Radius.circular(isMine ? 4 : 18),
+                                      bottomLeft: Radius.circular(
+                                        isMine ? 18 : 4,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isMine ? 4 : 18,
+                                      ),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black
-                                            .withValues(alpha: 0.08),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.08,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
@@ -609,7 +902,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                       if (!isMine)
                                         Padding(
                                           padding: const EdgeInsets.only(
-                                              bottom: 3),
+                                            bottom: 3,
+                                          ),
                                           child: Text(
                                             senderName,
                                             style: const TextStyle(
@@ -623,12 +917,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                           ? _buildDocumentMessage(
                                               documentNo,
                                               documentType,
-                                              documentId)
+                                              documentId,
+                                            )
+                                          : msgType == 'TASK'
+                                          ? _buildTaskMessage(msg)
                                           : Text(
                                               text,
                                               style: const TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.black87),
+                                                fontSize: 14,
+                                                color: Colors.black87,
+                                              ),
                                             ),
                                       const SizedBox(height: 3),
                                       Align(
@@ -637,8 +935,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                           _formatTime(msgTime),
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Colors.black
-                                                .withValues(alpha: 0.45),
+                                            color: Colors.black.withValues(
+                                              alpha: 0.45,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -668,14 +967,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 7),
+                                  horizontal: 14,
+                                  vertical: 7,
+                                ),
                                 decoration: BoxDecoration(
                                   color: _green,
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color:
-                                          Colors.black.withValues(alpha: 0.2),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -685,16 +987,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     const Icon(
-                                        Icons.keyboard_arrow_down_rounded,
-                                        color: Colors.white,
-                                        size: 18),
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
                                       style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600),
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -718,7 +1022,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   Container(
                     margin: const EdgeInsets.only(bottom: 6),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(12),
@@ -726,16 +1032,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.picture_as_pdf,
-                            color: Colors.red, size: 20),
+                        const Icon(
+                          Icons.picture_as_pdf,
+                          color: Colors.red,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             "${_selectedDocumentType ?? 'Document'} #${_selectedDocumentNo ?? ''}",
                             style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -746,8 +1056,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             _selectedDocumentNo = null;
                             _msgCtrl.clear();
                           }),
-                          child: const Icon(Icons.close,
-                              size: 18, color: Colors.red),
+                          child: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.red,
+                          ),
                         ),
                       ],
                     ),
@@ -764,10 +1077,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           : () async {
                               final selectedDoc =
                                   await showDialog<Map<String, dynamic>>(
-                                context: context,
-                                builder: (_) =>
-                                    const ChatDocumentPickerDialog(),
-                              );
+                                    context: context,
+                                    builder: (_) =>
+                                        const ChatDocumentPickerDialog(),
+                                  );
                               if (selectedDoc != null && mounted) {
                                 setState(() {
                                   _selectedDocumentId =
@@ -778,7 +1091,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                       selectedDoc["DocumentNo"]?.toString();
                                   _msgCtrl.text =
                                       selectedDoc["DocumentNo"]?.toString() ??
-                                          "";
+                                      "";
                                 });
                               }
                             },
@@ -808,8 +1121,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           keyboardType: TextInputType.multiline,
                           textInputAction: TextInputAction.newline,
                           decoration: InputDecoration(
-                            hintText:
-                                _sending ? "Sending…" : "Type message…",
+                            hintText: _sending ? "Sending…" : "Type message…",
                             filled: true,
                             fillColor: const Color(0xFFF0F0F0),
                             border: OutlineInputBorder(
@@ -817,7 +1129,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               borderSide: BorderSide.none,
                             ),
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 10),
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
                           ),
                         ),
                       ),
@@ -829,16 +1143,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       child: _sending
                           ? const Padding(
                               padding: EdgeInsets.all(10),
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2))
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
                           : Material(
                               color: _green,
                               shape: const CircleBorder(),
                               child: InkWell(
                                 customBorder: const CircleBorder(),
                                 onTap: _sendMessage,
-                                child: const Icon(Icons.send,
-                                    color: Colors.white, size: 20),
+                                child: const Icon(
+                                  Icons.send,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
                             ),
                     ),
@@ -860,8 +1177,11 @@ class _GMenuRow extends StatelessWidget {
   final String label;
   final bool danger;
 
-  const _GMenuRow(
-      {required this.icon, required this.label, this.danger = false});
+  const _GMenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -932,14 +1252,14 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
               child: Text(
                 widget.removeMode ? "Remove Member" : "Group Members",
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
@@ -947,9 +1267,10 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
               child: Text(
                 "${_list.length}",
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -965,8 +1286,10 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
                   children: [
                     Icon(Icons.group_off, size: 48, color: Colors.grey),
                     SizedBox(height: 12),
-                    Text("No members yet",
-                        style: TextStyle(color: Colors.grey)),
+                    Text(
+                      "No members yet",
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
               )
@@ -976,8 +1299,7 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
                 itemBuilder: (context, i) {
                   final member = _list[i];
                   final userId = member['UserId']?.toString() ?? '';
-                  final userName =
-                      member['UserName']?.toString() ?? userId;
+                  final userName = member['UserName']?.toString() ?? userId;
                   final isAdmin =
                       member['IsAdmin'] == true || member['IsAdmin'] == 1;
                   final isRemoving = _removing.contains(userId);
@@ -985,102 +1307,126 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
 
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 4),
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     leading: CircleAvatar(
                       backgroundColor: const Color(0xFF075E54),
                       child: Text(
-                        userName.isNotEmpty
-                            ? userName[0].toUpperCase()
-                            : '?',
+                        userName.isNotEmpty ? userName[0].toUpperCase() : '?',
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     title: Row(
                       children: [
                         Expanded(
-                          child: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
+                          child: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                         if (isAdmin)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF075E54),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text("Admin",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 10)),
+                            child: const Text(
+                              "Admin",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                         if (isMe && !isAdmin)
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text("You",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 10)),
+                            child: const Text(
+                              "You",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                              ),
+                            ),
                           ),
                       ],
                     ),
                     trailing: widget.removeMode && !isMe && !isAdmin
                         ? isRemoving
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2))
-                            : IconButton(
-                                icon: const Icon(Icons.remove_circle,
-                                    color: Colors.red, size: 22),
-                                onPressed: () async {
-                                  final confirm =
-                                      await showDialog<bool>(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text("Remove Member"),
-                                      content: Text(
-                                          "Remove $userName from this group?"),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(
-                                              context, false),
-                                          child: const Text("Cancel"),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_circle,
+                                    color: Colors.red,
+                                    size: 22,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        title: const Text("Remove Member"),
+                                        content: Text(
+                                          "Remove $userName from this group?",
                                         ),
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(
-                                              context, true),
-                                          child: const Text("Remove",
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, false),
+                                            child: const Text("Cancel"),
+                                          ),
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context, true),
+                                            child: const Text(
+                                              "Remove",
                                               style: TextStyle(
-                                                  color: Colors.red)),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm != true) return;
-                                  setState(
-                                      () => _removing.add(userId));
-                                  final ok = await widget.onRemoved(
-                                      userId, userName);
-                                  if (ok && mounted) {
-                                    setState(() {
-                                      _list.removeAt(i);
-                                      _removing.remove(userId);
-                                    });
-                                  } else {
-                                    setState(() =>
-                                        _removing.remove(userId));
-                                  }
-                                },
-                              )
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm != true) return;
+                                    setState(() => _removing.add(userId));
+                                    final ok = await widget.onRemoved(
+                                      userId,
+                                      userName,
+                                    );
+                                    if (ok && mounted) {
+                                      setState(() {
+                                        _list.removeAt(i);
+                                        _removing.remove(userId);
+                                      });
+                                    } else {
+                                      setState(() => _removing.remove(userId));
+                                    }
+                                  },
+                                )
                         : null,
                   );
                 },
@@ -1102,8 +1448,10 @@ class _GroupAddMemberDialog extends StatefulWidget {
   final List<Map<String, dynamic>> availableUsers;
   final Future<bool> Function(String userId) onAdd;
 
-  const _GroupAddMemberDialog(
-      {required this.availableUsers, required this.onAdd});
+  const _GroupAddMemberDialog({
+    required this.availableUsers,
+    required this.onAdd,
+  });
 
   @override
   State<_GroupAddMemberDialog> createState() => _GroupAddMemberDialogState();
@@ -1144,14 +1492,20 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
           children: [
-            Icon(Icons.person_add_alt_1_outlined,
-                color: Colors.white, size: 20),
+            Icon(
+              Icons.person_add_alt_1_outlined,
+              color: Colors.white,
+              size: 20,
+            ),
             SizedBox(width: 10),
-            Text("Add Member",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
+            Text(
+              "Add Member",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
       ),
@@ -1166,10 +1520,13 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
                 hintText: "Search users…",
                 prefixIcon: const Icon(Icons.search, size: 18),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -1177,81 +1534,93 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
             Expanded(
               child: filtered.isEmpty
                   ? const Center(
-                      child: Text("No users found",
-                          style: TextStyle(color: Colors.grey)))
+                      child: Text(
+                        "No users found",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.separated(
                       itemCount: filtered.length,
-                      separatorBuilder: (_, _) =>
-                          const Divider(height: 1),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, i) {
                         final user = filtered[i];
                         final userId = user['id']?.toString() ?? '';
-                        final userName =
-                            user['name']?.toString() ?? userId;
+                        final userName = user['name']?.toString() ?? userId;
                         final isAdding = _adding.contains(userId);
                         final isAdded = _added.contains(userId);
 
                         return ListTile(
                           key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           leading: CircleAvatar(
                             backgroundColor: isAdded
                                 ? Colors.green
                                 : const Color(0xFF128C7E),
                             child: isAdded
-                                ? const Icon(Icons.check,
-                                    color: Colors.white, size: 18)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 18,
+                                  )
                                 : Text(
                                     userName.isNotEmpty
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                           ),
-                          title: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
+                          title: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                           trailing: isAdded
-                              ? const Text("Added",
+                              ? const Text(
+                                  "Added",
                                   style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600))
+                                    color: Colors.green,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                )
                               : isAdding
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2))
-                                  : ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                            const Color(0xFF075E54),
-                                        foregroundColor: Colors.white,
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12),
-                                        minimumSize: const Size(60, 32),
-                                        textStyle: const TextStyle(
-                                            fontSize: 12),
-                                      ),
-                                      onPressed: () async {
-                                        setState(
-                                            () => _adding.add(userId));
-                                        final ok =
-                                            await widget.onAdd(userId);
-                                        if (mounted) {
-                                          setState(() {
-                                            _adding.remove(userId);
-                                            if (ok) _added.add(userId);
-                                          });
-                                        }
-                                      },
-                                      child: const Text("Add"),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF075E54),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
                                     ),
+                                    minimumSize: const Size(60, 32),
+                                    textStyle: const TextStyle(fontSize: 12),
+                                  ),
+                                  onPressed: () async {
+                                    setState(() => _adding.add(userId));
+                                    final ok = await widget.onAdd(userId);
+                                    if (mounted) {
+                                      setState(() {
+                                        _adding.remove(userId);
+                                        if (ok) _added.add(userId);
+                                      });
+                                    }
+                                  },
+                                  child: const Text("Add"),
+                                ),
                         );
                       },
                     ),

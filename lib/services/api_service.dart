@@ -1133,6 +1133,85 @@ class ApiService {
     }
   }
 
+  static Future<bool> createTask({
+    required String groupId,
+    required String taskTitle,
+    required String taskDescription,
+    required String assignedTo,
+    required String priority,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/create-task"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "groupId": groupId,
+          "taskTitle": taskTitle,
+          "taskDescription": taskDescription,
+          "assignedTo": assignedTo,
+          "priority": priority,
+        }),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("CREATE TASK ERROR: $e");
+      return false;
+    }
+  }
+
+  static Future<bool> updateTaskStatus({
+    required String taskId,
+    required String status,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/update-task-status"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"taskId": taskId, "status": status}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("UPDATE TASK ERROR: $e");
+      return false;
+    }
+  }
+
+  static Future<List<dynamic>> getTasks() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/tasks"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print(e);
+      return [];
+    }
+  }
+
   static Future<bool> sendGroupMessage({
     required String groupId,
     required String messageText,

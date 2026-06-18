@@ -15,6 +15,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../theme/app_colors.dart';
 import '../../services/activity_service.dart';
 import 'package:intl/intl.dart';
+import '../chat/task_dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -644,6 +645,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             },
                           ),
                         ),
+                        const SizedBox(height: 12),
+
+                        _dashCard(
+                          icon: Icons.task_alt,
+                          label: "Tasks",
+                          subtitle: "View assigned tasks",
+                          gradient: const [
+                            Color(0xFF00695C),
+                            Color(0xFF00897B),
+                            Color(0xFF26A69A),
+                          ],
+                          accentColor: Colors.tealAccent,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const TaskDashboardScreen(),
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     ),
 
@@ -877,7 +899,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     );
                     _loadChatPreview();
                   },
-                );              }),
+                );
+              }),
             ],
 
             // ── Groups ───────────────────────────────────────────
