@@ -1191,7 +1191,39 @@ class ApiService {
       return false;
     }
   }
+static Future<bool> createChatTask({
+  required String challanId,
+  required String taskTitle,
+  required String taskDescription,
+  required String assignedTo,
+  required String priority,
+}) async {
+  try {
+    final token = await getToken();
 
+    if (token == null) return false;
+
+    final response = await http.post(
+      Uri.parse("$baseUrl/api/chat/create-task"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode({
+        "challanId": challanId,
+        "taskTitle": taskTitle,
+        "taskDescription": taskDescription,
+        "assignedTo": assignedTo,
+        "priority": priority,
+      }),
+    );
+
+    return response.statusCode == 200;
+  } catch (e) {
+    print("CREATE CHAT TASK ERROR: $e");
+    return false;
+  }
+}
   static Future<List<dynamic>> getTasks() async {
     try {
       final token = await getToken();

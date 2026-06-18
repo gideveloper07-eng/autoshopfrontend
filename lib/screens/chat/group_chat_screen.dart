@@ -35,7 +35,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   DateTime? _dueDate;
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
-
+  final TextEditingController messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _inputFocusNode = FocusNode();
+  String? selectedDocumentId;
+  String? selectedDocumentType;
+  
   List<dynamic> messages = [];
   bool loading = true;
   bool _sending = false;
@@ -723,8 +728,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   _showAddMember();
                 case 'removeMember':
                   _showRemoveMember();
-                case 'assignTask':
-                  _showAssignTaskDialog();
+
                 case 'groupInfo':
                   _showGroupInfo();
               }
@@ -753,10 +757,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 ),
               ),
               PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'assignTask',
-                child: _GMenuRow(icon: Icons.task_alt, label: 'Assign Task'),
-              ),
+
               PopupMenuItem(
                 value: 'groupInfo',
                 child: _GMenuRow(icon: Icons.info_outline, label: 'Group Info'),
@@ -1075,25 +1076,62 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       onPressed: _sending
                           ? null
                           : () async {
-                              final selectedDoc =
-                                  await showDialog<Map<String, dynamic>>(
-                                    context: context,
-                                    builder: (_) =>
-                                        const ChatDocumentPickerDialog(),
+                              showModalBottomSheet(
+                                context: context,
+                                builder: (context) {
+                                  return SafeArea(
+                                    child: Wrap(
+                                      children: [
+                                        ListTile(
+                                          leading: const Icon(
+                                            Icons.picture_as_pdf,
+                                          ),
+                                          title: const Text("Document"),
+                                          onTap: () async {
+                                            Navigator.pop(context);
+
+                                            final selectedDoc =
+                                                await showDialog<
+                                                  Map<String, dynamic>
+                                                >(
+                                                  context: this.context,
+                                                  builder: (_) =>
+                                                      const ChatDocumentPickerDialog(),
+                                                );
+
+                                            if (selectedDoc != null) {
+                                              setState(() {
+                                                selectedDocumentId =
+                                                    selectedDoc["DocumentId"]
+                                                        ?.toString();
+
+                                                selectedDocumentType =
+                                                    selectedDoc["DocumentType"]
+                                                        ?.toString();
+
+                                                messageController.text =
+                                                    selectedDoc["DocumentNo"]
+                                                        ?.toString() ??
+                                                    "";
+                                              });
+                                            }
+                                          },
+                                        ),
+
+                                        ListTile(
+                                          leading: const Icon(Icons.task_alt),
+                                          title: const Text("Assign Task"),
+                                          onTap: () {
+                                            Navigator.pop(context);
+
+                                            _showAssignTaskDialog();
+                                          },
+                                        ),
+                                      ],
+                                    ),
                                   );
-                              if (selectedDoc != null && mounted) {
-                                setState(() {
-                                  _selectedDocumentId =
-                                      selectedDoc["DocumentId"]?.toString();
-                                  _selectedDocumentType =
-                                      selectedDoc["DocumentType"]?.toString();
-                                  _selectedDocumentNo =
-                                      selectedDoc["DocumentNo"]?.toString();
-                                  _msgCtrl.text =
-                                      selectedDoc["DocumentNo"]?.toString() ??
-                                      "";
-                                });
-                              }
+                                },
+                              );
                             },
                     ),
                     Expanded(

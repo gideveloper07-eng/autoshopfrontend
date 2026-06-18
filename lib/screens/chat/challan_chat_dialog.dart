@@ -26,6 +26,15 @@ class ChallanChatDialog extends StatefulWidget {
 }
 
 class _ChallanChatDialogState extends State<ChallanChatDialog> {
+  final TextEditingController _msgCtrl = TextEditingController();
+  final TextEditingController _taskTitleCtrl = TextEditingController();
+  final TextEditingController _taskDescCtrl = TextEditingController();
+
+  String? _selectedTaskUserId;
+  String _selectedPriority = 'Medium';
+
+  DateTime? _startDate;
+  DateTime? _dueDate;
   // ── Messaging ────────────────────────────────────────────────────
   final TextEditingController messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -83,6 +92,151 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void _showAssignTaskDialog() {
+    _taskTitleCtrl.clear();
+    _taskDescCtrl.clear();
+
+    _selectedTaskUserId = null;
+    _selectedPriority = "Medium";
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text("Assign Task"),
+
+              content: SizedBox(
+                width: 450,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextField(
+                        controller: _taskTitleCtrl,
+                        decoration: const InputDecoration(
+                          labelText: "Task Title",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: _taskDescCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: "Description",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedTaskUserId,
+                        decoration: const InputDecoration(
+                          labelText: "Assign To",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _members.map((m) {
+                          return DropdownMenuItem<String>(
+                            value: m['UserId'].toString(),
+                            child: Text(
+                              m['UserName']?.toString() ??
+                                  m['UserId'].toString(),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (v) {
+                          setDialogState(() {
+                            _selectedTaskUserId = v;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      DropdownButtonFormField<String>(
+                        value: _selectedPriority,
+                        decoration: const InputDecoration(
+                          labelText: "Priority",
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'Low', child: Text('Low')),
+                          DropdownMenuItem(
+                            value: 'Medium',
+                            child: Text('Medium'),
+                          ),
+                          DropdownMenuItem(value: 'High', child: Text('High')),
+                        ],
+                        onChanged: (v) {
+                          setDialogState(() {
+                            _selectedPriority = v!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("Cancel"),
+                ),
+
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_taskTitleCtrl.text.trim().isEmpty) {
+                      return;
+                    }
+
+                    if (_selectedTaskUserId == null) {
+                      return;
+                    }
+
+                    // API call next phase
+
+                    final ok = await ApiService.createChatTask(
+                      challanId: widget.challanId,
+                      taskTitle: _taskTitleCtrl.text.trim(),
+                      taskDescription: _taskDescCtrl.text.trim(),
+                      assignedTo: _selectedTaskUserId!,
+                      priority: _selectedPriority,
+                    );
+
+                    if (!mounted) return;
+
+                    if (ok) {
+                      Navigator.pop(context);
+
+                      await loadMessages();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Task assigned successfully"),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Failed to assign task")),
+                      );
+                    }
+                  },
+                  child: const Text("Assign"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // ── Scroll ───────────────────────────────────────────────────────
@@ -1095,20 +1249,62 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                     onPressed: _sending
                         ? null
                         : () async {
-                            final selectedDoc =
-                                await showDialog<Map<String, dynamic>>(
-                                  context: context,
-                                  builder: (_) =>
-                                      const ChatDocumentPickerDialog(),
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) {
+                                return SafeArea(
+                                  child: Wrap(
+                                    children: [
+                                      ListTile(
+                                        leading: const Icon(
+                                          Icons.picture_as_pdf,
+                                        ),
+                                        title: const Text("Document"),
+                                        onTap: () async {
+                                          Navigator.pop(context);
+
+                                          final selectedDoc =
+                                              await showDialog<
+                                                Map<String, dynamic>
+                                              >(
+                                                context: this.context,
+                                                builder: (_) =>
+                                                    const ChatDocumentPickerDialog(),
+                                              );
+
+                                          if (selectedDoc != null) {
+                                            setState(() {
+                                              selectedDocumentId =
+                                                  selectedDoc["DocumentId"]
+                                                      ?.toString();
+
+                                              selectedDocumentType =
+                                                  selectedDoc["DocumentType"]
+                                                      ?.toString();
+
+                                              messageController.text =
+                                                  selectedDoc["DocumentNo"]
+                                                      ?.toString() ??
+                                                  "";
+                                            });
+                                          }
+                                        },
+                                      ),
+
+                                      ListTile(
+                                        leading: const Icon(Icons.task_alt),
+                                        title: const Text("Assign Task"),
+                                        onTap: () {
+                                          Navigator.pop(context);
+
+                                          _showAssignTaskDialog();
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 );
-                            if (selectedDoc != null) {
-                              selectedDocumentId = selectedDoc["DocumentId"]
-                                  ?.toString();
-                              selectedDocumentType = selectedDoc["DocumentType"]
-                                  ?.toString();
-                              messageController.text =
-                                  selectedDoc["DocumentNo"]?.toString() ?? "";
-                            }
+                              },
+                            );
                           },
                   ),
                   Expanded(
