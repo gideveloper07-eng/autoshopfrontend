@@ -1217,6 +1217,9 @@ class ApiService {
         }),
       );
 
+      print("STATUS : ${response.statusCode}");
+      print("BODY   : ${response.body}");
+
       return response.statusCode == 200;
     } catch (e) {
       print("CREATE CHAT TASK ERROR: $e");
