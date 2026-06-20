@@ -92,10 +92,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Future<void> _init() async {
     _myName = await ApiService.getUserName() ?? '';
     _myId = await ApiService.getUserId() ?? '';
-    await Future.wait([
-      _loadMessages(isInitial: true),
-      _loadMembers(),
-    ]);
+    await Future.wait([_loadMessages(isInitial: true), _loadMembers()]);
   }
 
   Future<void> _loadMembers() async {
@@ -107,11 +104,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   void _onScroll() {
     if (!_scrollCtrl.hasClients) return;
-    final atBottom = _scrollCtrl.position.pixels >=
+    final atBottom =
+        _scrollCtrl.position.pixels >=
         _scrollCtrl.position.maxScrollExtent - 50;
     if (atBottom) {
       if (_userScrolledUp) {
-        setState(() { _userScrolledUp = false; _newWhileScrolledUp = 0; });
+        setState(() {
+          _userScrolledUp = false;
+          _newWhileScrolledUp = 0;
+        });
       }
     } else {
       _userScrolledUp = true;
@@ -122,8 +123,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollCtrl.hasClients) return;
       if (animated) {
-        _scrollCtrl.animateTo(_scrollCtrl.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       } else {
         _scrollCtrl.jumpTo(_scrollCtrl.position.maxScrollExtent);
       }
@@ -215,56 +219,77 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           content: SizedBox(
             width: 420,
             child: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                TextField(
-                  controller: _taskTitleCtrl,
-                  decoration: const InputDecoration(
-                      labelText: 'Task Title', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _taskDescCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                      labelText: 'Description', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                // Show who the task will be assigned to
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade400),
-                    borderRadius: BorderRadius.circular(4),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _taskTitleCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Task Title',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.person_outline,
-                        size: 18, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text('Assign To: $assignedToName',
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.black87)),
-                  ]),
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: _selectedPriority,
-                  decoration: const InputDecoration(
-                      labelText: 'Priority', border: OutlineInputBorder()),
-                  items: const [
-                    DropdownMenuItem(value: 'Low', child: Text('Low')),
-                    DropdownMenuItem(value: 'Medium', child: Text('Medium')),
-                    DropdownMenuItem(value: 'High', child: Text('High')),
-                  ],
-                  onChanged: (v) => setDS(() => _selectedPriority = v!),
-                ),
-              ]),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _taskDescCtrl,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Show who the task will be assigned to
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Assign To: $assignedToName',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _selectedPriority,
+                    decoration: const InputDecoration(
+                      labelText: 'Priority',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'Low', child: Text('Low')),
+                      DropdownMenuItem(value: 'Medium', child: Text('Medium')),
+                      DropdownMenuItem(value: 'High', child: Text('High')),
+                    ],
+                    onChanged: (v) => setDS(() => _selectedPriority = v!),
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (_taskTitleCtrl.text.trim().isEmpty) return;
@@ -281,11 +306,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 nav.pop();
                 if (ok) {
                   await _loadMessages();
-                  messenger.showSnackBar(const SnackBar(
-                      content: Text('Task assigned successfully')));
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Task assigned successfully')),
+                  );
                 } else {
                   messenger.showSnackBar(
-                      const SnackBar(content: Text('Failed to assign task')));
+                    const SnackBar(content: Text('Failed to assign task')),
+                  );
                 }
               },
               child: const Text('Assign'),
@@ -313,25 +340,34 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
     if (groupName == null || groupName.trim().isEmpty) return;
     final result = await ApiService.createGroup(
-        groupName: groupName.trim(), memberIds: pickedIds);
+      groupName: groupName.trim(),
+      memberIds: pickedIds,
+    );
     if (!mounted) return;
     if (result['success'] == true) {
       final gId = result['groupId']?.toString() ?? '';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
           backgroundColor: _green,
-          content: Text('Group "$groupName" created!')));
+          content: Text('Group "$groupName" created!'),
+        ),
+      );
       if (gId.isNotEmpty) {
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (_) =>
-                  GroupChatScreen(groupId: gId, groupName: groupName.trim())),
+            builder: (_) =>
+                GroupChatScreen(groupId: gId, groupName: groupName.trim()),
+          ),
         );
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
           backgroundColor: Colors.red,
-          content: Text('Failed to create group. Try again.')));
+          content: Text('Failed to create group. Try again.'),
+        ),
+      );
     }
   }
 
@@ -342,7 +378,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   void _rebuildMatchIndices() {
     final q = _searchCtrl.text.trim().toLowerCase();
     if (q.isEmpty) {
-      setState(() { _matchIndices = []; _currentMatch = 0; });
+      setState(() {
+        _matchIndices = [];
+        _currentMatch = 0;
+      });
       return;
     }
     final matches = <int>[];
@@ -355,18 +394,21 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       _currentMatch = matches.isEmpty ? 0 : matches.length - 1;
     });
     if (matches.isNotEmpty) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _scrollToIndex(matches.last));
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _scrollToIndex(matches.last),
+      );
     }
   }
 
   void _scrollToIndex(int idx) {
     final key = _itemKeys[idx];
     if (key?.currentContext != null) {
-      Scrollable.ensureVisible(key!.currentContext!,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOut,
-          alignment: 0.3);
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+        alignment: 0.3,
+      );
     }
   }
 
@@ -380,8 +422,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       }
     });
     if (_isSearching) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _searchFocus.requestFocus());
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _searchFocus.requestFocus(),
+      );
     }
   }
 
@@ -396,8 +439,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   void _nextMatch() {
     if (_matchIndices.isEmpty) return;
-    setState(
-        () => _currentMatch = (_currentMatch + 1) % _matchIndices.length);
+    setState(() => _currentMatch = (_currentMatch + 1) % _matchIndices.length);
     _scrollToIndex(_matchIndices[_currentMatch]);
   }
 
@@ -421,8 +463,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       }
     }
     try {
-      final prev =
-          DateTime.parse(messages[index - 1]['MessageTime'].toString());
+      final prev = DateTime.parse(
+        messages[index - 1]['MessageTime'].toString(),
+      );
       final curr = DateTime.parse(messages[index]['MessageTime'].toString());
       if (prev.year != curr.year ||
           prev.month != curr.month ||
@@ -440,18 +483,22 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFECE5DD),
       appBar: _buildAppBar(),
-      body: Column(children: [
-        Expanded(
-          child: loading
-              ? const Center(child: CircularProgressIndicator())
-              : Stack(children: [
-                  _buildMessageList(),
-                  if (_userScrolledUp && _newWhileScrolledUp > 0)
-                    _buildNewMessageBanner(),
-                ]),
-        ),
-        if (!_isSearching) _buildInputBar(),
-      ]),
+      body: Column(
+        children: [
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : Stack(
+                    children: [
+                      _buildMessageList(),
+                      if (_userScrolledUp && _newWhileScrolledUp > 0)
+                        _buildNewMessageBanner(),
+                    ],
+                  ),
+          ),
+          if (!_isSearching) _buildInputBar(),
+        ],
+      ),
     );
   }
 
@@ -475,50 +522,57 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
               onChanged: (_) => setState(() {}),
             )
-          : Row(children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    widget.userName.isNotEmpty
-                        ? widget.userName[0].toUpperCase()
-                        : 'U',
-                    style: const TextStyle(
+          : Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      widget.userName.isNotEmpty
+                          ? widget.userName[0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 17),
+                        fontSize: 17,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  widget.userName,
-                  style: const TextStyle(
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.userName,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
       actions: [
         IconButton(
-          icon: Icon(_isSearching ? Icons.close : Icons.search,
-              color: Colors.white),
+          icon: Icon(
+            _isSearching ? Icons.close : Icons.search,
+            color: Colors.white,
+          ),
           onPressed: _toggleSearch,
         ),
         if (!_isSearching)
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
+              borderRadius: BorderRadius.circular(10),
+            ),
             onSelected: (v) {
               if (v == 'newGroup') _showNewGroupFlow();
             },
@@ -526,7 +580,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               PopupMenuItem(
                 value: 'newGroup',
                 child: _DmMenuRow(
-                    icon: Icons.group_add_outlined, label: 'New Group'),
+                  icon: Icons.group_add_outlined,
+                  label: 'New Group',
+                ),
               ),
             ],
           ),
@@ -536,38 +592,50 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               preferredSize: const Size.fromHeight(36),
               child: Container(
                 color: _subGreen,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: Row(children: [
-                  Expanded(
-                    child: Text(
-                      _searchCtrl.text.trim().isEmpty
-                          ? 'Type to search…'
-                          : _matchIndices.isEmpty
-                              ? 'No results'
-                              : '${_currentMatch + 1} of ${_matchIndices.length} matches',
-                      style: TextStyle(
-                          color: Colors.white.withOpacity(0.9), fontSize: 13),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _searchCtrl.text.trim().isEmpty
+                            ? 'Type to search…'
+                            : _matchIndices.isEmpty
+                            ? 'No results'
+                            : '${_currentMatch + 1} of ${_matchIndices.length} matches',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                        ),
+                      ),
                     ),
-                  ),
-                  if (_matchIndices.isNotEmpty) ...[
-                    IconButton(
-                      icon: const Icon(Icons.keyboard_arrow_up,
-                          color: Colors.white, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _prevMatch,
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.keyboard_arrow_down,
-                          color: Colors.white, size: 20),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: _nextMatch,
-                    ),
+                    if (_matchIndices.isNotEmpty) ...[
+                      IconButton(
+                        icon: const Icon(
+                          Icons.keyboard_arrow_up,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _prevMatch,
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _nextMatch,
+                      ),
+                    ],
                   ],
-                ]),
+                ),
               ),
             )
           : null,
@@ -600,25 +668,27 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           children: [
             if (sep != null) _buildDateSeparator(sep),
             Align(
-              alignment:
-                  isMine ? Alignment.centerRight : Alignment.centerLeft,
+              alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 margin: EdgeInsets.only(
-                    left: isMine ? 60 : 10,
-                    right: isMine ? 10 : 60,
-                    top: 2,
-                    bottom: 2),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  left: isMine ? 60 : 10,
+                  right: isMine ? 10 : 60,
+                  top: 2,
+                  bottom: 2,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isActive
                       ? const Color(0xFFFFF176)
                       : isMatch
-                          ? const Color(0xFFFFF9C4)
-                          : isMine
-                              ? const Color(0xFFDCF8C6)
-                              : Colors.white,
+                      ? const Color(0xFFFFF9C4)
+                      : isMine
+                      ? const Color(0xFFDCF8C6)
+                      : Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -627,9 +697,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2))
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
                   ],
                 ),
                 child: Column(
@@ -639,32 +710,45 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     if (!isMine)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 3),
-                        child: Text(sender,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                color: _green)),
+                        child: Text(
+                          sender,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: _green,
+                          ),
+                        ),
                       ),
                     msgType == 'DOCUMENT'
                         ? _buildDocumentBubble(docNo, docType, docId)
                         : msgType == 'TASK'
-                            ? _buildTaskMessage(msg)
-                            : Text(text,
-                                style: const TextStyle(
-                                    fontSize: 14, color: Colors.black87)),
+                        ? _buildTaskMessage(msg)
+                        : Text(
+                            text,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
                     const SizedBox(height: 3),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Spacer(),
-                        Text(_formatTime(time),
-                            style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.black.withOpacity(0.45))),
+                        Text(
+                          _formatTime(time),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.black.withOpacity(0.45),
+                          ),
+                        ),
                         if (isMine) ...[
                           const SizedBox(width: 4),
-                          const Icon(Icons.done_all,
-                              size: 14, color: Colors.black45),
+                          const Icon(
+                            Icons.done_all,
+                            size: 14,
+                            color: Colors.black45,
+                          ),
                         ],
                       ],
                     ),
@@ -692,51 +776,62 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.task_alt, color: Colors.orange.shade700, size: 20),
-            const SizedBox(width: 6),
-            const Text(
-              'TASK',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.orange),
-            ),
-          ]),
+          Row(
+            children: [
+              Icon(Icons.task_alt, color: Colors.orange.shade700, size: 20),
+              const SizedBox(width: 6),
+              const Text(
+                'TASK',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           Text(
             msg['MessageText']?.toString() ?? '',
-            style:
-                const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          Text('Assigned To: ${msg['AssignedTo'] ?? ''}',
-              style: const TextStyle(fontSize: 13)),
+          Text(
+            'Assigned To: ${msg['AssignedTo'] ?? ''}',
+            style: const TextStyle(fontSize: 13),
+          ),
           const SizedBox(height: 4),
-          Text('Priority: ${msg['Priority'] ?? ''}',
-              style: const TextStyle(fontSize: 13)),
+          Text(
+            'Priority: ${msg['Priority'] ?? ''}',
+            style: const TextStyle(fontSize: 13),
+          ),
           const SizedBox(height: 4),
-          Text('Status: $currentStatus',
-              style: const TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            'Status: $currentStatus',
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             value: currentStatus,
             items: const [
               DropdownMenuItem(value: 'Pending', child: Text('Pending')),
               DropdownMenuItem(
-                  value: 'In Progress', child: Text('In Progress')),
-              DropdownMenuItem(
-                  value: 'Completed', child: Text('Completed')),
-              DropdownMenuItem(
-                  value: 'Cancelled', child: Text('Cancelled')),
+                value: 'In Progress',
+                child: Text('In Progress'),
+              ),
+              DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+              DropdownMenuItem(value: 'Cancelled', child: Text('Cancelled')),
             ],
             onChanged: (value) async {
               if (value == null) return;
               final ok = await ApiService.updateTaskStatus(
-                  taskId: taskId, status: value);
+                taskId: taskId,
+                status: value,
+              );
               if (ok && mounted) {
                 await _loadMessages();
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Task marked as $value')));
+                  SnackBar(content: Text('Task marked as $value')),
+                );
               }
             },
           ),
@@ -746,7 +841,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   }
 
   Widget _buildDocumentBubble(
-      String documentNo, String documentType, String? documentId) {
+    String documentNo,
+    String documentType,
+    String? documentId,
+  ) {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -774,12 +872,17 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('$documentType #$documentNo',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 13)),
-                  const Text('PDF Document · Tap to open',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.black54)),
+                  Text(
+                    '$documentType #$documentNo',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const Text(
+                    'PDF Document · Tap to open',
+                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                  ),
                 ],
               ),
             ),
@@ -799,11 +902,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             color: const Color(0xFFD1E8D5),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Text(label,
-              style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF4A4A4A),
-                  fontWeight: FontWeight.w500)),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF4A4A4A),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
       ),
     );
@@ -817,35 +923,44 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       child: Center(
         child: GestureDetector(
           onTap: () {
-            setState(
-                () { _userScrolledUp = false; _newWhileScrolledUp = 0; });
+            setState(() {
+              _userScrolledUp = false;
+              _newWhileScrolledUp = 0;
+            });
             _scrollToBottom();
           },
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
               color: _green,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2))
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
               ],
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: Colors.white, size: 18),
-              const SizedBox(width: 4),
-              Text(
-                '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
-                style: const TextStyle(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$_newWhileScrolledUp new message${_newWhileScrolledUp > 1 ? 's' : ''}',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13,
-                    fontWeight: FontWeight.w600),
-              ),
-            ]),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -858,114 +973,122 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: Row(children: [
-        // Attach button — opens document picker + task option
-        IconButton(
-          icon: const Icon(Icons.attach_file),
-          onPressed: _sending
-              ? null
-              : () {
-                  showModalBottomSheet(
-                    context: context,
-                    builder: (sheetCtx) => SafeArea(
-                      child: Wrap(children: [
-                        ListTile(
-                          leading: const Icon(Icons.picture_as_pdf),
-                          title: const Text('Document'),
-                          onTap: () async {
-                            Navigator.pop(sheetCtx);
-                            final selectedDoc =
-                                await showDialog<Map<String, dynamic>>(
-                              context: context,
-                              builder: (_) =>
-                                  const ChatDocumentPickerDialog(),
-                            );
-                            if (selectedDoc != null && mounted) {
-                              setState(() {
-                                _selectedDocumentId =
-                                    selectedDoc['DocumentId']?.toString();
-                                _selectedDocumentType =
-                                    selectedDoc['DocumentType']?.toString();
-                                _msgCtrl.text =
-                                    selectedDoc['DocumentNo']?.toString() ??
+      child: Row(
+        children: [
+          // Attach button — opens document picker + task option
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            onPressed: _sending
+                ? null
+                : () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (sheetCtx) => SafeArea(
+                        child: Wrap(
+                          children: [
+                            ListTile(
+                              leading: const Icon(Icons.picture_as_pdf),
+                              title: const Text('Document'),
+                              onTap: () async {
+                                Navigator.pop(sheetCtx);
+                                final selectedDoc =
+                                    await showDialog<Map<String, dynamic>>(
+                                      context: context,
+                                      builder: (_) =>
+                                          const ChatDocumentPickerDialog(),
+                                    );
+                                if (selectedDoc != null && mounted) {
+                                  setState(() {
+                                    _selectedDocumentId =
+                                        selectedDoc['DocumentId']?.toString();
+                                    _selectedDocumentType =
+                                        selectedDoc['DocumentType']?.toString();
+                                    _msgCtrl.text =
+                                        selectedDoc['DocumentNo']?.toString() ??
                                         '';
-                              });
-                            }
-                          },
+                                  });
+                                }
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.task_alt),
+                              title: const Text('Assign Task'),
+                              onTap: () {
+                                Navigator.pop(sheetCtx);
+                                _showAssignTaskDialog();
+                              },
+                            ),
+                          ],
                         ),
-                        ListTile(
-                          leading: const Icon(Icons.task_alt),
-                          title: const Text('Assign Task'),
-                          onTap: () {
-                            Navigator.pop(sheetCtx);
-                            _showAssignTaskDialog();
-                          },
-                        ),
-                      ]),
-                    ),
-                  );
-                },
-        ),
+                      ),
+                    );
+                  },
+          ),
 
-        // Text field
-        Expanded(
-          child: KeyboardListener(
-            focusNode: FocusNode(),
-            onKeyEvent: (event) {
-              if (event is KeyDownEvent &&
-                  event.logicalKey == LogicalKeyboardKey.enter) {
-                final isCtrl = HardwareKeyboard.instance.isControlPressed;
-                final isShift = HardwareKeyboard.instance.isShiftPressed;
-                if ((isCtrl || isShift) && !_sending) _sendMessage();
-              }
-            },
-            child: TextField(
-              controller: _msgCtrl,
-              focusNode: _inputFocus,
-              enabled: !_sending,
-              maxLines: null,
-              minLines: 1,
-              keyboardType: TextInputType.multiline,
-              textInputAction: TextInputAction.newline,
-              decoration: InputDecoration(
-                hintText: _sending ? 'Sending…' : 'Type message...',
-                filled: true,
-                fillColor: const Color(0xFFF0F0F0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
+          // Text field
+          Expanded(
+            child: KeyboardListener(
+              focusNode: FocusNode(),
+              onKeyEvent: (event) {
+                if (event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.enter) {
+                  final isCtrl = HardwareKeyboard.instance.isControlPressed;
+                  final isShift = HardwareKeyboard.instance.isShiftPressed;
+                  if ((isCtrl || isShift) && !_sending) _sendMessage();
+                }
+              },
+              child: TextField(
+                controller: _msgCtrl,
+                focusNode: _inputFocus,
+                enabled: !_sending,
+                maxLines: null,
+                minLines: 1,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(
+                  hintText: _sending ? 'Sending…' : 'Type message...',
+                  filled: true,
+                  fillColor: const Color(0xFFF0F0F0),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 10),
               ),
             ),
           ),
-        ),
 
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
 
-        // Send button
-        SizedBox(
-          width: 44,
-          height: 44,
-          child: _sending
-              ? const Padding(
-                  padding: EdgeInsets.all(10),
-                  child:
-                      CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Material(
-                  color: _green,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: _sendMessage,
-                    child: const Icon(Icons.send,
-                        color: Colors.white, size: 20),
+          // Send button
+          SizedBox(
+            width: 44,
+            height: 44,
+            child: _sending
+                ? const Padding(
+                    padding: EdgeInsets.all(10),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Material(
+                    color: _green,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: _sendMessage,
+                      child: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
                   ),
-                ),
-        ),
-      ]),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -979,12 +1102,16 @@ class _DmMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Icon(icon, size: 18, color: Colors.black87),
-      const SizedBox(width: 10),
-      Text(label,
-          style: const TextStyle(fontSize: 14, color: Colors.black87)),
-    ]);
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.black87),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
+        ),
+      ],
+    );
   }
 }
 
@@ -1007,7 +1134,9 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
     final valid = widget.allUsers
         .where((u) => (u['id']?.toString() ?? '').isNotEmpty)
         .toList();
-    if (q.isEmpty) { return valid; }
+    if (q.isEmpty) {
+      return valid;
+    }
     return valid.where((u) {
       final name = (u['name']?.toString() ?? '').toLowerCase();
       return name.contains(q);
@@ -1015,7 +1144,10 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
   }
 
   @override
-  void dispose() { _filter.dispose(); super.dispose(); }
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1029,109 +1161,137 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(children: [
-          const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text('Add Group Members',
+        child: Row(
+          children: [
+            const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Add Group Members',
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold)),
-          ),
-          if (_selected.isNotEmpty)
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.25),
-                borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              child: Text('${_selected.length} selected',
-                  style:
-                      const TextStyle(color: Colors.white, fontSize: 12)),
             ),
-        ]),
+            if (_selected.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_selected.length} selected',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
       ),
       content: SizedBox(
         width: 400,
         height: 420,
-        child: Column(children: [
-          TextField(
-            controller: _filter,
-            decoration: InputDecoration(
-              hintText: 'Search users…',
-              prefixIcon: const Icon(Icons.search, size: 18),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8)),
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 10),
+        child: Column(
+          children: [
+            TextField(
+              controller: _filter,
+              decoration: InputDecoration(
+                hintText: 'Search users…',
+                prefixIcon: const Icon(Icons.search, size: 18),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
             ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: filtered.isEmpty
-                ? const Center(
-                    child: Text('No users found',
-                        style: TextStyle(color: Colors.grey)))
-                : ListView.builder(
-                    itemCount: filtered.length,
-                    itemBuilder: (_, i) {
-                      final u = filtered[i];
-                      final uid = u['id']?.toString() ?? '';
-                      final uname = u['name']?.toString() ?? uid;
-                      final sel = _selected.contains(uid);
-                      return CheckboxListTile(
-                        key: ValueKey(uid),
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 8),
-                        activeColor: const Color(0xFF075E54),
-                        value: sel,
-                        onChanged: uid.isEmpty
-                            ? null
-                            : (v) {
-                                setState(() {
-                                  if (v == true) { _selected.add(uid); }
-                                  else { _selected.remove(uid); }
-                                });
-                              },
-                        secondary: CircleAvatar(
-                          backgroundColor: sel
-                              ? const Color(0xFF075E54)
-                              : const Color(0xFF128C7E),
-                          child: sel
-                              ? const Icon(Icons.check,
-                                  color: Colors.white, size: 16)
-                              : Text(
-                                  uname.isNotEmpty
-                                      ? uname[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
+            const SizedBox(height: 8),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No users found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final u = filtered[i];
+                        final uid = u['id']?.toString() ?? '';
+                        final uname = u['name']?.toString() ?? uid;
+                        final sel = _selected.contains(uid);
+                        return CheckboxListTile(
+                          key: ValueKey(uid),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          activeColor: const Color(0xFF075E54),
+                          value: sel,
+                          onChanged: uid.isEmpty
+                              ? null
+                              : (v) {
+                                  setState(() {
+                                    if (v == true) {
+                                      _selected.add(uid);
+                                    } else {
+                                      _selected.remove(uid);
+                                    }
+                                  });
+                                },
+                          secondary: CircleAvatar(
+                            backgroundColor: sel
+                                ? const Color(0xFF075E54)
+                                : const Color(0xFF128C7E),
+                            child: sel
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
+                                : Text(
+                                    uname.isNotEmpty
+                                        ? uname[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 13)),
-                        ),
-                        title: Text(uname,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                          ),
+                          title: Text(
+                            uname,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14)),
-                      );
-                    }),
-          ),
-        ]),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: _selected.isEmpty
               ? null
@@ -1154,7 +1314,10 @@ class _DmNameGroupDialog extends StatefulWidget {
 class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
   final TextEditingController _ctrl = TextEditingController();
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1167,15 +1330,20 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: const Row(children: [
-          Icon(Icons.group, color: Colors.white, size: 20),
-          SizedBox(width: 10),
-          Text('Name Your Group',
+        child: const Row(
+          children: [
+            Icon(Icons.group, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Text(
+              'Name Your Group',
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold)),
-        ]),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
       content: TextField(
         controller: _ctrl,
@@ -1192,14 +1360,16 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
       ),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel')),
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: () {
             final name = _ctrl.text.trim();
