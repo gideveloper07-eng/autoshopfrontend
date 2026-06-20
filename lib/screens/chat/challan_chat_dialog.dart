@@ -30,7 +30,6 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   final TextEditingController _taskTitleCtrl = TextEditingController();
   final TextEditingController _taskDescCtrl = TextEditingController();
 
-  String? _selectedTaskUserId;
   String _selectedPriority = 'Medium';
 
   DateTime? _startDate;
@@ -98,7 +97,6 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     _taskTitleCtrl.clear();
     _taskDescCtrl.clear();
 
-    _selectedTaskUserId = null;
     _selectedPriority = "Medium";
 
     showDialog(
@@ -135,28 +133,6 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                       ),
 
                       const SizedBox(height: 12),
-
-                      DropdownButtonFormField<String>(
-                        value: _selectedTaskUserId,
-                        decoration: const InputDecoration(
-                          labelText: "Assign To",
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _members.map((m) {
-                          return DropdownMenuItem<String>(
-                            value: m['UserId'].toString(),
-                            child: Text(
-                              m['UserName']?.toString() ??
-                                  m['UserId'].toString(),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (v) {
-                          setDialogState(() {
-                            _selectedTaskUserId = v;
-                          });
-                        },
-                      ),
 
                       const SizedBox(height: 12),
 
@@ -197,17 +173,12 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                       return;
                     }
 
-                    if (_selectedTaskUserId == null) {
-                      return;
-                    }
-
                     // API call next phase
 
                     final ok = await ApiService.createChatTask(
                       challanId: widget.challanId,
                       taskTitle: _taskTitleCtrl.text.trim(),
                       taskDescription: _taskDescCtrl.text.trim(),
-                      assignedTo: _selectedTaskUserId!,
                       priority: _selectedPriority,
                     );
 

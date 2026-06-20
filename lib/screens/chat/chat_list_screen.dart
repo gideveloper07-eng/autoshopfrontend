@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import 'challan_chat_dialog.dart';
+import 'direct_chat_screen.dart';
 import 'group_chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -23,6 +24,9 @@ class _ChatListScreenState extends State<ChatListScreen>
   final Map<String, _ChatMeta> _chatMeta = {};
 
   List<dynamic> _groups = [];
+
+  // ── Users ────────────────────────────────────────────────────────
+  List<Map<String, dynamic>> _allUsers = [];
 
   bool isLoading = true;
   String? errorMessage;
@@ -68,15 +72,18 @@ class _ChatListScreenState extends State<ChatListScreen>
       final results = await Future.wait([
         ApiService.getChallanRetailIncentive(),
         ApiService.getMyGroups(),
+        ApiService.getCompanyUsers(),
       ]);
 
       final challanList = results[0] as List<Map<String, dynamic>>;
       final groupList = results[1] as List<dynamic>;
+      final userList = results[2] as List<Map<String, dynamic>>;
 
       if (mounted) {
         setState(() {
           challans = challanList;
           _groups = groupList;
+          _allUsers = userList;
           isLoading = false;
         });
       }
@@ -203,6 +210,76 @@ class _ChatListScreenState extends State<ChatListScreen>
     _loadAll(silent: true);
   }
 
+  /// Open a 1-on-1 chat with a user.
+  /// Finds an existing direct-message group or creates one, then opens it.
+  void _openUserChat(String targetUserId, String targetUserName) async {
+    if (targetUserId.isEmpty) return;
+
+    // Get current user id
+    final myId = await ApiService.getUserId() ?? '';
+
+    if (!mounted) return;
+
+    // Look for an existing 1-on-1 group with this user in the already-loaded list
+    // A DM group name follows the pattern "DM:userId1:userId2" so we can identify it
+    dynamic existingGroup;
+    for (final g in _groups) {
+      final name = g['GroupName']?.toString() ?? '';
+      final memberCount = (g['MemberCount'] as num?)?.toInt() ?? 0;
+      if (memberCount == 2 &&
+          name.startsWith('DM:') &&
+          name.contains(myId) &&
+          name.contains(targetUserId)) {
+        existingGroup = g;
+        break;
+      }
+    }
+
+    if (existingGroup != null) {
+      final groupId = existingGroup['GroupId']?.toString() ?? '';
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DirectChatScreen(
+              groupId: groupId, userName: targetUserName),
+        ),
+      );
+      _loadAll(silent: true);
+      return;
+    }
+
+    // No existing DM group — create one silently
+    final dmName = 'DM:$myId:$targetUserId';
+    final result = await ApiService.createGroup(
+      groupName: dmName,
+      memberIds: [targetUserId],
+    );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final groupId = result['groupId']?.toString() ?? '';
+      await _loadAll(silent: true);
+      if (groupId.isNotEmpty && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DirectChatScreen(
+                groupId: groupId, userName: targetUserName),
+          ),
+        );
+        _loadAll(silent: true);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Could not open chat. Please try again.'),
+        ),
+      );
+    }
+  }
+
   /// New Group flow — Step 1 pick members, Step 2 name
   void _showNewGroupFlow() async {
     final allUsers = await ApiService.getCompanyUsers();
@@ -273,12 +350,28 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   List<dynamic> get _filteredGroups {
-    if (!_isSearching) return _groups;
+    // Exclude DM (direct message) groups from the Groups tab
+    final nonDm = _groups.where((g) {
+      final name = g['GroupName']?.toString() ?? '';
+      return !name.startsWith('DM:');
+    }).toList();
+    if (!_isSearching) return nonDm;
     final q = _searchCtrl.text.trim().toLowerCase();
-    if (q.isEmpty) return _groups;
-    return _groups.where((g) {
+    if (q.isEmpty) return nonDm;
+    return nonDm.where((g) {
       final name = (g['GroupName']?.toString() ?? '').toLowerCase();
       return name.contains(q);
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _filteredUsers {
+    if (!_isSearching) return _allUsers;
+    final q = _searchCtrl.text.trim().toLowerCase();
+    if (q.isEmpty) return _allUsers;
+    return _allUsers.where((u) {
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
+      return name.contains(q) || id.contains(q);
     }).toList();
   }
 
@@ -510,8 +603,27 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   Widget _buildChatsTab() {
     final indChats = _filteredChallans;
+    final users = _filteredUsers;
 
-    if (indChats.isEmpty) {
+    // Build a unified item list: users section + chats section
+    // Each item is either a header, a user, or a challan
+    final List<_ListItem> items = [];
+
+    if (users.isNotEmpty) {
+      items.add(_ListItem.header("Users"));
+      for (final u in users) {
+        items.add(_ListItem.user(u));
+      }
+    }
+
+    if (indChats.isNotEmpty) {
+      items.add(_ListItem.header("Chats"));
+      for (final c in indChats) {
+        items.add(_ListItem.challan(c));
+      }
+    }
+
+    if (items.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -520,7 +632,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 size: 64, color: Colors.grey.withOpacity(0.4)),
             const SizedBox(height: 16),
             Text(
-              _isSearching ? "No chats found" : "No chats yet",
+              _isSearching ? "No results found" : "No chats yet",
               style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -543,9 +655,33 @@ class _ChatListScreenState extends State<ChatListScreen>
       color: _green,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
-        itemCount: indChats.length,
-        itemBuilder: (context, index) =>
-            _buildIndividualTile(indChats[index]),
+        itemCount: items.length,
+        itemBuilder: (context, index) {
+          final item = items[index];
+          if (item.isHeader) {
+            return _buildSectionHeader(item.header!);
+          } else if (item.user != null) {
+            return _buildUserTile(item.user!);
+          } else {
+            return _buildIndividualTile(item.challan!);
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: const Color(0xFFF0F2F5),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: Color(0xFF075E54),
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
@@ -867,8 +1003,72 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  // ── Error state ────────────────────────────────────────────────────
+  // ── Users Tab ─────────────────────────────────────────────────────
+  // (Users are now shown inside the Chats tab as a section)
 
+  Widget _buildUserTile(Map<String, dynamic> user) {
+    final userId = user['id']?.toString() ?? '';
+    final userName = user['name']?.toString() ?? userId;
+    final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+
+    return Material(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () => _openUserChat(userId, userName),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFF0F0F0)),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Avatar
+              Container(
+                width: 50,
+                height: 50,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    avatarLetter,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+
+              // Name
+              Expanded(
+                child: Text(
+                  userName.isNotEmpty ? userName : userId,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────────
   Widget _buildError() {
     return Center(
       child: Column(
@@ -896,6 +1096,22 @@ class _ChatListScreenState extends State<ChatListScreen>
 }
 
 // ── Simple holder for per-challan chat metadata ───────────────────────────────
+
+// ── Unified list item for the merged Chats tab ────────────────────────────────
+
+class _ListItem {
+  final String? header;
+  final Map<String, dynamic>? user;
+  final Map<String, dynamic>? challan;
+
+  const _ListItem._({this.header, this.user, this.challan});
+
+  factory _ListItem.header(String title) => _ListItem._(header: title);
+  factory _ListItem.user(Map<String, dynamic> u) => _ListItem._(user: u);
+  factory _ListItem.challan(Map<String, dynamic> c) => _ListItem._(challan: c);
+
+  bool get isHeader => header != null;
+}
 
 class _ChatMeta {
   final String lastMessage;
