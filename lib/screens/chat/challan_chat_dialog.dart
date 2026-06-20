@@ -698,6 +698,51 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     );
   }
 
+  Widget _buildTaskMessage(Map<String, dynamic> task) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F0E0),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.task_alt, color: Colors.orange),
+              SizedBox(width: 6),
+              Text(
+                "TASK",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            task["MessageText"]?.toString() ?? "",
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 8),
+
+          Text("Assigned To: ${task["AssignedTo"] ?? ""}"),
+
+          Text("Priority: ${task["Priority"] ?? ""}"),
+
+          Text("Status: ${task["TaskStatus"] ?? "Pending"}"),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTicks(bool isMine, bool isRead) {
     if (!isMine) return const SizedBox.shrink();
     return Padding(
@@ -1108,6 +1153,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                                 documentType,
                                                 documentId,
                                               )
+                                            : messageType == "TASK"
+                                            ? _buildTaskMessage(msg)
                                             : (_isSearching && isMatch)
                                             ? _buildHighlightedText(
                                                 message,
