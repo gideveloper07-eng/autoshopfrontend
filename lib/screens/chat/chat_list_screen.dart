@@ -223,23 +223,30 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _openUserChat(String targetUserId, String targetUserName) async {
     if (targetUserId.isEmpty) return;
 
-    // Get current user id
-    final myId = await ApiService.getUserId() ?? '';
+    // Get current user id (prefer the already-loaded _myId)
+    final myId = _myId.isNotEmpty ? _myId : (await ApiService.getUserId() ?? '');
 
     if (!mounted) return;
 
-    // Look for an existing 1-on-1 group with this user in the already-loaded list
-    // A DM group name follows the pattern "DM:userId1:userId2" so we can identify it
+    // Look for an existing 1-on-1 group with this user in the already-loaded list.
+    // DM group name pattern: "DM:userId1:userId2" (case-insensitive comparison)
     dynamic existingGroup;
     for (final g in _groups) {
       final name = g['GroupName']?.toString() ?? '';
       final memberCount = (g['MemberCount'] as num?)?.toInt() ?? 0;
-      if (memberCount == 2 &&
-          name.startsWith('DM:') &&
-          name.contains(myId) &&
-          name.contains(targetUserId)) {
-        existingGroup = g;
-        break;
+      if (memberCount == 2 && name.startsWith('DM:')) {
+        final parts = name.split(':');
+        if (parts.length == 3) {
+          final id1 = parts[1].toLowerCase();
+          final id2 = parts[2].toLowerCase();
+          final myLow = myId.toLowerCase();
+          final targetLow = targetUserId.toLowerCase();
+          if ((id1 == myLow && id2 == targetLow) ||
+              (id1 == targetLow && id2 == myLow)) {
+            existingGroup = g;
+            break;
+          }
+        }
       }
     }
 
@@ -375,30 +382,56 @@ class _ChatListScreenState extends State<ChatListScreen>
   List<Map<String, dynamic>> get _chattedUsers {
     if (_myId.isEmpty) return [];
 
-    // Find all targetUserIds from DM groups in _groups that have messages
-    final Set<String> chattedUserIds = {};
+    // Build a map of targetUserId -> DM group data for quick lookup
+    final Map<String, Map<String, dynamic>> dmGroupByTargetId = {};
     for (final g in _groups) {
       final name = g['GroupName']?.toString() ?? '';
       if (name.startsWith('DM:')) {
-        final lastMsg = g['LastMessage']?.toString() ?? '';
-        final lastMsgTime = g['LastMessageTime']?.toString() ?? '';
-
-        // Only show if there is an existing message in the chat
-        if (lastMsg.isNotEmpty || lastMsgTime.isNotEmpty) {
-          final parts = name.split(':');
-          if (parts.length == 3) {
-            final targetId = parts[1] == _myId ? parts[2] : parts[1];
-            chattedUserIds.add(targetId);
+        final parts = name.split(':');
+        if (parts.length == 3) {
+          // parts[1] and parts[2] are the two user IDs
+          final id1 = parts[1];
+          final id2 = parts[2];
+          final targetId = id1 == _myId ? id2 : id1;
+          if (targetId.isNotEmpty) {
+            // Keep the group data so we can show last message in tile
+            dmGroupByTargetId[targetId] = Map<String, dynamic>.from(g);
           }
         }
       }
     }
 
-    // Filter _allUsers to only include those in chattedUserIds
-    return _allUsers.where((u) {
+    if (dmGroupByTargetId.isEmpty) return [];
+
+    // Build the user list with merged DM group meta (for last message display)
+    final List<Map<String, dynamic>> result = [];
+    for (final u in _allUsers) {
       final id = u['id']?.toString() ?? '';
-      return chattedUserIds.contains(id);
-    }).toList();
+      if (id.isEmpty) continue;
+      if (dmGroupByTargetId.containsKey(id)) {
+        final merged = Map<String, dynamic>.from(u);
+        merged['_dmGroup'] = dmGroupByTargetId[id];
+        result.add(merged);
+      }
+    }
+
+    // Sort by LastMessageTime descending (most recent first)
+    result.sort((a, b) {
+      final timeA =
+          (a['_dmGroup'] as Map?)?['LastMessageTime']?.toString() ?? '';
+      final timeB =
+          (b['_dmGroup'] as Map?)?['LastMessageTime']?.toString() ?? '';
+      if (timeA.isEmpty && timeB.isEmpty) return 0;
+      if (timeA.isEmpty) return 1;
+      if (timeB.isEmpty) return -1;
+      try {
+        return DateTime.parse(timeB).compareTo(DateTime.parse(timeA));
+      } catch (_) {
+        return 0;
+      }
+    });
+
+    return result;
   }
 
   List<Map<String, dynamic>> get _filteredUsers {
@@ -409,7 +442,10 @@ class _ChatListScreenState extends State<ChatListScreen>
     return list.where((u) {
       final name = (u['name']?.toString() ?? '').toLowerCase();
       final id = (u['id']?.toString() ?? '').toLowerCase();
-      return name.contains(q) || id.contains(q);
+      final lastMsg =
+          ((u['_dmGroup'] as Map?)?['LastMessage']?.toString() ?? '')
+              .toLowerCase();
+      return name.contains(q) || id.contains(q) || lastMsg.contains(q);
     }).toList();
   }
 
@@ -449,9 +485,12 @@ class _ChatListScreenState extends State<ChatListScreen>
       final userId = selectedUser['id']?.toString() ?? '';
       final userName = selectedUser['name']?.toString() ?? userId;
 
-      setState(() {
-        _showLists = true;
-      });
+      // Show the lists/tabs immediately so the Chats tab is visible after return
+      if (mounted) {
+        setState(() {
+          _showLists = true;
+        });
+      }
 
       _openUserChat(userId, userName);
     }
@@ -724,7 +763,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       const Icon(Icons.person_outline, size: 18),
                       const SizedBox(width: 6),
                       const Text("Chats"),
-                      if (_chattedUsers.isNotEmpty) ...[
+                      if (_chattedUsers.isNotEmpty || challans.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -734,9 +773,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            _chattedUsers.length > 99
+                            (_chattedUsers.length + challans.length) > 99
                                 ? '99+'
-                                : '${_chattedUsers.length}',
+                                : '${_chattedUsers.length + challans.length}',
                             style: const TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.bold),
                           ),
@@ -780,9 +819,47 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Chats Tab ─────────────────────────────────────────────────────
 
   Widget _buildChatsTab() {
-    final users = _filteredUsers;
+    // Build a unified list: challan chats + DM user chats, sorted by most recent
+    final List<_UnifiedChatItem> items = [];
 
-    if (users.isEmpty) {
+    // Add challan chats that have at least one message
+    for (final challan in _filteredChallans) {
+      final challanId = challan['sp_462']?.toString() ?? '';
+      if (challanId.isEmpty) continue;
+      final meta = _chatMeta[challanId];
+      final lastTime = meta?.lastTime ?? '';
+      items.add(_UnifiedChatItem(
+        type: _ChatItemType.challan,
+        challan: challan,
+        lastTime: lastTime,
+      ));
+    }
+
+    // Add DM user chats
+    for (final user in _filteredUsers) {
+      final dmGroup = user['_dmGroup'] as Map?;
+      final lastTime = dmGroup?['LastMessageTime']?.toString() ?? '';
+      items.add(_UnifiedChatItem(
+        type: _ChatItemType.user,
+        user: user,
+        lastTime: lastTime,
+      ));
+    }
+
+    // Sort by last message time descending
+    items.sort((a, b) {
+      if (a.lastTime.isEmpty && b.lastTime.isEmpty) return 0;
+      if (a.lastTime.isEmpty) return 1;
+      if (b.lastTime.isEmpty) return -1;
+      try {
+        return DateTime.parse(b.lastTime)
+            .compareTo(DateTime.parse(a.lastTime));
+      } catch (_) {
+        return 0;
+      }
+    });
+
+    if (items.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -814,26 +891,15 @@ class _ChatListScreenState extends State<ChatListScreen>
       color: _green,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
-        itemCount: users.length,
+        itemCount: items.length,
         itemBuilder: (context, index) {
-          return _buildUserTile(users[index]);
+          final item = items[index];
+          if (item.type == _ChatItemType.challan) {
+            return _buildIndividualTile(item.challan!);
+          } else {
+            return _buildUserTile(item.user!);
+          }
         },
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: const Color(0xFFF0F2F5),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: Color(0xFF075E54),
-          letterSpacing: 0.5,
-        ),
       ),
     );
   }
@@ -1163,6 +1229,12 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userName = user['name']?.toString() ?? userId;
     final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
 
+    // Extract DM group metadata merged in _chattedUsers getter
+    final dmGroup = user['_dmGroup'] as Map?;
+    final lastMessage = dmGroup?['LastMessage']?.toString() ?? '';
+    final lastMsgTime = dmGroup?['LastMessageTime']?.toString() ?? '';
+    final timeLabel = _formatTime(lastMsgTime.isNotEmpty ? lastMsgTime : null);
+
     return Material(
       color: Colors.white,
       child: InkWell(
@@ -1182,7 +1254,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 height: 50,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
+                    colors: [Color(0xFF075E54), Color(0xFF128C7E)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1200,17 +1272,48 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
               const SizedBox(width: 14),
 
-              // Name
+              // Name + last message
               Expanded(
-                child: Text(
-                  userName.isNotEmpty ? userName : userId,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A1A),
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            userName.isNotEmpty ? userName : userId,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: lastMessage.isNotEmpty
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: const Color(0xFF1A1A1A),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (timeLabel.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            timeLabel,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ],
+                    ),
+                    if (lastMessage.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        lastMessage,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
@@ -1249,20 +1352,22 @@ class _ChatListScreenState extends State<ChatListScreen>
 
 // ── Simple holder for per-challan chat metadata ───────────────────────────────
 
-// ── Unified list item for the merged Chats tab ────────────────────────────────
+// ── Unified chat item type ────────────────────────────────────────────────────
 
-class _ListItem {
-  final String? header;
-  final Map<String, dynamic>? user;
+enum _ChatItemType { challan, user }
+
+class _UnifiedChatItem {
+  final _ChatItemType type;
   final Map<String, dynamic>? challan;
+  final Map<String, dynamic>? user;
+  final String lastTime;
 
-  const _ListItem._({this.header, this.user, this.challan});
-
-  factory _ListItem.header(String title) => _ListItem._(header: title);
-  factory _ListItem.user(Map<String, dynamic> u) => _ListItem._(user: u);
-  factory _ListItem.challan(Map<String, dynamic> c) => _ListItem._(challan: c);
-
-  bool get isHeader => header != null;
+  const _UnifiedChatItem({
+    required this.type,
+    this.challan,
+    this.user,
+    required this.lastTime,
+  });
 }
 
 class _ChatMeta {
