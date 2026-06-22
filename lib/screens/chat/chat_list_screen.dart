@@ -40,6 +40,10 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   static const Color _green = Color(0xFF075E54);
 
+  // ── Chat Customizations ──────────────────────────────────────────
+  bool _showLists = false;
+  String _myId = '';
+
   @override
   void initState() {
     super.initState();
@@ -73,17 +77,20 @@ class _ChatListScreenState extends State<ChatListScreen>
         ApiService.getChallanRetailIncentive(),
         ApiService.getMyGroups(),
         ApiService.getCompanyUsers(),
+        ApiService.getUserId(),
       ]);
 
       final challanList = results[0] as List<Map<String, dynamic>>;
       final groupList = results[1] as List<dynamic>;
       final userList = results[2] as List<Map<String, dynamic>>;
+      final myUserId = results[3] as String? ?? '';
 
       if (mounted) {
         setState(() {
           challans = challanList;
           _groups = groupList;
           _allUsers = userList;
+          _myId = myUserId;
           isLoading = false;
         });
       }
@@ -364,11 +371,41 @@ class _ChatListScreenState extends State<ChatListScreen>
     }).toList();
   }
 
-  List<Map<String, dynamic>> get _filteredUsers {
-    if (!_isSearching) return _allUsers;
-    final q = _searchCtrl.text.trim().toLowerCase();
-    if (q.isEmpty) return _allUsers;
+  List<Map<String, dynamic>> get _chattedUsers {
+    if (_myId.isEmpty) return [];
+
+    // Find all targetUserIds from DM groups in _groups that have messages
+    final Set<String> chattedUserIds = {};
+    for (final g in _groups) {
+      final name = g['GroupName']?.toString() ?? '';
+      if (name.startsWith('DM:')) {
+        final lastMsg = g['LastMessage']?.toString() ?? '';
+        final lastMsgTime = g['LastMessageTime']?.toString() ?? '';
+
+        // Only show if there is an existing message in the chat
+        if (lastMsg.isNotEmpty || lastMsgTime.isNotEmpty) {
+          final parts = name.split(':');
+          if (parts.length == 3) {
+            final targetId = parts[1] == _myId ? parts[2] : parts[1];
+            chattedUserIds.add(targetId);
+          }
+        }
+      }
+    }
+
+    // Filter _allUsers to only include those in chattedUserIds
     return _allUsers.where((u) {
+      final id = u['id']?.toString() ?? '';
+      return chattedUserIds.contains(id);
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _filteredUsers {
+    final list = _chattedUsers;
+    if (!_isSearching) return list;
+    final q = _searchCtrl.text.trim().toLowerCase();
+    if (q.isEmpty) return list;
+    return list.where((u) {
       final name = (u['name']?.toString() ?? '').toLowerCase();
       final id = (u['id']?.toString() ?? '').toLowerCase();
       return name.contains(q) || id.contains(q);
@@ -394,6 +431,25 @@ class _ChatListScreenState extends State<ChatListScreen>
   int get _totalUnread =>
       _chatMeta.values.fold(0, (sum, m) => sum + m.unreadCount);
 
+  // ── Custom Chat Flow Actions ──────────────────────────────────────
+
+  void _showNewChatFlow() async {
+    final selectedUser = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _PickUserDialog(allUsers: _allUsers),
+    );
+    if (selectedUser != null) {
+      final userId = selectedUser['id']?.toString() ?? '';
+      final userName = selectedUser['name']?.toString() ?? userId;
+
+      setState(() {
+        _showLists = true;
+      });
+
+      _openUserChat(userId, userName);
+    }
+  }
+
   // ── Build ─────────────────────────────────────────────────────────
 
   @override
@@ -405,18 +461,20 @@ class _ChatListScreenState extends State<ChatListScreen>
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
               ? _buildError()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildChatsTab(),
-                    _buildGroupsTab(),
-                  ],
-                ),
+              : !_showLists
+                  ? _buildWelcomeWidget()
+                  : TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildChatsTab(),
+                        _buildGroupsTab(),
+                      ],
+                    ),
       floatingActionButton: AnimatedBuilder(
         animation: _tabController,
         builder: (context, _) {
-          // Only show FAB on Groups tab (index 1)
-          if (_tabController.index != 1 || isLoading) {
+          // Only show FAB on Groups tab (index 1) and when lists are shown
+          if (!_showLists || _tabController.index != 1 || isLoading) {
             return const SizedBox.shrink();
           }
           return FloatingActionButton(
@@ -431,11 +489,93 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
+  Widget _buildWelcomeWidget() {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: _green.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/logo.png',
+                  height: 90,
+                  width: 90,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 80,
+                      color: _green,
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text(
+              "Welcome to MyAutoShop Chat",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A1A),
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Tap the logo on the top-left to view your chats or click the button below to start a new chat.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _green,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              label: const Text(
+                "Start a Chat",
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              onPressed: _showNewChatFlow,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: _green,
       iconTheme: const IconThemeData(color: Colors.white),
-      titleSpacing: _isSearching ? 0 : null,
+      titleSpacing: _isSearching ? 0 : 16,
       title: _isSearching
           ? TextField(
               controller: _searchCtrl,
@@ -452,36 +592,56 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
               onChanged: (_) => setState(() {}),
             )
-          : Row(
-              children: [
-                const Text(
-                  "Chat",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                  ),
-                ),
-                if (_totalUnread > 0) ...[
-                  const SizedBox(width: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(12),
+          : GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showLists = !_showLists;
+                });
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      height: 35,
+                      width: 35,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 24);
+                      },
                     ),
-                    child: Text(
-                      _totalUnread > 99 ? '99+' : '$_totalUnread',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    "MyAutoShop",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  if (_totalUnread > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _totalUnread > 99 ? '99+' : '$_totalUnread',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
       actions: [
         // Search toggle
@@ -494,6 +654,13 @@ class _ChatListScreenState extends State<ChatListScreen>
               if (!_isSearching) _searchCtrl.clear();
             });
           },
+        ),
+
+        // New Chat Button
+        IconButton(
+          icon: const Icon(Icons.chat_outlined, color: Colors.white),
+          tooltip: "New Chat",
+          onPressed: _showNewChatFlow,
         ),
 
         // Three-dot menu
@@ -526,76 +693,78 @@ class _ChatListScreenState extends State<ChatListScreen>
           ),
       ],
       // ── Tab bar ──────────────────────────────────────────────────
-      bottom: TabBar(
-        controller: _tabController,
-        indicatorColor: Colors.white,
-        indicatorWeight: 3,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white60,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-          letterSpacing: 0.4,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-        tabs: [
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.person_outline, size: 18),
-                const SizedBox(width: 6),
-                const Text("Chats"),
-                if (challans.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      challans.length > 99 ? '99+' : '${challans.length}',
-                      style: const TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
+      bottom: _showLists
+          ? TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              indicatorWeight: 3,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white60,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                letterSpacing: 0.4,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.person_outline, size: 18),
+                      const SizedBox(width: 6),
+                      const Text("Chats"),
+                      if (challans.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            challans.length > 99 ? '99+' : '${challans.length}',
+                            style: const TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
-          ),
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.groups_outlined, size: 18),
-                const SizedBox(width: 6),
-                const Text("Groups"),
-                if (_groups.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_groups.length}',
-                      style: const TextStyle(
-                          fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.groups_outlined, size: 18),
+                      const SizedBox(width: 6),
+                      const Text("Groups"),
+                      if (_groups.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${_groups.length}',
+                            style: const TextStyle(
+                                fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ],
-            ),
-          ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 
@@ -1397,6 +1566,137 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
             if (name.isNotEmpty) Navigator.pop(context, name);
           },
           child: const Text("Create Group"),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickUserDialog extends StatefulWidget {
+  final List<Map<String, dynamic>> allUsers;
+  const _PickUserDialog({required this.allUsers});
+
+  @override
+  State<_PickUserDialog> createState() => _PickUserDialogState();
+}
+
+class _PickUserDialogState extends State<_PickUserDialog> {
+  final TextEditingController _filter = TextEditingController();
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _filter.text.trim().toLowerCase();
+    final valid = widget.allUsers
+        .where((u) => (u['id']?.toString() ?? '').isNotEmpty)
+        .toList();
+    if (q.isEmpty) return valid;
+    return valid.where((u) {
+      final name = (u['name']?.toString() ?? '').toLowerCase();
+      final id = (u['id']?.toString() ?? '').toLowerCase();
+      return name.contains(q) || id.contains(q);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _filter.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filtered = _filtered;
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      titlePadding: EdgeInsets.zero,
+      title: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: const Row(
+          children: [
+            Icon(Icons.message_outlined, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                "New Chat",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      ),
+      content: SizedBox(
+        width: 400,
+        height: 420,
+        child: Column(
+          children: [
+            TextField(
+              controller: _filter,
+              decoration: InputDecoration(
+                hintText: "Search users…",
+                prefixIcon: const Icon(Icons.search, size: 18),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: filtered.isEmpty
+                  ? const Center(
+                      child: Text("No users found",
+                          style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, i) {
+                        final user = filtered[i];
+                        final userId = user['id']?.toString() ?? '';
+                        final userName =
+                            user['name']?.toString() ?? userId;
+                        final avatarLetter = userName.isNotEmpty
+                            ? userName[0].toUpperCase()
+                            : '?';
+
+                        return ListTile(
+                          key: ValueKey(userId),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 0),
+                          leading: CircleAvatar(
+                            backgroundColor: const Color(0xFF128C7E),
+                            child: Text(
+                              avatarLetter,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13),
+                            ),
+                          ),
+                          title: Text(userName,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14)),
+                          onTap: () {
+                            Navigator.pop(context, user);
+                          },
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel"),
         ),
       ],
     );
