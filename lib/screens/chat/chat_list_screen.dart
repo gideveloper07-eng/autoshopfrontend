@@ -6,6 +6,7 @@ import '../../services/api_service.dart';
 import 'challan_chat_dialog.dart';
 import 'direct_chat_screen.dart';
 import 'group_chat_screen.dart';
+import 'new_chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
@@ -434,11 +435,17 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Custom Chat Flow Actions ──────────────────────────────────────
 
   void _showNewChatFlow() async {
-    final selectedUser = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => _PickUserDialog(allUsers: _allUsers),
+    final selectedUser = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NewChatScreen(allUsers: _allUsers),
+      ),
     );
     if (selectedUser != null) {
+      if (selectedUser == 'TRIGGER_NEW_GROUP') {
+        _showNewGroupFlow();
+        return;
+      }
       final userId = selectedUser['id']?.toString() ?? '';
       final userName = selectedUser['name']?.toString() ?? userId;
 
@@ -717,7 +724,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       const Icon(Icons.person_outline, size: 18),
                       const SizedBox(width: 6),
                       const Text("Chats"),
-                      if (challans.isNotEmpty) ...[
+                      if (_chattedUsers.isNotEmpty) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -727,7 +734,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            challans.length > 99 ? '99+' : '${challans.length}',
+                            _chattedUsers.length > 99
+                                ? '99+'
+                                : '${_chattedUsers.length}',
                             style: const TextStyle(
                                 fontSize: 10, fontWeight: FontWeight.bold),
                           ),
@@ -771,28 +780,9 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Chats Tab ─────────────────────────────────────────────────────
 
   Widget _buildChatsTab() {
-    final indChats = _filteredChallans;
     final users = _filteredUsers;
 
-    // Build a unified item list: users section + chats section
-    // Each item is either a header, a user, or a challan
-    final List<_ListItem> items = [];
-
-    if (users.isNotEmpty) {
-      items.add(_ListItem.header("Users"));
-      for (final u in users) {
-        items.add(_ListItem.user(u));
-      }
-    }
-
-    if (indChats.isNotEmpty) {
-      items.add(_ListItem.header("Chats"));
-      for (final c in indChats) {
-        items.add(_ListItem.challan(c));
-      }
-    }
-
-    if (items.isEmpty) {
+    if (users.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -811,7 +801,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             Text(
               _isSearching
                   ? "Try a different search term"
-                  : "Your challan chats will appear here",
+                  : "Tap the chat icon on the top-right to start a new chat.",
               style: const TextStyle(fontSize: 13, color: Colors.grey),
             ),
           ],
@@ -824,16 +814,9 @@ class _ChatListScreenState extends State<ChatListScreen>
       color: _green,
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
-        itemCount: items.length,
+        itemCount: users.length,
         itemBuilder: (context, index) {
-          final item = items[index];
-          if (item.isHeader) {
-            return _buildSectionHeader(item.header!);
-          } else if (item.user != null) {
-            return _buildUserTile(item.user!);
-          } else {
-            return _buildIndividualTile(item.challan!);
-          }
+          return _buildUserTile(users[index]);
         },
       ),
     );
@@ -1566,137 +1549,6 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
             if (name.isNotEmpty) Navigator.pop(context, name);
           },
           child: const Text("Create Group"),
-        ),
-      ],
-    );
-  }
-}
-
-class _PickUserDialog extends StatefulWidget {
-  final List<Map<String, dynamic>> allUsers;
-  const _PickUserDialog({required this.allUsers});
-
-  @override
-  State<_PickUserDialog> createState() => _PickUserDialogState();
-}
-
-class _PickUserDialogState extends State<_PickUserDialog> {
-  final TextEditingController _filter = TextEditingController();
-
-  List<Map<String, dynamic>> get _filtered {
-    final q = _filter.text.trim().toLowerCase();
-    final valid = widget.allUsers
-        .where((u) => (u['id']?.toString() ?? '').isNotEmpty)
-        .toList();
-    if (q.isEmpty) return valid;
-    return valid.where((u) {
-      final name = (u['name']?.toString() ?? '').toLowerCase();
-      final id = (u['id']?.toString() ?? '').toLowerCase();
-      return name.contains(q) || id.contains(q);
-    }).toList();
-  }
-
-  @override
-  void dispose() {
-    _filter.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = _filtered;
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      titlePadding: EdgeInsets.zero,
-      title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: const Row(
-          children: [
-            Icon(Icons.message_outlined, color: Colors.white, size: 20),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                "New Chat",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-      ),
-      content: SizedBox(
-        width: 400,
-        height: 420,
-        child: Column(
-          children: [
-            TextField(
-              controller: _filter,
-              decoration: InputDecoration(
-                hintText: "Search users…",
-                prefixIcon: const Icon(Icons.search, size: 18),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: filtered.isEmpty
-                  ? const Center(
-                      child: Text("No users found",
-                          style: TextStyle(color: Colors.grey)))
-                  : ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, i) {
-                        final user = filtered[i];
-                        final userId = user['id']?.toString() ?? '';
-                        final userName =
-                            user['name']?.toString() ?? userId;
-                        final avatarLetter = userName.isNotEmpty
-                            ? userName[0].toUpperCase()
-                            : '?';
-
-                        return ListTile(
-                          key: ValueKey(userId),
-                          contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 0),
-                          leading: CircleAvatar(
-                            backgroundColor: const Color(0xFF128C7E),
-                            child: Text(
-                              avatarLetter,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13),
-                            ),
-                          ),
-                          title: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
-                          onTap: () {
-                            Navigator.pop(context, user);
-                          },
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
         ),
       ],
     );
