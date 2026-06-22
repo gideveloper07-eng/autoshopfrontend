@@ -471,29 +471,68 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Custom Chat Flow Actions ──────────────────────────────────────
 
   void _showNewChatFlow() async {
-    final selectedUser = await Navigator.push(
+    // Build recent challan list with last message metadata to pass to NewChatScreen
+    final recentChallans = challans.map((c) {
+      final challanId = c['sp_462']?.toString() ?? '';
+      final meta = _chatMeta[challanId];
+      return {
+        ...c,
+        'lastMessage': meta?.lastMessage ?? '',
+        'lastTime': meta?.lastTime ?? '',
+      };
+    }).where((c) => (c['sp_462']?.toString() ?? '').isNotEmpty).toList();
+
+    final selectedItem = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => NewChatScreen(allUsers: _allUsers),
+        builder: (_) => NewChatScreen(
+          allUsers: _allUsers,
+          recentChallans: recentChallans,
+        ),
       ),
     );
-    if (selectedUser != null) {
-      if (selectedUser == 'TRIGGER_NEW_GROUP') {
-        _showNewGroupFlow();
-        return;
-      }
-      final userId = selectedUser['id']?.toString() ?? '';
-      final userName = selectedUser['name']?.toString() ?? userId;
 
-      // Show the lists/tabs immediately so the Chats tab is visible after return
-      if (mounted) {
-        setState(() {
-          _showLists = true;
-        });
-      }
+    if (selectedItem == null) return;
 
-      _openUserChat(userId, userName);
+    // User picked "New Group"
+    if (selectedItem == 'TRIGGER_NEW_GROUP') {
+      _showNewGroupFlow();
+      return;
     }
+
+    // User picked a challan chat
+    if (selectedItem is Map && selectedItem['_type'] == 'challan') {
+      if (!mounted) return;
+      setState(() => _showLists = true);
+      final challanId = selectedItem['challanId']?.toString() ?? '';
+      final challanNo = selectedItem['challanNo']?.toString() ?? '';
+      final customerName = selectedItem['customerName']?.toString() ?? '';
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChallanChatDialog(
+            challanId: challanId,
+            challanNo: challanNo,
+            customerName: customerName,
+          ),
+        ),
+      );
+      _loadAll(silent: true);
+      return;
+    }
+
+    // User picked a person for 1-on-1 DM
+    final userId = selectedItem['id']?.toString() ?? '';
+    final userName = selectedItem['name']?.toString() ?? userId;
+
+    // Show the lists/tabs immediately so the Chats tab is visible after return
+    if (mounted) {
+      setState(() {
+        _showLists = true;
+      });
+    }
+
+    _openUserChat(userId, userName);
   }
 
   // ── Build ─────────────────────────────────────────────────────────
