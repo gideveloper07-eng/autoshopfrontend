@@ -13,7 +13,7 @@ class DealershipModel {
 
   factory DealershipModel.fromJson(Map<String, dynamic> json) {
     return DealershipModel(
-      clientId: json['uniqid'] ?? '',
+      clientId: json['unqid'] ?? '',
       propertyCode: json['propertycode'] ?? '',
       propertyName: json['propertyname'] ?? '',
       propertyDb: json['propertydb'] ?? '',
