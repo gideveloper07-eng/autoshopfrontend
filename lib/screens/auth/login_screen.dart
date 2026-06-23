@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../home/home_screen.dart';
 import '../../services/activity_service.dart';
+import '../../screens/settings/dealership_selector_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -113,15 +114,24 @@ class _LoginScreenState extends State<LoginScreen> {
       } catch (e) {
         debugPrint("Activity Log Error: $e");
       }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(
-            userName: res['name'] ?? res['userId'] ?? 'User',
-            userEmail: res['email'] ?? '',
+      final databases = res['accessibleDatabases'] ?? [];
+
+      if (databases.length > 1) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DealershipSelectorScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              userName: res['name'] ?? res['userId'] ?? 'User',
+              userEmail: res['email'] ?? '',
+            ),
           ),
-        ),
-      );
+        );
+      }
       print(res["utg"].toString());
     } else {
       // Read the actual message from the server response

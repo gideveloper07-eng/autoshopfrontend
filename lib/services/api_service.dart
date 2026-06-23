@@ -35,6 +35,9 @@ class ApiService {
     required String userEmail,
     required String databaseName,
     required String companyCode,
+    String? clientId,
+    String? userGuid,
+    String? accessibleDatabases,
   }) async {
     await Future.wait([
       _storage.write(key: "token", value: token),
@@ -45,7 +48,44 @@ class ApiService {
       _storage.write(key: "userEmail", value: userEmail),
       _storage.write(key: "databaseName", value: databaseName),
       _storage.write(key: "companyCode", value: companyCode),
+      _storage.write(key: "clientId", value: clientId ?? ""),
+      _storage.write(key: "userGuid", value: userGuid ?? ""),
+      _storage.write(
+        key: "accessibleDatabases",
+        value: accessibleDatabases ?? "[]",
+      ),
     ]);
+  }
+
+  static Future<void> updateCurrentDatabase({
+    required String token,
+    required String databaseName,
+    required String companyCode,
+    required String clientId,
+  }) async {
+    await _storage.write(key: "token", value: token);
+    await _storage.write(key: "databaseName", value: databaseName);
+    await _storage.write(key: "companyCode", value: companyCode);
+    await _storage.write(key: "clientId", value: clientId);
+  }
+
+  static Future<Map<String, String>> _getHeaders() async {
+    final token = await getToken();
+
+    return {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer $token",
+    };
+  }
+
+  static Future<Map<String, dynamic>?> switchDatabase(String clientId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/auth/switch-database'),
+      headers: await _getHeaders(),
+      body: jsonEncode({'clientId': clientId}),
+    );
+
+    return jsonDecode(response.body);
   }
 
   static Future<String?> getUTG() async {
@@ -67,6 +107,16 @@ class ApiService {
       "databaseName": await _storage.read(key: "databaseName") ?? "",
       "companyCode": await _storage.read(key: "companyCode") ?? "",
     };
+  }
+
+  static Future<List<dynamic>> getAccessibleDatabases() async {
+    final raw = await _storage.read(key: "accessibleDatabases");
+
+    if (raw == null || raw.isEmpty) {
+      return [];
+    }
+
+    return jsonDecode(raw);
   }
 
   static Future<String?> getUserId() => _storage.read(key: "userId");
@@ -601,6 +651,9 @@ class ApiService {
             userEmail: data['email']?.toString() ?? "",
             databaseName: data['databaseName']?.toString() ?? databaseName,
             companyCode: "",
+            clientId: data['clientId']?.toString(),
+            userGuid: data['userGuid']?.toString(),
+            accessibleDatabases: jsonEncode(data['accessibleDatabases'] ?? []),
           );
         }
 
