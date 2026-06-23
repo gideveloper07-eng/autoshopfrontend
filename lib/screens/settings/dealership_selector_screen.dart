@@ -44,14 +44,14 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen> {
             subtitle: Text(d['propertycode']),
             trailing: const Icon(Icons.chevron_right),
             onTap: () async {
-              final result = await ApiService.switchDatabase(d['uniqid']);
+              final result = await ApiService.switchDatabase(d['unqid']);
 
               if (result != null && result['success'] == true) {
                 await ApiService.updateCurrentDatabase(
                   token: result['token'],
                   databaseName: result['databaseName'],
                   companyCode: result['propertyCode'],
-                  clientId: d['uniqid'],
+                  clientId: d['unqid'],
                 );
 
                 Navigator.pushNamedAndRemoveUntil(
