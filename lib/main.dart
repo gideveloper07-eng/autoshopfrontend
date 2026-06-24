@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -89,94 +90,114 @@ void _openChatFromNotification(String challanId, {String challanNo = ''}) {
   );
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  // runZonedGuarded must wrap EVERYTHING including ensureInitialized,
+  // so that Flutter bindings and runApp are in the same zone.
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  // Disable screenshots for mobile and tablet (Android only)
-  // Screenshot blocking is now implemented in native Android code (MainActivity.kt)
-  if (!kIsWeb) {
-    try {
-      print("Screenshot blocking enabled via native Android code");
-    } catch (e) {
-      print("Error enabling screenshot blocking: $e");
-    }
-  }
+      // Disable screenshots for mobile and tablet (Android only)
+      if (!kIsWeb) {
+        try {
+          print("Screenshot blocking enabled via native Android code");
+        } catch (e) {
+          print("Error enabling screenshot blocking: $e");
+        }
+      }
 
-  try {
-    // WEB
-    if (kIsWeb) {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyAWBceq-JXxrWuILWk0rhy6CjpC7o3jS1A",
+      try {
+        // WEB
+        if (kIsWeb) {
+          await Firebase.initializeApp(
+            options: const FirebaseOptions(
+              apiKey: "AIzaSyAWBceq-JXxrWuILWk0rhy6CjpC7o3jS1A",
+              appId: "1:754396208118:web:6859824d9b00b2694545d7",
+              messagingSenderId: "754396208118",
+              projectId: "myautoshop-394f2",
+              storageBucket: "myautoshop-394f2.firebasestorage.app",
+              authDomain: "myautoshop-394f2.firebaseapp.com",
+            ),
+          );
+        } else {
+          // ANDROID / IOS
+          await Firebase.initializeApp();
+        }
+        print("FIREBASE INITIALIZED");
+      } catch (e) {
+        print("FIREBASE INIT ERROR:");
+        print(e);
+      }
 
-          appId: "1:754396208118:web:6859824d9b00b2694545d7",
+      // ── REGISTER BACKGROUND MESSAGE HANDLER ──────────────────────────────
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-          messagingSenderId: "754396208118",
+      // ── INIT LOCAL NOTIFICATIONS ──────────────────────────────────────────
+      if (!kIsWeb) {
+        const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const iosInit = DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+        await flutterLocalNotificationsPlugin.initialize(
+          const InitializationSettings(android: androidInit, iOS: iosInit),
+          onDidReceiveNotificationResponse: (NotificationResponse response) {
+            final payload = response.payload ?? '';
+            final parts = payload.split('|');
+            final challanId = parts.isNotEmpty ? parts[0] : '';
+            final challanNo = parts.length > 1 ? parts[1] : '';
+            _openChatFromNotification(challanId, challanNo: challanNo);
+          },
+        );
 
-          projectId: "myautoshop-394f2",
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(
+              const AndroidNotificationChannel(
+                'chat_messages',
+                'Chat Messages',
+                description: 'Push notifications for challan chat messages',
+                importance: Importance.max,
+                playSound: true,
+              ),
+            );
+      }
 
-          storageBucket: "myautoshop-394f2.firebasestorage.app",
+      await ActivityService.initialize();
 
-          authDomain: "myautoshop-394f2.firebaseapp.com",
+      // ── Flutter framework error handler ───────────────────────────────────
+      // Suppresses the known Flutter Web "viewInsets cannot be negative" engine
+      // bug that fires when Chrome DevTools resizes the viewport mid-frame.
+      FlutterError.onError = (FlutterErrorDetails details) {
+        final msg = details.exceptionAsString();
+        if (_isKnownEngineNoise(msg)) return;
+        FlutterError.presentError(details);
+      };
+
+      runApp(
+        ChangeNotifierProvider(
+          create: (_) => LanguageProvider(),
+          child: const MyApp(),
         ),
       );
-    } else {
-      // ANDROID / IOS
-      await Firebase.initializeApp();
-    }
-
-    print("FIREBASE INITIALIZED");
-  } catch (e) {
-    print("FIREBASE INIT ERROR:");
-
-    print(e);
-  }
-
-  // ── REGISTER BACKGROUND MESSAGE HANDLER ────────────────────────────────────
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  // ── INIT LOCAL NOTIFICATIONS ────────────────────────────────────────────────
-  if (!kIsWeb) {
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    await flutterLocalNotificationsPlugin.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
-      onDidReceiveNotificationResponse: (NotificationResponse response) {
-        // payload format: "challanId|challanNo"
-        final payload = response.payload ?? '';
-        final parts = payload.split('|');
-        final challanId = parts.isNotEmpty ? parts[0] : '';
-        final challanNo = parts.length > 1 ? parts[1] : '';
-        _openChatFromNotification(challanId, challanNo: challanNo);
-      },
-    );
-
-    // Create the Android notification channel for chat messages
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(
-          const AndroidNotificationChannel(
-            'chat_messages',
-            'Chat Messages',
-            description: 'Push notifications for challan chat messages',
-            importance: Importance.max,
-            playSound: true,
-          ),
-        );
-  }
-
-  await ActivityService.initialize();
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => LanguageProvider(),
-      child: const MyApp(),
-    ),
+    },
+    // ── Uncaught async / zone errors ────────────────────────────────────────
+    (Object error, StackTrace stack) {
+      if (_isKnownEngineNoise(error.toString())) return;
+      if (kDebugMode) debugPrint('Unhandled error: $error');
+    },
   );
+}
+
+/// Returns true for Flutter Web engine assertion errors that are caused by
+/// Chrome DevTools viewport resizing — not real app bugs.
+bool _isKnownEngineNoise(String msg) {
+  return msg.contains('viewInsets') ||
+      msg.contains('ViewOutsets cannot be negative') ||
+      msg.contains('physicalSize') ||
+      msg.contains('Zone mismatch');
 }
 
 class MyApp extends StatefulWidget {
