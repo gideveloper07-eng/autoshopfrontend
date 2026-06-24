@@ -3,6 +3,7 @@ import '../../services/api_service.dart';
 import '../home/home_screen.dart';
 import '../../services/activity_service.dart';
 import '../../screens/settings/dealership_selector_screen.dart';
+import 'dart:convert';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -101,6 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
         userEmail: res['email']?.toString() ?? '',
         databaseName: res['databaseName']?.toString() ?? databaseName,
         companyCode: companyCodeCtrl.text.trim(),
+        accessibleDatabases: jsonEncode(res['accessibleDatabases'] ?? []),
       );
       // Log Login Activity
       try {

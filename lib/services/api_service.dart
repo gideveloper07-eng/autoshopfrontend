@@ -112,11 +112,21 @@ class ApiService {
   static Future<List<dynamic>> getAccessibleDatabases() async {
     final raw = await _storage.read(key: "accessibleDatabases");
 
+    print("RAW ACCESSIBLE DATABASES:");
+    print(raw);
+
     if (raw == null || raw.isEmpty) {
       return [];
     }
 
-    return jsonDecode(raw);
+    final decoded = jsonDecode(raw);
+
+    print("DECODED ACCESSIBLE DATABASES:");
+    print(decoded);
+    print("DECODED LENGTH:");
+    print(decoded.length);
+
+    return List<dynamic>.from(decoded);
   }
 
   static Future<String?> getUserId() => _storage.read(key: "userId");
@@ -640,7 +650,8 @@ class ApiService {
       // SUCCESS
       if (res.statusCode == 200 && !res.body.trim().startsWith('<')) {
         final data = jsonDecode(res.body);
-
+        print("ACCESSIBLE DATABASES:");
+        print(data['accessibleDatabases']);
         if (data['token'] != null) {
           await saveUserSession(
             token: data['token'],
