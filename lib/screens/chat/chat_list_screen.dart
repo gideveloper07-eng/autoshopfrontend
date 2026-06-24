@@ -77,7 +77,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       final results = await Future.wait([
         ApiService.getChallanRetailIncentive(),
         ApiService.getMyGroups(),
-        ApiService.getCompanyUsers(),
+        ApiService.getMergedUsers(),
         ApiService.getUserId(),
       ]);
 
@@ -220,7 +220,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   /// Open a 1-on-1 chat with a user.
   /// Finds an existing direct-message group or creates one, then opens it.
-  void _openUserChat(String targetUserId, String targetUserName) async {
+  void _openUserChat(String targetUserId, String targetUserName, {String? companyName}) async {
     if (targetUserId.isEmpty) return;
 
     // Get current user id (prefer the already-loaded _myId)
@@ -256,7 +256,9 @@ class _ChatListScreenState extends State<ChatListScreen>
         context,
         MaterialPageRoute(
           builder: (_) => DirectChatScreen(
-              groupId: groupId, userName: targetUserName),
+              groupId: groupId,
+              userName: targetUserName,
+              companyName: companyName),
         ),
       );
       _loadAll(silent: true);
@@ -280,7 +282,9 @@ class _ChatListScreenState extends State<ChatListScreen>
           context,
           MaterialPageRoute(
             builder: (_) => DirectChatScreen(
-                groupId: groupId, userName: targetUserName),
+                groupId: groupId,
+                userName: targetUserName,
+                companyName: companyName),
           ),
         );
         _loadAll(silent: true);
@@ -411,6 +415,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       if (dmGroupByTargetId.containsKey(id)) {
         final merged = Map<String, dynamic>.from(u);
         merged['_dmGroup'] = dmGroupByTargetId[id];
+        // companyName is already in u if it came from getMergedUsers
         result.add(merged);
       }
     }
@@ -524,6 +529,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     // User picked a person for 1-on-1 DM
     final userId = selectedItem['id']?.toString() ?? '';
     final userName = selectedItem['name']?.toString() ?? userId;
+    final companyName = selectedItem['companyName']?.toString();
 
     // Show the lists/tabs immediately so the Chats tab is visible after return
     if (mounted) {
@@ -532,7 +538,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       });
     }
 
-    _openUserChat(userId, userName);
+    _openUserChat(userId, userName, companyName: companyName);
   }
 
   // ── Build ─────────────────────────────────────────────────────────
@@ -1267,6 +1273,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userId = user['id']?.toString() ?? '';
     final userName = user['name']?.toString() ?? userId;
     final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+    final companyName = user['companyName']?.toString() ?? '';
 
     // Extract DM group metadata merged in _chattedUsers getter
     final dmGroup = user['_dmGroup'] as Map?;
@@ -1277,7 +1284,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     return Material(
       color: Colors.white,
       child: InkWell(
-        onTap: () => _openUserChat(userId, userName),
+        onTap: () => _openUserChat(userId, userName, companyName: companyName.isNotEmpty ? companyName : null),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
@@ -1311,7 +1318,7 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
               const SizedBox(width: 14),
 
-              // Name + last message
+              // Name + company + last message
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1342,8 +1349,22 @@ class _ChatListScreenState extends State<ChatListScreen>
                         ],
                       ],
                     ),
+                    if (companyName.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 1),
+                        child: Text(
+                          companyName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF075E54),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     if (lastMessage.isNotEmpty) ...[
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 2),
                       Text(
                         lastMessage,
                         maxLines: 1,

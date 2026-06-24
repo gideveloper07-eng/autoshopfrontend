@@ -97,6 +97,14 @@ void main() {
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 
+      // ── Install error handler IMMEDIATELY after binding init ────────────
+      // This must be the very first thing so it catches viewport errors that
+      // fire during Firebase init and the first frame render.
+      FlutterError.onError = (FlutterErrorDetails details) {
+        if (_isKnownEngineNoise(details.exceptionAsString())) return;
+        FlutterError.presentError(details);
+      };
+
       // Disable screenshots for mobile and tablet (Android only)
       if (!kIsWeb) {
         try {
@@ -167,15 +175,6 @@ void main() {
 
       await ActivityService.initialize();
 
-      // ── Flutter framework error handler ───────────────────────────────────
-      // Suppresses the known Flutter Web "viewInsets cannot be negative" engine
-      // bug that fires when Chrome DevTools resizes the viewport mid-frame.
-      FlutterError.onError = (FlutterErrorDetails details) {
-        final msg = details.exceptionAsString();
-        if (_isKnownEngineNoise(msg)) return;
-        FlutterError.presentError(details);
-      };
-
       runApp(
         ChangeNotifierProvider(
           create: (_) => LanguageProvider(),
@@ -199,7 +198,6 @@ bool _isKnownEngineNoise(String msg) {
       msg.contains('physicalSize') ||
       msg.contains('Zone mismatch');
 }
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 

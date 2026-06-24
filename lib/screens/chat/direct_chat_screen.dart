@@ -14,11 +14,15 @@ import 'group_chat_screen.dart';
 class DirectChatScreen extends StatefulWidget {
   final String groupId;
   final String userName;
+  /// Optional company name shown below the user name in the app bar.
+  /// Pass this when the contact belongs to a different dealership.
+  final String? companyName;
 
   const DirectChatScreen({
     super.key,
     required this.groupId,
     required this.userName,
+    this.companyName,
   });
 
   @override
@@ -546,15 +550,33 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    widget.userName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.userName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (widget.companyName != null &&
+                          widget.companyName!.isNotEmpty)
+                        Text(
+                          widget.companyName!,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
                   ),
                 ),
               ],

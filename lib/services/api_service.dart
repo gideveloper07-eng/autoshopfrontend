@@ -1006,6 +1006,34 @@ class ApiService {
     }
   }
 
+  /// Calls GET /api/group/merged-users — returns users from all accessible
+  /// dealerships. Each user may include { companyName, companyCode, database }.
+  /// Falls back to [getCompanyUsers] if the endpoint fails.
+  static Future<List<Map<String, dynamic>>> getMergedUsers() async {
+    try {
+      final token = await getToken();
+      if (token == null) return getCompanyUsers();
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/merged-users"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      // Fallback to single-company list
+      return getCompanyUsers();
+    } catch (e) {
+      print("GET MERGED USERS ERROR: $e");
+      return getCompanyUsers();
+    }
+  }
+
   /// Adds a user as a member of a challan chat group.
   static Future<bool> addChatMember({
     required String challanId,

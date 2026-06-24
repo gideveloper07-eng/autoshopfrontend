@@ -221,8 +221,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
             ...filteredUsers.map((user) {
               final userId = user['id']?.toString() ?? '';
               final userName = user['name']?.toString() ?? userId;
-              final userEmail =
-                  user['email']?.toString() ?? 'No description/email';
+              final companyName = user['companyName']?.toString() ?? '';
+              final userEmail = user['email']?.toString() ?? '';
+              // Prefer companyName, then email, then fallback label
+              final subtitle = companyName.isNotEmpty
+                  ? companyName
+                  : userEmail.isNotEmpty
+                      ? userEmail
+                      : 'No description/email';
               final avatarLetter =
                   userName.isNotEmpty ? userName[0].toUpperCase() : '?';
 
@@ -247,10 +253,18 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  userEmail,
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(
+                    color: companyName.isNotEmpty
+                        ? const Color(0xFF075E54)
+                        : Colors.grey,
+                    fontSize: 13,
+                    fontWeight: companyName.isNotEmpty
+                        ? FontWeight.w500
+                        : FontWeight.normal,
+                  ),
                 ),
                 onTap: () => Navigator.pop(context, user),
               );
