@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../l10n/app_localizations.dart';
@@ -11,6 +12,7 @@ import '../chat/challan_chat_dialog.dart';
 import '../chat/group_chat_screen.dart';
 import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
+import '../settings/dealership_selector_screen.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../theme/app_colors.dart';
 import '../../services/activity_service.dart';
@@ -33,6 +35,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoading = true;
   int _todayBooking = 0;
   int _todaySale = 0;
+  List<dynamic> _accessibleDatabases = [];   // ← for switch company button
+  String _currentCompanyName = "";           // ← shown in header subtitle
+  bool _webPermissionRequested = false;      // ← request once on first web tap
 
   // ── Chat preview state ────────────────────────────────────────────
   List<Map<String, dynamic>> _previewChallans = [];
@@ -53,9 +58,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
     loadSecurity();
     loadUnreadCount();
-    loadDashboardStats();
-    _loadChatPreview();
-    requestNotificationPermission();
+    // Stagger startup API calls so they don't all hit the JS thread at once.
+    // This reduces Flutter Web "setTimeout handler" violations in DevTools.
+    Future.delayed(const Duration(milliseconds: 100), loadDashboardStats);
+    Future.delayed(const Duration(milliseconds: 200), _loadChatPreview);
+    Future.delayed(const Duration(milliseconds: 300), _loadCompanyInfo);
+    // On mobile: request immediately. On Web: Chrome requires a user gesture
+    // first, so we defer until after the first frame interaction.
+    if (!kIsWeb) {
+      requestNotificationPermission();
+    }
     generateFCMToken();
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("NOTIFICATION RECEIVED");
@@ -82,6 +94,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _todaySale = stats['todaySale'] ?? 0;
       });
     }
+  }
+
+  // ── Load accessible databases + current company name ─────────────
+  Future<void> _loadCompanyInfo() async {
+    final databases = await ApiService.getAccessibleDatabases();
+    final session = await ApiService.getUserSession();
+    final currentDb = session?['databaseName'] ?? '';
+
+    // Try to find current company name from the accessible list
+    String companyName = '';
+    for (final db in databases) {
+      if ((db['propertydb'] ?? '').toString().toUpperCase() ==
+          currentDb.toUpperCase()) {
+        companyName = (db['propertyname'] ?? '').toString();
+        break;
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _accessibleDatabases = databases;
+        _currentCompanyName = companyName;
+      });
+    }
+  }
+
+  // ── Open dealership selector and refresh home on return ──────────
+  Future<void> _switchCompany() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DealershipSelectorScreen(fromHome: true),
+      ),
+    );
+    // When user returns (after picking a company), reload everything
+    if (!mounted) return;
+    _loadCompanyInfo();
+    loadDashboardStats();
+    _loadChatPreview();
+    loadUnreadCount();
   }
 
   // ── Chat preview loader ───────────────────────────────────────────
@@ -310,6 +362,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  // ── Reusable square icon button for the header ───────────────────
+  Widget _headerIconBtn(IconData icon, {EdgeInsets margin = EdgeInsets.zero}) {
+    return Container(
+      width: 36,
+      height: 36,
+      margin: margin,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: Colors.white.withOpacity(0.35)),
+      ),
+      child: Icon(icon, color: Colors.white, size: 18),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -331,189 +398,164 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    // ── Row 1: car icon | app name | 3 icon buttons ──────
                     Row(
                       children: [
+                        // Car icon
                         Container(
-                          width: 40,
-                          height: 40,
+                          width: 36,
+                          height: 36,
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(9),
                           ),
                           child: const Icon(
                             Icons.directions_car_rounded,
                             color: Colors.white,
-                            size: 22,
+                            size: 20,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "MyAutoShop",
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 1,
-                              ),
+                        const SizedBox(width: 10),
+                        // App name stretches to fill available space
+                        const Expanded(
+                          child: Text(
+                            "MyAutoShop",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: 1,
                             ),
-                            Text(
-                              "Your trusted auto service",
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.75),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        // NOTIFICATION BUTTON
+                        // Notification
                         Stack(
                           children: [
-                            // NOTIFICATION BUTTON
                             GestureDetector(
                               onTap: () async {
+                                // Web: request notification permission on
+                                // first real user gesture to avoid the
+                                // Chrome [Violation] warning
+                                if (kIsWeb && !_webPermissionRequested) {
+                                  _webPermissionRequested = true;
+                                  await requestNotificationPermission();
+                                }
                                 await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     settings: const RouteSettings(
-                                      name: 'NotificationScreen',
-                                    ),
+                                        name: 'NotificationScreen'),
                                     builder: (_) => const NotificationScreen(),
                                   ),
                                 );
-
-                                // REFRESH UNREAD COUNT
                                 await loadUnreadCount();
                               },
-
-                              child: Container(
-                                width: 38,
-                                height: 38,
-
-                                margin: const EdgeInsets.only(right: 10),
-
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.35),
-                                  ),
-                                ),
-
-                                child: const Icon(
-                                  Icons.notifications,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
+                              child: _headerIconBtn(
+                                Icons.notifications,
+                                margin: const EdgeInsets.only(right: 8),
                               ),
                             ),
-
-                            // UNREAD BADGE
                             if (unreadCount > 0)
                               Positioned(
-                                right: 6,
+                                right: 4,
                                 top: 2,
-
                                 child: Container(
-                                  padding: const EdgeInsets.all(4),
-
+                                  padding: const EdgeInsets.all(3),
                                   decoration: const BoxDecoration(
                                     color: Colors.red,
                                     shape: BoxShape.circle,
                                   ),
-
                                   constraints: const BoxConstraints(
-                                    minWidth: 18,
-                                    minHeight: 18,
-                                  ),
-
+                                      minWidth: 16, minHeight: 16),
                                   child: Text(
                                     unreadCount > 99
                                         ? "99+"
                                         : unreadCount.toString(),
-
                                     style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-
+                                        color: Colors.white,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
                               ),
                           ],
                         ),
-
-                        // SETTINGS BUTTON
+                        // Settings
                         GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                settings: const RouteSettings(
-                                  name: 'SettingsScreen',
-                                ),
-                                builder: (_) => const SettingsScreen(),
-                              ),
-                            );
-                          },
-
-                          child: Container(
-                            width: 38,
-                            height: 38,
-
-                            margin: const EdgeInsets.only(right: 10),
-
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.35),
-                              ),
-                            ),
-
-                            child: const Icon(
-                              Icons.settings_rounded,
-                              color: Colors.white,
-                              size: 18,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              settings: const RouteSettings(
+                                  name: 'SettingsScreen'),
+                              builder: (_) => const SettingsScreen(),
                             ),
                           ),
+                          child: _headerIconBtn(
+                            Icons.settings_rounded,
+                            margin: const EdgeInsets.only(right: 8),
+                          ),
                         ),
-
-                        // LOGOUT BUTTON
+                        // Logout
                         GestureDetector(
                           onTap: _logout,
+                          child: _headerIconBtn(Icons.logout_rounded),
+                        ),
+                      ],
+                    ),
 
-                          child: Container(
-                            width: 38,
-                            height: 38,
-
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.35),
-                              ),
-                            ),
-
-                            child: const Icon(
-                              Icons.logout_rounded,
-                              color: Colors.white,
-                              size: 18,
+                    // ── Row 2: company name  +  Switch pill ───────────────
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _currentCompanyName.isNotEmpty
+                                ? _currentCompanyName
+                                : "Your trusted auto service",
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ),
+                        if (_accessibleDatabases.length > 1)
+                          GestureDetector(
+                            onTap: _switchCompany,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(Icons.swap_horiz_rounded,
+                                      color: Colors.white, size: 14),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    "Switch",
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ],

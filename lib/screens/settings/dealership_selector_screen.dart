@@ -3,7 +3,10 @@ import '../../services/api_service.dart';
 import '../home/home_screen.dart';
 
 class DealershipSelectorScreen extends StatefulWidget {
-  const DealershipSelectorScreen({super.key});
+  /// Set [fromHome] to true when opened from the home screen switch button.
+  /// The selector will pop back to home instead of replacing the stack.
+  final bool fromHome;
+  const DealershipSelectorScreen({super.key, this.fromHome = false});
 
   @override
   State<DealershipSelectorScreen> createState() =>
@@ -69,25 +72,28 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
           clientId: dealership['unqid'].toString(),
         );
 
-        // Also persist userName/userEmail so HomeScreen header shows correctly
-        final session = await ApiService.getUserSession();
-        final userName = session?['userName'] ?? '';
-        final userEmail = session?['userEmail'] ?? '';
-
         if (!mounted) return;
 
-        // Replace entire stack with HomeScreen so back button can't return
-        // to the selector
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => HomeScreen(
-              userName: userName,
-              userEmail: userEmail,
+        if (widget.fromHome) {
+          // Called from home screen — just go back, home will refresh itself
+          Navigator.pop(context);
+        } else {
+          // Called after login — replace entire stack with HomeScreen
+          final session = await ApiService.getUserSession();
+          final userName = session?['userName'] ?? '';
+          final userEmail = session?['userEmail'] ?? '';
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(
+                userName: userName,
+                userEmail: userEmail,
+              ),
             ),
-          ),
-          (route) => false,
-        );
+            (route) => false,
+          );
+        }
       } else {
         setState(() => selectedIndex = null);
         if (!mounted) return;
