@@ -192,6 +192,8 @@ class _ChatListScreenState extends State<ChatListScreen>
       return;
     }
 
+    if (mounted) setState(() => _showLists = true);
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -209,6 +211,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _openGroup(dynamic group) async {
     final groupId = group['GroupId']?.toString() ?? '';
     final groupName = group['GroupName']?.toString() ?? 'Group';
+    if (mounted) setState(() => _showLists = true);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -223,7 +226,9 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _openUserChat(String targetUserId, String targetUserName, {String? companyName}) async {
     if (targetUserId.isEmpty) return;
 
-    // Get current user id (prefer the already-loaded _myId)
+    // Always show the lists when opening a chat so the back button returns to
+    // the chat list instead of the welcome screen.
+    if (mounted) setState(() => _showLists = true);
     final myId = _myId.isNotEmpty ? _myId : (await ApiService.getUserId() ?? '');
 
     if (!mounted) return;
