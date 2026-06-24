@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:college_app/services/api_service.dart';
+import '../../services/api_service.dart';
+import '../home/home_screen.dart';
 
 class DealershipSelectorScreen extends StatefulWidget {
   const DealershipSelectorScreen({super.key});
@@ -59,14 +60,34 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
         dealership['unqid'].toString(),
       );
       if (result != null && result['success'] == true) {
+        // Save new token + database info so every future API call uses the
+        // selected company's database
         await ApiService.updateCurrentDatabase(
           token: result['token'],
-          databaseName: result['databaseName'],
-          companyCode: result['propertyCode'],
+          databaseName: result['databaseName'] ?? '',
+          companyCode: result['propertyCode'] ?? '',
           clientId: dealership['unqid'].toString(),
         );
+
+        // Also persist userName/userEmail so HomeScreen header shows correctly
+        final session = await ApiService.getUserSession();
+        final userName = session?['userName'] ?? '';
+        final userEmail = session?['userEmail'] ?? '';
+
         if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+
+        // Replace entire stack with HomeScreen so back button can't return
+        // to the selector
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (_) => HomeScreen(
+              userName: userName,
+              userEmail: userEmail,
+            ),
+          ),
+          (route) => false,
+        );
       } else {
         setState(() => selectedIndex = null);
         if (!mounted) return;
