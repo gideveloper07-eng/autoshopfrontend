@@ -56,19 +56,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       screenName: "HomeScreen",
     );
 
+    // Stagger all initialization to prevent forced reflow violations
+    // Load security info first (needed for UI rendering)
     loadSecurity();
-    loadUnreadCount();
-    // Stagger startup API calls so they don't all hit the JS thread at once.
-    // This reduces Flutter Web "setTimeout handler" violations in DevTools.
-    Future.delayed(const Duration(milliseconds: 100), loadDashboardStats);
-    Future.delayed(const Duration(milliseconds: 200), _loadChatPreview);
-    Future.delayed(const Duration(milliseconds: 300), _loadCompanyInfo);
-    // On mobile: request immediately. On Web: Chrome requires a user gesture
-    // first, so we defer until after the first frame interaction.
-    if (!kIsWeb) {
-      requestNotificationPermission();
-    }
-    generateFCMToken();
+    
+    // Stagger other startup API calls with increased delays to reduce
+    // simultaneous JavaScript thread operations on Flutter Web
+    Future.delayed(const Duration(milliseconds: 150), loadUnreadCount);
+    Future.delayed(const Duration(milliseconds: 300), loadDashboardStats);
+    Future.delayed(const Duration(milliseconds: 450), _loadChatPreview);
+    Future.delayed(const Duration(milliseconds: 600), _loadCompanyInfo);
+    
+    // Defer Firebase operations to after initial paint
+    Future.delayed(const Duration(milliseconds: 750), () {
+      // On mobile: request immediately. On Web: Chrome requires a user gesture
+      // first, so we defer until after the first frame interaction.
+      if (!kIsWeb) {
+        requestNotificationPermission();
+      }
+      generateFCMToken();
+    });
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       print("NOTIFICATION RECEIVED");
 

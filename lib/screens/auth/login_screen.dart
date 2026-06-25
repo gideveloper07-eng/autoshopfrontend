@@ -118,6 +118,12 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       final databases = res['accessibleDatabases'] ?? [];
 
+      // Add a small delay before navigation to prevent forced reflow violation
+      // This allows the loading state and DOM updates to settle before navigation
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (!mounted) return;
+
       if (databases.length > 1) {
         Navigator.pushReplacement(
           context,
