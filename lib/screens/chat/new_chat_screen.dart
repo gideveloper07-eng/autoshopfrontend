@@ -21,7 +21,16 @@ class NewChatScreen extends StatefulWidget {
 
 class _NewChatScreenState extends State<NewChatScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchCtrl.addListener(() {
+      setState(() {});
+    });
+  }
 
   static const Color _green = Color(0xFF075E54);
   static const Color _teal = Color(0xFF128C7E);
@@ -77,6 +86,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -95,7 +105,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
         title: _isSearching
             ? TextField(
                 controller: _searchCtrl,
-                autofocus: true,
+                focusNode: _searchFocusNode,
                 style: const TextStyle(color: Colors.white, fontSize: 18),
                 cursorColor: Colors.white,
                 decoration: const InputDecoration(
@@ -133,7 +143,14 @@ class _NewChatScreenState extends State<NewChatScreen> {
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
-                if (!_isSearching) _searchCtrl.clear();
+                if (!_isSearching) {
+                  _searchCtrl.clear();
+                  _searchFocusNode.unfocus();
+                } else {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _searchFocusNode.requestFocus();
+                  });
+                }
               });
             },
           ),
@@ -143,7 +160,11 @@ class _NewChatScreenState extends State<NewChatScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: widget.allUsers.isEmpty && !_isSearching
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : ListView(
         children: [
           // ── Action tiles (New group / New contact) ──────────────
           if (!_isSearching) ...[

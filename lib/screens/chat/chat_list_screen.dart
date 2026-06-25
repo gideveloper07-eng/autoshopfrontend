@@ -35,20 +35,22 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Search ───────────────────────────────────────────────────────
   bool _isSearching = false;
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
 
   // ── Polling ──────────────────────────────────────────────────────
   Timer? _pollTimer;
 
   static const Color _green = Color(0xFF075E54);
 
-  // ── Chat Customizations ──────────────────────────────────────────
-  bool _showLists = false;
   String _myId = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _searchCtrl.addListener(() {
+      if (_isSearching) setState(() {});
+    });
     _loadAll();
     _pollTimer = Timer.periodic(
       const Duration(seconds: 30),
@@ -61,6 +63,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     _tabController.dispose();
     _pollTimer?.cancel();
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -192,8 +195,6 @@ class _ChatListScreenState extends State<ChatListScreen>
       return;
     }
 
-    if (mounted) setState(() => _showLists = true);
-
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -211,7 +212,6 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _openGroup(dynamic group) async {
     final groupId = group['GroupId']?.toString() ?? '';
     final groupName = group['GroupName']?.toString() ?? 'Group';
-    if (mounted) setState(() => _showLists = true);
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -223,13 +223,17 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   /// Open a 1-on-1 chat with a user.
   /// Finds an existing direct-message group or creates one, then opens it.
-  void _openUserChat(String targetUserId, String targetUserName, {String? companyName}) async {
+  void _openUserChat(
+    String targetUserId,
+    String targetUserName, {
+    String? companyName,
+  }) async {
     if (targetUserId.isEmpty) return;
 
-    // Always show the lists when opening a chat so the back button returns to
-    // the chat list instead of the welcome screen.
-    if (mounted) setState(() => _showLists = true);
-    final myId = _myId.isNotEmpty ? _myId : (await ApiService.getUserId() ?? '');
+    // Always show the lists when opening a chat.
+    final myId = _myId.isNotEmpty
+        ? _myId
+        : (await ApiService.getUserId() ?? '');
 
     if (!mounted) return;
 
@@ -261,9 +265,10 @@ class _ChatListScreenState extends State<ChatListScreen>
         context,
         MaterialPageRoute(
           builder: (_) => DirectChatScreen(
-              groupId: groupId,
-              userName: targetUserName,
-              companyName: companyName),
+            groupId: groupId,
+            userName: targetUserName,
+            companyName: companyName,
+          ),
         ),
       );
       _loadAll(silent: true);
@@ -287,9 +292,10 @@ class _ChatListScreenState extends State<ChatListScreen>
           context,
           MaterialPageRoute(
             builder: (_) => DirectChatScreen(
-                groupId: groupId,
-                userName: targetUserName,
-                companyName: companyName),
+              groupId: groupId,
+              userName: targetUserName,
+              companyName: companyName,
+            ),
           ),
         );
         _loadAll(silent: true);
@@ -341,10 +347,8 @@ class _ChatListScreenState extends State<ChatListScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => GroupChatScreen(
-              groupId: groupId,
-              groupName: groupName.trim(),
-            ),
+            builder: (_) =>
+                GroupChatScreen(groupId: groupId, groupName: groupName.trim()),
           ),
         );
       }
@@ -482,23 +486,24 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   void _showNewChatFlow() async {
     // Build recent challan list with last message metadata to pass to NewChatScreen
-    final recentChallans = challans.map((c) {
-      final challanId = c['sp_462']?.toString() ?? '';
-      final meta = _chatMeta[challanId];
-      return {
-        ...c,
-        'lastMessage': meta?.lastMessage ?? '',
-        'lastTime': meta?.lastTime ?? '',
-      };
-    }).where((c) => (c['sp_462']?.toString() ?? '').isNotEmpty).toList();
+    final recentChallans = challans
+        .map((c) {
+          final challanId = c['sp_462']?.toString() ?? '';
+          final meta = _chatMeta[challanId];
+          return {
+            ...c,
+            'lastMessage': meta?.lastMessage ?? '',
+            'lastTime': meta?.lastTime ?? '',
+          };
+        })
+        .where((c) => (c['sp_462']?.toString() ?? '').isNotEmpty)
+        .toList();
 
     final selectedItem = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => NewChatScreen(
-          allUsers: _allUsers,
-          recentChallans: recentChallans,
-        ),
+        builder: (_) =>
+            NewChatScreen(allUsers: _allUsers, recentChallans: recentChallans),
       ),
     );
 
@@ -513,7 +518,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     // User picked a challan chat
     if (selectedItem is Map && selectedItem['_type'] == 'challan') {
       if (!mounted) return;
-      setState(() => _showLists = true);
       final challanId = selectedItem['challanId']?.toString() ?? '';
       final challanNo = selectedItem['challanNo']?.toString() ?? '';
       final customerName = selectedItem['customerName']?.toString() ?? '';
@@ -536,13 +540,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userName = selectedItem['name']?.toString() ?? userId;
     final companyName = selectedItem['companyName']?.toString();
 
-    // Show the lists/tabs immediately so the Chats tab is visible after return
-    if (mounted) {
-      setState(() {
-        _showLists = true;
-      });
-    }
-
     _openUserChat(userId, userName, companyName: companyName);
   }
 
@@ -556,21 +553,16 @@ class _ChatListScreenState extends State<ChatListScreen>
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : errorMessage != null
-              ? _buildError()
-              : !_showLists
-                  ? _buildWelcomeWidget()
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildChatsTab(),
-                        _buildGroupsTab(),
-                      ],
-                    ),
+          ? _buildError()
+          : TabBarView(
+              controller: _tabController,
+              children: [_buildChatsTab(), _buildGroupsTab()],
+            ),
       floatingActionButton: AnimatedBuilder(
         animation: _tabController,
         builder: (context, _) {
-          // Only show FAB on Groups tab (index 1) and when lists are shown
-          if (!_showLists || _tabController.index != 1 || isLoading) {
+          // Only show FAB on Groups tab (index 1)
+          if (_tabController.index != 1 || isLoading) {
             return const SizedBox.shrink();
           }
           return FloatingActionButton(
@@ -585,88 +577,6 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  Widget _buildWelcomeWidget() {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: _green.withOpacity(0.1),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  'assets/logo.png',
-                  height: 90,
-                  width: 90,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(
-                      Icons.chat_bubble_outline_rounded,
-                      size: 80,
-                      color: _green,
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-            const Text(
-              "Welcome to MyAutoShop Chat",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A1A),
-                letterSpacing: 0.3,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              "Tap the logo on the top-left to view your chats or click the button below to start a new chat.",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                elevation: 2,
-              ),
-              icon: const Icon(Icons.chat_bubble_outline_rounded),
-              label: const Text(
-                "Start a Chat",
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-              ),
-              onPressed: _showNewChatFlow,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
       backgroundColor: _green,
@@ -675,13 +585,15 @@ class _ChatListScreenState extends State<ChatListScreen>
       title: _isSearching
           ? TextField(
               controller: _searchCtrl,
-              autofocus: true,
+              focusNode: _searchFocusNode,
               style: const TextStyle(color: Colors.white, fontSize: 16),
               cursorColor: Colors.white,
               decoration: InputDecoration(
                 hintText: "Search chats…",
-                hintStyle:
-                    TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16),
+                hintStyle: TextStyle(
+                  color: Colors.white.withOpacity(0.6),
+                  fontSize: 16,
+                ),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -690,9 +602,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             )
           : GestureDetector(
               onTap: () {
-                setState(() {
-                  _showLists = !_showLists;
-                });
+                // Logo tap — no-op (always showing chat lists)
               },
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -705,7 +615,11 @@ class _ChatListScreenState extends State<ChatListScreen>
                       width: 35,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 24);
+                        return const Icon(
+                          Icons.chat_bubble_outline,
+                          color: Colors.white,
+                          size: 24,
+                        );
                       },
                     ),
                   ),
@@ -721,7 +635,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                   if (_totalUnread > 0) ...[
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(12),
@@ -742,12 +659,21 @@ class _ChatListScreenState extends State<ChatListScreen>
       actions: [
         // Search toggle
         IconButton(
-          icon: Icon(_isSearching ? Icons.close : Icons.search,
-              color: Colors.white),
+          icon: Icon(
+            _isSearching ? Icons.close : Icons.search,
+            color: Colors.white,
+          ),
           onPressed: () {
             setState(() {
               _isSearching = !_isSearching;
-              if (!_isSearching) _searchCtrl.clear();
+              if (!_isSearching) {
+                _searchCtrl.clear();
+                _searchFocusNode.unfocus();
+              } else {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _searchFocusNode.requestFocus();
+                });
+              }
             });
           },
         ),
@@ -764,8 +690,9 @@ class _ChatListScreenState extends State<ChatListScreen>
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             tooltip: "Menu",
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             onSelected: (v) {
               switch (v) {
                 case 'newGroup':
@@ -778,7 +705,9 @@ class _ChatListScreenState extends State<ChatListScreen>
               PopupMenuItem(
                 value: 'newGroup',
                 child: _MenuRow(
-                    icon: Icons.group_add_outlined, label: 'New Group'),
+                  icon: Icons.group_add_outlined,
+                  label: 'New Group',
+                ),
               ),
               PopupMenuDivider(),
               PopupMenuItem(
@@ -789,8 +718,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           ),
       ],
       // ── Tab bar ──────────────────────────────────────────────────
-      bottom: _showLists
-          ? TabBar(
+      bottom: TabBar(
               controller: _tabController,
               indicatorColor: Colors.white,
               indicatorWeight: 3,
@@ -817,7 +745,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.25),
                             borderRadius: BorderRadius.circular(10),
@@ -827,7 +757,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                                 ? '99+'
                                 : '${_chattedUsers.length + challans.length}',
                             style: const TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.bold),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -845,7 +777,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.25),
                             borderRadius: BorderRadius.circular(10),
@@ -853,7 +787,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                           child: Text(
                             '${_groups.length}',
                             style: const TextStyle(
-                                fontSize: 10, fontWeight: FontWeight.bold),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -861,8 +797,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                   ),
                 ),
               ],
-            )
-          : null,
+            ),
     );
   }
 
@@ -878,22 +813,26 @@ class _ChatListScreenState extends State<ChatListScreen>
       if (challanId.isEmpty) continue;
       final meta = _chatMeta[challanId];
       final lastTime = meta?.lastTime ?? '';
-      items.add(_UnifiedChatItem(
-        type: _ChatItemType.challan,
-        challan: challan,
-        lastTime: lastTime,
-      ));
+      items.add(
+        _UnifiedChatItem(
+          type: _ChatItemType.challan,
+          challan: challan,
+          lastTime: lastTime,
+        ),
+      );
     }
 
     // Add DM user chats
     for (final user in _filteredUsers) {
       final dmGroup = user['_dmGroup'] as Map?;
       final lastTime = dmGroup?['LastMessageTime']?.toString() ?? '';
-      items.add(_UnifiedChatItem(
-        type: _ChatItemType.user,
-        user: user,
-        lastTime: lastTime,
-      ));
+      items.add(
+        _UnifiedChatItem(
+          type: _ChatItemType.user,
+          user: user,
+          lastTime: lastTime,
+        ),
+      );
     }
 
     // Sort by last message time descending
@@ -902,8 +841,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       if (a.lastTime.isEmpty) return 1;
       if (b.lastTime.isEmpty) return -1;
       try {
-        return DateTime.parse(b.lastTime)
-            .compareTo(DateTime.parse(a.lastTime));
+        return DateTime.parse(b.lastTime).compareTo(DateTime.parse(a.lastTime));
       } catch (_) {
         return 0;
       }
@@ -914,15 +852,19 @@ class _ChatListScreenState extends State<ChatListScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.chat_bubble_outline_rounded,
-                size: 64, color: Colors.grey.withOpacity(0.4)),
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 64,
+              color: Colors.grey.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               _isSearching ? "No results found" : "No chats yet",
               style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -964,15 +906,19 @@ class _ChatListScreenState extends State<ChatListScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.groups_outlined,
-                size: 64, color: Colors.grey.withOpacity(0.4)),
+            Icon(
+              Icons.groups_outlined,
+              size: 64,
+              color: Colors.grey.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
             Text(
               _isSearching ? "No groups found" : "No groups yet",
               style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
             ),
             const SizedBox(height: 6),
             if (!_isSearching) ...[
@@ -986,14 +932,18 @@ class _ChatListScreenState extends State<ChatListScreen>
                   backgroundColor: _green,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 14),
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                 ),
                 icon: const Icon(Icons.group_add_outlined),
-                label: const Text("Create New Group",
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.w600)),
+                label: const Text(
+                  "Create New Group",
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
                 onPressed: _showNewGroupFlow,
               ),
             ] else
@@ -1019,7 +969,6 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   // unused cast suppressed below
 
-
   // ── Individual chat tile ──────────────────────────────────────────
 
   Widget _buildIndividualTile(Map<String, dynamic> challan) {
@@ -1032,20 +981,18 @@ class _ChatListScreenState extends State<ChatListScreen>
     final unreadCount = meta?.unreadCount ?? 0;
     final timeLabel = _formatTime(meta?.lastTime);
 
-    final avatarLetter =
-        customerName.isNotEmpty ? customerName[0].toUpperCase() : 'C';
+    final avatarLetter = customerName.isNotEmpty
+        ? customerName[0].toUpperCase()
+        : 'C';
 
     return Material(
       color: Colors.white,
       child: InkWell(
         onTap: () => _openChat(challan),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFF0F0F0)),
-            ),
+            border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
           ),
           child: Row(
             children: [
@@ -1065,9 +1012,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                   child: Text(
                     avatarLetter,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ),
@@ -1102,9 +1050,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                             timeLabel,
                             style: TextStyle(
                               fontSize: 11,
-                              color: unreadCount > 0
-                                  ? _green
-                                  : Colors.grey,
+                              color: unreadCount > 0 ? _green : Colors.grey,
                               fontWeight: unreadCount > 0
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -1137,7 +1083,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                           const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 3),
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: _green,
                               borderRadius: BorderRadius.circular(12),
@@ -1145,9 +1093,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                             child: Text(
                               unreadCount > 99 ? '99+' : '$unreadCount',
                               style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -1170,8 +1119,9 @@ class _ChatListScreenState extends State<ChatListScreen>
     final memberCount = (group['MemberCount'] as num?)?.toInt() ?? 0;
     final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
     final lastMessage = group['LastMessage']?.toString() ?? '';
-    final avatarLetter =
-        groupName.isNotEmpty ? groupName[0].toUpperCase() : 'G';
+    final avatarLetter = groupName.isNotEmpty
+        ? groupName[0].toUpperCase()
+        : 'G';
     final timeLabel = _formatTime(lastMsgTime.isNotEmpty ? lastMsgTime : null);
 
     return Material(
@@ -1179,12 +1129,9 @@ class _ChatListScreenState extends State<ChatListScreen>
       child: InkWell(
         onTap: () => _openGroup(group),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFF0F0F0)),
-            ),
+            border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
           ),
           child: Row(
             children: [
@@ -1194,10 +1141,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 height: 50,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF1565C0),
-                      const Color(0xFF1E88E5),
-                    ],
+                    colors: [const Color(0xFF1565C0), const Color(0xFF1E88E5)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -1207,9 +1151,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                   child: Text(
                     avatarLetter,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ),
@@ -1239,7 +1184,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                           Text(
                             timeLabel,
                             style: const TextStyle(
-                                fontSize: 11, color: Colors.grey),
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
                           ),
                       ],
                     ),
@@ -1254,11 +1201,16 @@ class _ChatListScreenState extends State<ChatListScreen>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: 13, color: Colors.grey),
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: Colors.grey, size: 18),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.grey,
+                          size: 18,
+                        ),
                       ],
                     ),
                   ],
@@ -1289,13 +1241,15 @@ class _ChatListScreenState extends State<ChatListScreen>
     return Material(
       color: Colors.white,
       child: InkWell(
-        onTap: () => _openUserChat(userId, userName, companyName: companyName.isNotEmpty ? companyName : null),
+        onTap: () => _openUserChat(
+          userId,
+          userName,
+          companyName: companyName.isNotEmpty ? companyName : null,
+        ),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: Color(0xFFF0F0F0)),
-            ),
+            border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
           ),
           child: Row(
             children: [
@@ -1315,9 +1269,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                   child: Text(
                     avatarLetter,
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ),
@@ -1349,7 +1304,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                           Text(
                             timeLabel,
                             style: const TextStyle(
-                                fontSize: 11, color: Colors.grey),
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ],
@@ -1375,7 +1332,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 13, color: Colors.grey),
+                          fontSize: 13,
+                          color: Colors.grey,
+                        ),
                       ),
                     ],
                   ],
@@ -1399,9 +1358,10 @@ class _ChatListScreenState extends State<ChatListScreen>
           const Text(
             "Failed to load chats",
             style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-                fontWeight: FontWeight.w600),
+              fontSize: 16,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 8),
           TextButton.icon(
@@ -1454,8 +1414,11 @@ class _MenuRow extends StatelessWidget {
   final String label;
   final bool danger;
 
-  const _MenuRow(
-      {required this.icon, required this.label, this.danger = false});
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    this.danger = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1518,22 +1481,21 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            const Icon(Icons.group_add_outlined,
-                color: Colors.white, size: 20),
+            const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
                 "Add Group Members",
                 style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold),
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             if (_selected.isNotEmpty)
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.25),
                   borderRadius: BorderRadius.circular(12),
@@ -1557,10 +1519,13 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                 hintText: "Search users…",
                 prefixIcon: const Icon(Icons.search, size: 18),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -1568,21 +1533,25 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
             Expanded(
               child: filtered.isEmpty
                   ? const Center(
-                      child: Text("No users found",
-                          style: TextStyle(color: Colors.grey)))
+                      child: Text(
+                        "No users found",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
                   : ListView.builder(
                       itemCount: filtered.length,
                       itemBuilder: (context, i) {
                         final user = filtered[i];
                         final userId = user['id']?.toString() ?? '';
-                        final userName =
-                            user['name']?.toString() ?? userId;
+                        final userName = user['name']?.toString() ?? userId;
                         final isSelected = _selected.contains(userId);
 
                         return CheckboxListTile(
                           key: ValueKey(userId),
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 0),
+                            horizontal: 8,
+                            vertical: 0,
+                          ),
                           activeColor: const Color(0xFF075E54),
                           value: isSelected,
                           onChanged: userId.isEmpty
@@ -1601,22 +1570,29 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                                 ? const Color(0xFF075E54)
                                 : const Color(0xFF128C7E),
                             child: isSelected
-                                ? const Icon(Icons.check,
-                                    color: Colors.white, size: 16)
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 16,
+                                  )
                                 : Text(
                                     userName.isNotEmpty
                                         ? userName[0].toUpperCase()
                                         : '?',
                                     style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13),
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                           ),
-                          title: Text(userName,
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14)),
+                          title: Text(
+                            userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -1634,7 +1610,8 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: _selected.isEmpty
               ? null
@@ -1682,9 +1659,10 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
             Text(
               "Name Your Group",
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -1712,7 +1690,8 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
             backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8)),
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
           onPressed: () {
             final name = _ctrl.text.trim();
