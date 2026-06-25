@@ -36,7 +36,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    ApiService.wakeServer();
+    // Defer wakeServer call to avoid violations during initial page load
+    // This prevents network requests from blocking the initial frame rendering
+    Future.delayed(const Duration(milliseconds: 500), () {
+      ApiService.wakeServer();
+    });
   }
 
   // Called when company code field loses focus
@@ -199,59 +203,69 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF83C4FF)],
-            stops: [0.0, 0.45, 1.0],
+      body: RepaintBoundary(
+        // Isolate repaints to this subtree to improve performance
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF83C4FF)],
+              stops: [0.0, 0.45, 1.0],
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -90,
-              left: -60,
-              child: _bgGlow(220, Colors.white.withOpacity(0.06)),
-            ),
-            Positioned(
-              top: 90,
-              right: -90,
-              child: _bgGlow(260, Colors.white.withOpacity(0.05)),
-            ),
-            Positioned(
-              bottom: -80,
-              left: -90,
-              child: _bgGlow(180, Colors.white.withOpacity(0.04)),
-            ),
-            SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 18,
+          child: Stack(
+            children: [
+              // Background glow effects - wrapped in RepaintBoundary
+              RepaintBoundary(
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -90,
+                      left: -60,
+                      child: _bgGlow(220, Colors.white.withOpacity(0.06)),
+                    ),
+                    Positioned(
+                      top: 90,
+                      right: -90,
+                      child: _bgGlow(260, Colors.white.withOpacity(0.05)),
+                    ),
+                    Positioned(
+                      bottom: -80,
+                      left: -90,
+                      child: _bgGlow(180, Colors.white.withOpacity(0.04)),
+                    ),
+                  ],
                 ),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height - 36,
+              ),
+              SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 18,
                   ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildTopHero(),
-                          const SizedBox(height: 20),
-                          _buildLoginCard(),
-                        ],
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: MediaQuery.of(context).size.height - 36,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 620),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            RepaintBoundary(child: _buildTopHero()),
+                            const SizedBox(height: 20),
+                            RepaintBoundary(child: _buildLoginCard()),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

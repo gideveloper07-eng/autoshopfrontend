@@ -115,8 +115,10 @@ void main() {
       }
 
       try {
-        // WEB
+        // WEB - Initialize Firebase with minimal delay for first paint
         if (kIsWeb) {
+          // On web, defer Firebase init slightly to let first frame render
+          await Future.delayed(const Duration(milliseconds: 50));
           await Firebase.initializeApp(
             options: const FirebaseOptions(
               apiKey: "AIzaSyAWBceq-JXxrWuILWk0rhy6CjpC7o3jS1A",
@@ -128,7 +130,7 @@ void main() {
             ),
           );
         } else {
-          // ANDROID / IOS
+          // ANDROID / IOS - Initialize immediately
           await Firebase.initializeApp();
         }
         print("FIREBASE INITIALIZED");
