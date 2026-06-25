@@ -276,18 +276,20 @@ class ApiService {
   // ───────────────── WAKE SERVER ─────────────────
 
   static Future<void> wakeServer() async {
-    Future(() => ensureAwake());
+    // Run in separate microtask to avoid blocking UI thread
+    Future.microtask(() => ensureAwake());
   }
 
   static Future<void> ensureAwake() async {
     final urls = ["$baseUrl/ping", "$baseUrl/"];
 
-    for (int i = 0; i < 10; i++) {
+    // Reduced to 5 attempts with shorter timeouts to prevent violations
+    for (int i = 0; i < 5; i++) {
       for (final url in urls) {
         try {
           final res = await http
               .get(Uri.parse(url))
-              .timeout(const Duration(seconds: 12));
+              .timeout(const Duration(seconds: 5)); // Reduced from 12s
 
           final body = res.body.trim();
 
@@ -299,10 +301,15 @@ class ApiService {
             }
             return;
           }
-        } catch (_) {}
+        } catch (_) {
+          // Silently continue to next attempt
+        }
       }
 
-      await Future.delayed(const Duration(seconds: 6));
+      // Add delay between attempts, but shorter to reduce wait time
+      if (i < 4) {
+        await Future.delayed(const Duration(seconds: 3)); // Reduced from 6s
+      }
     }
   }
 

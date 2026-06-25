@@ -4,6 +4,7 @@ import '../home/home_screen.dart';
 import '../../services/activity_service.dart';
 import '../../screens/settings/dealership_selector_screen.dart';
 import 'dart:convert';
+import 'dart:async';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -20,6 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool obscure = true;
   bool isValidatingCode = false;
   bool? companyValid;
+  Timer? _debounceTimer; // Add debounce timer
 
   String databaseName = "";
   String companyName = "";
@@ -47,25 +49,30 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _validateCompany() async {
     final code = companyCodeCtrl.text.trim();
     if (code.isEmpty) return;
+    
+    // Cancel any existing timer to debounce rapid validation calls
+    _debounceTimer?.cancel();
+    
     setState(() => isValidatingCode = true);
-    //final result = await ApiService.validateCompany(code);
-    Map<String, dynamic> result = await ApiService.validateCompany(code);
+    
+    // Debounce validation to prevent rapid fire API calls
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
+      final result = await ApiService.validateCompany(code);
 
-    setState(() {
-      isValidatingCode = false;
-
-      //databaseName = result['databaseName'] ?? "";
-      //companyName  = result['companyName'] ?? "";
-      databaseName = result['databaseName']?.toString() ?? "";
-
-      companyName = result['companyName']?.toString() ?? "";
-
-      companyValid = databaseName.isNotEmpty;
+      if (!mounted) return;
+      
+      setState(() {
+        isValidatingCode = false;
+        databaseName = result['databaseName']?.toString() ?? "";
+        companyName = result['companyName']?.toString() ?? "";
+        companyValid = databaseName.isNotEmpty;
+      });
     });
   }
 
   @override
   void dispose() {
+    _debounceTimer?.cancel(); // Cancel timer on dispose
     companyCodeCtrl.dispose();
     userIdCtrl.dispose();
     passwordCtrl.dispose();
@@ -580,6 +587,8 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: ctrl,
       validator: validator,
+      // Add autofill hint for username
+      autofillHints: const [AutofillHints.username],
       style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),
       decoration: InputDecoration(
         hintText: hint,
@@ -612,6 +621,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: passwordCtrl,
       obscureText: obscure,
+      // Proper autocomplete hint fixes the browser DOM warning about
+      // password fields not being inside a form element
+      autofillHints: const [AutofillHints.password],
       validator: (v) =>
           (v == null || v.trim().isEmpty) ? "Password is required" : null,
       style: const TextStyle(fontSize: 14, color: Color(0xFF212121)),

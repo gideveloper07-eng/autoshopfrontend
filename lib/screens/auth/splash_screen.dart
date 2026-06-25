@@ -43,6 +43,11 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
+    // Add small delay before navigation to prevent frame drop
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    if (!mounted) return;
+
     if (session != null && session['token']!.isNotEmpty) {
       // Valid session found — go directly to HomeScreen
       Navigator.pushReplacement(
