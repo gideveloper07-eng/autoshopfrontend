@@ -672,11 +672,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           const SizedBox(height: 8),
 
           Text(
-            "Assigned To: ${msg['AssignedTo'] ?? ''}",
+            "Assigned To: ${msg['AssignedToName'] ?? msg['AssignedTo'] ?? ''}",
             style: const TextStyle(fontSize: 13),
           ),
 
           const SizedBox(height: 4),
+
+          if ((msg['TaskDescription']?.toString() ?? '').isNotEmpty) ...[
+            Text(
+              msg['TaskDescription'].toString(),
+              style: const TextStyle(fontSize: 13, color: Colors.black54),
+            ),
+            const SizedBox(height: 4),
+          ],
 
           Text(
             "Priority: ${msg['Priority'] ?? ''}",

@@ -160,7 +160,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen> {
                                       const SizedBox(height: 10),
 
                                       Text(
-                                        "Assigned To: ${task["AssignedTo"] ?? ""}",
+                                        "Assigned To: ${task["AssignedToName"] ?? task["AssignedTo"] ?? ""}",
                                       ),
 
                                       const SizedBox(height: 6),

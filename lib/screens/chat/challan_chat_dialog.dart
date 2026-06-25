@@ -802,7 +802,16 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
           const SizedBox(height: 8),
 
-          Text("Assigned To: ${task["AssignedTo"] ?? ""}"),
+          Text("Assigned To: ${task["AssignedToName"] ?? task["AssignedTo"] ?? ""}"),
+
+          if ((task["TaskDescription"]?.toString() ?? '').isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                task["TaskDescription"].toString(),
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+            ),
 
           Text("Priority: ${task["Priority"] ?? ""}"),
 
