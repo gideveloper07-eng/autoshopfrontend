@@ -313,6 +313,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     _selectedTaskUserId = null;
     _selectedPriority = "Medium";
+    _startDate = null;
+    _dueDate = null;
 
     showDialog(
       context: context,
@@ -393,6 +395,75 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           });
                         },
                       ),
+
+                      const SizedBox(height: 12),
+
+                      // ── Start Date ──────────────────────────────
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _startDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => _startDate = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: "Start Date",
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_today, size: 18),
+                          ),
+                          child: Text(
+                            _startDate != null
+                                ? DateFormat('dd MMM yyyy').format(_startDate!)
+                                : 'Select date',
+                            style: TextStyle(
+                              color: _startDate != null
+                                  ? Colors.black87
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // ── Due Date ────────────────────────────────
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _dueDate ??
+                                (_startDate ?? DateTime.now()),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setDialogState(() => _dueDate = picked);
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: const InputDecoration(
+                            labelText: "Due Date",
+                            border: OutlineInputBorder(),
+                            suffixIcon: Icon(Icons.calendar_today, size: 18),
+                          ),
+                          child: Text(
+                            _dueDate != null
+                                ? DateFormat('dd MMM yyyy').format(_dueDate!)
+                                : 'Select date',
+                            style: TextStyle(
+                              color: _dueDate != null
+                                  ? Colors.black87
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -414,14 +485,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       return;
                     }
 
-                    // API call next phase
-
                     final ok = await ApiService.createTask(
                       groupId: widget.groupId,
                       taskTitle: _taskTitleCtrl.text.trim(),
                       taskDescription: _taskDescCtrl.text.trim(),
                       assignedTo: _selectedTaskUserId!,
                       priority: _selectedPriority,
+                      startDate: _startDate?.toIso8601String(),
+                      dueDate: _dueDate?.toIso8601String(),
                     );
 
                     if (!mounted) return;

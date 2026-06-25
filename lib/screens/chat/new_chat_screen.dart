@@ -161,138 +161,156 @@ class _NewChatScreenState extends State<NewChatScreen> {
         ],
       ),
       body: widget.allUsers.isEmpty && !_isSearching
-          ? const Center(
-              child: CircularProgressIndicator(),
-            )
-          : ListView(
-        children: [
-          // ── Action tiles (New group / New contact) ──────────────
-          if (!_isSearching) ...[
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: _teal,
-                child: Icon(Icons.group, color: Colors.white),
-              ),
-              title: const Text(
-                "New group",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              onTap: () => Navigator.pop(context, 'TRIGGER_NEW_GROUP'),
+          ? const Center(child: CircularProgressIndicator())
+          : Builder(
+              builder: (context) {
+                final items = _buildItems(filteredUsers, filteredChallans);
+                return ListView.builder(
+                  // key forces a full rebuild when search mode toggles,
+                  // preventing the RenderSliverPadding / duplicate-key assertion.
+                  key: ValueKey(_isSearching),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => items[index],
+                );
+              },
             ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: _teal,
-                child: Icon(Icons.person_add, color: Colors.white),
-              ),
-              title: const Text(
-                "New contact",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              trailing: const Icon(Icons.qr_code, color: Colors.grey),
-              onTap: () {},
-            ),
-          ],
-
-          // ── Recent Challan Chats ─────────────────────────────────
-          if (filteredChallans.isNotEmpty) ...[
-            _sectionHeader(Icons.receipt_long_outlined, "Recent Challan Chats"),
-            ...filteredChallans.map((challan) {
-              final challanId = challan['sp_462']?.toString() ?? '';
-              final challanNo = challan['sp_468']?.toString() ?? '';
-              final customerName = challan['sp_469']?.toString() ?? '';
-              final lastMsg = challan['lastMessage']?.toString() ?? '';
-              final lastTime = _formatTime(challan['lastTime']?.toString());
-              final title = customerName.isNotEmpty
-                  ? customerName
-                  : 'Challan #$challanNo';
-              final avatarLetter =
-                  title.isNotEmpty ? title[0].toUpperCase() : 'C';
-
-              return _chatTile(
-                avatarLetter: avatarLetter,
-                avatarColor: _green,
-                title: title,
-                subtitle: lastMsg.isNotEmpty ? lastMsg : 'Challan #$challanNo',
-                timeLabel: lastTime,
-                onTap: () => Navigator.pop(context, {
-                  '_type': 'challan',
-                  'challanId': challanId,
-                  'challanNo': challanNo,
-                  'customerName': customerName,
-                }),
-              );
-            }),
-          ],
-
-          // ── Contacts header ──────────────────────────────────────
-          _sectionHeader(Icons.people_outline, "Contacts on MyAutoShop"),
-
-          // ── Users ────────────────────────────────────────────────
-          if (filteredUsers.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 32),
-              child: Center(
-                child: Text(
-                  "No contacts found",
-                  style: TextStyle(color: Colors.grey, fontSize: 15),
-                ),
-              ),
-            )
-          else
-            ...filteredUsers.map((user) {
-              final userId = user['id']?.toString() ?? '';
-              final userName = user['name']?.toString() ?? userId;
-              final companyName = user['companyName']?.toString() ?? '';
-              final userEmail = user['email']?.toString() ?? '';
-              // Prefer companyName, then email, then fallback label
-              final subtitle = companyName.isNotEmpty
-                  ? companyName
-                  : userEmail.isNotEmpty
-                      ? userEmail
-                      : 'No description/email';
-              final avatarLetter =
-                  userName.isNotEmpty ? userName[0].toUpperCase() : '?';
-
-              return ListTile(
-                key: ValueKey(userId),
-                leading: CircleAvatar(
-                  backgroundColor: const Color(0xFFEFEFEF),
-                  child: Text(
-                    avatarLetter,
-                    style: const TextStyle(
-                      color: _green,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                title: Text(
-                  userName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                subtitle: Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: companyName.isNotEmpty
-                        ? const Color(0xFF075E54)
-                        : Colors.grey,
-                    fontSize: 13,
-                    fontWeight: companyName.isNotEmpty
-                        ? FontWeight.w500
-                        : FontWeight.normal,
-                  ),
-                ),
-                onTap: () => Navigator.pop(context, user),
-              );
-            }),
-        ],
-      ),
     );
+  }
+
+  /// Builds the flat list of widgets for the ListView.builder.
+  /// Using a flat list avoids Flutter's widget-tree identity issues
+  /// when toggling _isSearching with spread-operator conditional children.
+  List<Widget> _buildItems(
+    List<Map<String, dynamic>> filteredUsers,
+    List<Map<String, dynamic>> filteredChallans,
+  ) {
+    final List<Widget> items = [];
+
+    // ── Action tiles (New group / New contact) ──────────────
+    if (!_isSearching) {
+      items.add(ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: _teal,
+          child: Icon(Icons.group, color: Colors.white),
+        ),
+        title: const Text(
+          "New group",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        onTap: () => Navigator.pop(context, 'TRIGGER_NEW_GROUP'),
+      ));
+      items.add(ListTile(
+        leading: const CircleAvatar(
+          backgroundColor: _teal,
+          child: Icon(Icons.person_add, color: Colors.white),
+        ),
+        title: const Text(
+          "New contact",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+        ),
+        trailing: const Icon(Icons.qr_code, color: Colors.grey),
+        onTap: () {},
+      ));
+    }
+
+    // ── Recent Challan Chats ─────────────────────────────────
+    if (filteredChallans.isNotEmpty) {
+      items.add(_sectionHeader(Icons.receipt_long_outlined, "Recent Challan Chats"));
+      for (final challan in filteredChallans) {
+        final challanId = challan['sp_462']?.toString() ?? '';
+        final challanNo = challan['sp_468']?.toString() ?? '';
+        final customerName = challan['sp_469']?.toString() ?? '';
+        final lastMsg = challan['lastMessage']?.toString() ?? '';
+        final lastTime = _formatTime(challan['lastTime']?.toString());
+        final title =
+            customerName.isNotEmpty ? customerName : 'Challan #$challanNo';
+        final avatarLetter = title.isNotEmpty ? title[0].toUpperCase() : 'C';
+
+        items.add(_chatTile(
+          key: ValueKey('challan_$challanId'),
+          avatarLetter: avatarLetter,
+          avatarColor: _green,
+          title: title,
+          subtitle: lastMsg.isNotEmpty ? lastMsg : 'Challan #$challanNo',
+          timeLabel: lastTime,
+          onTap: () => Navigator.pop(context, {
+            '_type': 'challan',
+            'challanId': challanId,
+            'challanNo': challanNo,
+            'customerName': customerName,
+          }),
+        ));
+      }
+    }
+
+    // ── Contacts header ──────────────────────────────────────
+    items.add(_sectionHeader(Icons.people_outline, "Contacts on MyAutoShop"));
+
+    // ── Users ────────────────────────────────────────────────
+    if (filteredUsers.isEmpty) {
+      items.add(const Padding(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        child: Center(
+          child: Text(
+            "No contacts found",
+            style: TextStyle(color: Colors.grey, fontSize: 15),
+          ),
+        ),
+      ));
+    } else {
+      for (final user in filteredUsers) {
+        final userId = user['id']?.toString() ?? '';
+        final userName = user['name']?.toString() ?? userId;
+        final companyName = user['companyName']?.toString() ?? '';
+        final userEmail = user['email']?.toString() ?? '';
+        final subtitle = companyName.isNotEmpty
+            ? companyName
+            : userEmail.isNotEmpty
+                ? userEmail
+                : 'No description/email';
+        final avatarLetter =
+            userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+
+        items.add(ListTile(
+          key: ValueKey('user_$userId'),
+          leading: CircleAvatar(
+            backgroundColor: const Color(0xFFEFEFEF),
+            child: Text(
+              avatarLetter,
+              style: const TextStyle(
+                color: _green,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          title: Text(
+            userName,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: companyName.isNotEmpty
+                  ? const Color(0xFF075E54)
+                  : Colors.grey,
+              fontSize: 13,
+              fontWeight: companyName.isNotEmpty
+                  ? FontWeight.w500
+                  : FontWeight.normal,
+            ),
+          ),
+          onTap: () => Navigator.pop(context, user),
+        ));
+      }
+    }
+
+    return items;
   }
 
   Widget _sectionHeader(IconData icon, String label) {
@@ -318,6 +336,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _chatTile({
+    Key? key,
     required String avatarLetter,
     required Color avatarColor,
     required String title,
@@ -326,6 +345,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     required VoidCallback onTap,
   }) {
     return InkWell(
+      key: key,
       onTap: onTap,
       child: Padding(
         padding:

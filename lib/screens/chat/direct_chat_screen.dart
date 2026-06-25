@@ -53,6 +53,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   final TextEditingController _taskTitleCtrl = TextEditingController();
   final TextEditingController _taskDescCtrl = TextEditingController();
   String _selectedPriority = 'Medium';
+  DateTime? _taskStartDate;
+  DateTime? _taskDueDate;
 
   // ── Search ──────────────────────────────────────────────────────
   bool _isSearching = false;
@@ -202,6 +204,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     _taskTitleCtrl.clear();
     _taskDescCtrl.clear();
     _selectedPriority = 'Medium';
+    _taskStartDate = null;
+    _taskDueDate = null;
 
     // Determine the other participant in this DM group
     String assignedToId = '';
@@ -285,6 +289,71 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     ],
                     onChanged: (v) => setDS(() => _selectedPriority = v!),
                   ),
+                  const SizedBox(height: 12),
+                  // ── Start Date ──────────────────────────────────
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: _taskStartDate ?? DateTime.now(),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setDS(() => _taskStartDate = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Start Date',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today, size: 18),
+                      ),
+                      child: Text(
+                        _taskStartDate != null
+                            ? DateFormat('dd MMM yyyy').format(_taskStartDate!)
+                            : 'Select date',
+                        style: TextStyle(
+                          color: _taskStartDate != null
+                              ? Colors.black87
+                              : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // ── Due Date ────────────────────────────────────
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: ctx,
+                        initialDate: _taskDueDate ??
+                            (_taskStartDate ?? DateTime.now()),
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setDS(() => _taskDueDate = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Due Date',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today, size: 18),
+                      ),
+                      child: Text(
+                        _taskDueDate != null
+                            ? DateFormat('dd MMM yyyy').format(_taskDueDate!)
+                            : 'Select date',
+                        style: TextStyle(
+                          color: _taskDueDate != null
+                              ? Colors.black87
+                              : Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -305,6 +374,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   taskDescription: _taskDescCtrl.text.trim(),
                   assignedTo: assignedToId.isNotEmpty ? assignedToId : _myId,
                   priority: _selectedPriority,
+                  startDate: _taskStartDate?.toIso8601String(),
+                  dueDate: _taskDueDate?.toIso8601String(),
                 );
                 if (!mounted) return;
                 nav.pop();

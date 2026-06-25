@@ -1231,6 +1231,8 @@ class ApiService {
     required String taskDescription,
     required String assignedTo,
     required String priority,
+    String? startDate,
+    String? dueDate,
   }) async {
     try {
       final token = await getToken();
@@ -1249,6 +1251,8 @@ class ApiService {
           "taskDescription": taskDescription,
           "assignedTo": assignedTo,
           "priority": priority,
+          if (startDate != null) "startDate": startDate,
+          if (dueDate != null) "dueDate": dueDate,
         }),
       );
 
@@ -1289,6 +1293,8 @@ class ApiService {
     required String taskTitle,
     required String taskDescription,
     required String priority,
+    String? startDate,
+    String? dueDate,
   }) async {
     try {
       final token = await getToken();
@@ -1306,6 +1312,8 @@ class ApiService {
           "taskTitle": taskTitle,
           "taskDescription": taskDescription,
           "priority": priority,
+          if (startDate != null) "startDate": startDate,
+          if (dueDate != null) "dueDate": dueDate,
         }),
       );
 
