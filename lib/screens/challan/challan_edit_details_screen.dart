@@ -1124,7 +1124,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
 
     if (cached != null) {
       _expandedSections = Set<String>.from(cached.expandedSections);
-      _reviewedHighlightedSections = Set<String>.from(cached.reviewedHighlightedSections);
+      _reviewedHighlightedSections = Set<String>.from(
+        cached.reviewedHighlightedSections,
+      );
       _checkedRejectFields.addAll(cached.checkedRejectFields);
       _isRadioSelected = cached.isRadioSelected;
       _rejectRemarkController.text = cached.rejectRemark;
@@ -1134,7 +1136,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   void _savePageState() {
     _pageStateCache[widget.sp462] = _ChallanScreenStateCache(
       expandedSections: Set<String>.from(_expandedSections),
-      reviewedHighlightedSections: Set<String>.from(_reviewedHighlightedSections),
+      reviewedHighlightedSections: Set<String>.from(
+        _reviewedHighlightedSections,
+      ),
       checkedRejectFields: Set<String>.from(_checkedRejectFields),
       isRadioSelected: _isRadioSelected,
       rejectRemark: _rejectRemarkController.text,
@@ -1940,10 +1944,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     final isExpanded = _expandedSections.contains(section.title);
 
     final hasCriticalField = section.fields.any((f) => f.critical);
-    final isReviewed = hasCriticalField && _reviewedHighlightedSections.contains(section.title);
-    final summaryMaxWidth = MediaQuery.of(context).size.width < 700
-        ? 130.0
-        : 460.0;
+    final isReviewed =
+        hasCriticalField &&
+        _reviewedHighlightedSections.contains(section.title);
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 600;
+
+    final summaryMaxWidth = isSmallScreen ? 110.0 : 460.0;
 
     return Column(
       children: [
@@ -1951,8 +1958,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           decoration: BoxDecoration(
             color: hasCriticalField
                 ? isReviewed
-                    ? const Color(0xFFECFDF5) // Light green background when reviewed
-                    : const Color(0xFFFFEBEE) // Light red background when not yet reviewed
+                      ? const Color(
+                          0xFFECFDF5,
+                        ) // Light green background when reviewed
+                      : const Color(
+                          0xFFFFEBEE,
+                        ) // Light red background when not yet reviewed
                 : Colors.transparent,
           ),
           child: Theme(
@@ -1972,8 +1983,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       decoration: BoxDecoration(
                         color: hasCriticalField
                             ? isReviewed
-                                ? const Color(0xFFD1FAE5) // Light green icon bg
-                                : const Color(0xFFFFE5E5) // Light red icon bg
+                                  ? const Color(
+                                      0xFFD1FAE5,
+                                    ) // Light green icon bg
+                                  : const Color(0xFFFFE5E5) // Light red icon bg
                             : section.iconColor.withValues(alpha: 0.1),
 
                         borderRadius: BorderRadius.circular(8),
@@ -1981,8 +1994,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                         border: hasCriticalField
                             ? Border.all(
                                 color: isReviewed
-                                    ? const Color(0xFF10B981) // Green border when reviewed
-                                    : const Color(0xFFFF6B6B), // Red border when not reviewed
+                                    ? const Color(
+                                        0xFF10B981,
+                                      ) // Green border when reviewed
+                                    : const Color(
+                                        0xFFFF6B6B,
+                                      ), // Red border when not reviewed
                                 width: 1.2,
                               )
                             : null,
@@ -1992,8 +2009,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                         section.icon,
                         color: hasCriticalField
                             ? isReviewed
-                                ? const Color(0xFF059669) // Green icon when reviewed
-                                : const Color(0xFFDC2626) // Red icon when not reviewed
+                                  ? const Color(
+                                      0xFF059669,
+                                    ) // Green icon when reviewed
+                                  : const Color(
+                                      0xFFDC2626,
+                                    ) // Red icon when not reviewed
                             : section.iconColor,
                         size: 20,
                       ),
@@ -2008,8 +2029,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           height: 18,
                           decoration: BoxDecoration(
                             color: isReviewed
-                                ? const Color(0xFF059669) // Green badge when reviewed
-                                : const Color(0xFFDC2626), // Red badge when not reviewed
+                                ? const Color(
+                                    0xFF059669,
+                                  ) // Green badge when reviewed
+                                : const Color(
+                                    0xFFDC2626,
+                                  ), // Red badge when not reviewed
                             shape: BoxShape.circle,
                             border: Border.all(color: Colors.white, width: 2),
                           ),
@@ -2023,30 +2048,35 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       ),
                   ],
                 ),
-                title: Text(
-                  _localizedSectionTitle(l10n, section.title),
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-
-                    color: hasCriticalField
-                        ? isReviewed
-                            ? const Color(0xFF065F46) // Dark green text when reviewed
-                            : const Color(0xFFB91C1C) // Dark red text when not reviewed
-                        : _textDark,
-                  ),
-                ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                title: Row(
                   children: [
-                    if (section.summary != null)
-                      ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: summaryMaxWidth),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        _localizedSectionTitle(l10n, section.title),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: hasCriticalField
+                              ? isReviewed
+                                    ? const Color(0xFF065F46)
+                                    : const Color(0xFFB91C1C)
+                              : _textDark,
+                        ),
+                      ),
+                    ),
+
+                    if (section.summary != null) ...[
+                      const SizedBox(width: 8),
+
+                      Expanded(
+                        flex: 3,
                         child: Text(
                           section.summary!,
-                          maxLines: 1,
+                          textAlign: TextAlign.end,
+                          softWrap: true,
+                          maxLines: isSmallScreen ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
@@ -2054,16 +2084,16 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           ),
                         ),
                       ),
-                    if (section.summary != null) const SizedBox(width: 6),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
+                    ],
                   ],
+                ),
+                trailing: AnimatedRotation(
+                  turns: isExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: Color(0xFF334155),
+                  ),
                 ),
                 initiallyExpanded: isExpanded,
                 onExpansionChanged: (expanded) {
@@ -2298,7 +2328,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             ctx,
             duration: const Duration(milliseconds: 400),
             curve: Curves.easeOut,
-            alignment: 0.8, // show near the bottom so sections above are visible
+            alignment:
+                0.8, // show near the bottom so sections above are visible
           );
         }
       });
@@ -2337,11 +2368,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           duration: const Duration(seconds: 4),
           content: const Row(
             children: [
-              Icon(
-                Icons.error_outline_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
+              Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
               SizedBox(width: 10),
               Expanded(
                 child: Text(
