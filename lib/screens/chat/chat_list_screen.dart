@@ -212,10 +212,15 @@ class _ChatListScreenState extends State<ChatListScreen>
   void _openGroup(dynamic group) async {
     final groupId = group['GroupId']?.toString() ?? '';
     final groupName = group['GroupName']?.toString() ?? 'Group';
+    final groupDatabase = group['DatabaseName']?.toString();
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => GroupChatScreen(groupId: groupId, groupName: groupName),
+        builder: (_) => GroupChatScreen(
+          groupId: groupId,
+          groupName: groupName,
+          groupDatabase: groupDatabase,
+        ),
       ),
     );
     _loadAll(silent: true);
@@ -227,6 +232,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     String targetUserId,
     String targetUserName, {
     String? companyName,
+    String? targetDatabase,  // the DB where the target user belongs
   }) async {
     if (targetUserId.isEmpty) return;
 
@@ -261,6 +267,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     if (existingGroup != null) {
       final groupId = existingGroup['GroupId']?.toString() ?? '';
+      final groupDb = existingGroup['DatabaseName']?.toString();
       await Navigator.push(
         context,
         MaterialPageRoute(
@@ -268,6 +275,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             groupId: groupId,
             userName: targetUserName,
             companyName: companyName,
+            groupDatabase: groupDb,
           ),
         ),
       );
@@ -280,6 +288,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final result = await ApiService.createGroup(
       groupName: dmName,
       memberIds: [targetUserId],
+      databaseName: targetDatabase,  // save to target user's company DB
     );
 
     if (!mounted) return;
@@ -295,6 +304,7 @@ class _ChatListScreenState extends State<ChatListScreen>
               groupId: groupId,
               userName: targetUserName,
               companyName: companyName,
+              groupDatabase: targetDatabase,  // newly created group uses target's DB
             ),
           ),
         );
@@ -315,12 +325,24 @@ class _ChatListScreenState extends State<ChatListScreen>
     final allUsers = await ApiService.getCompanyUsers();
     if (!mounted) return;
 
-    final pickedIds = await showDialog<List<String>>(
+    // Returns List<Map<String,dynamic>> with full user objects (including 'database')
+    final pickedUsers = await showDialog<List<Map<String, dynamic>>>(
       context: context,
       builder: (_) => _PickMembersDialog(allUsers: allUsers),
     );
-    if (pickedIds == null || pickedIds.isEmpty) return;
+    if (pickedUsers == null || pickedUsers.isEmpty) return;
     if (!mounted) return;
+
+    // Extract plain IDs for the API call
+    final pickedIds = pickedUsers
+        .map((u) => u['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    // Determine the group's target DB from the first member that has one set
+    final groupDb = pickedUsers
+        .map((u) => u['database']?.toString() ?? '')
+        .firstWhere((db) => db.isNotEmpty, orElse: () => '');
 
     final groupName = await showDialog<String>(
       context: context,
@@ -331,6 +353,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final result = await ApiService.createGroup(
       groupName: groupName.trim(),
       memberIds: pickedIds,
+      databaseName: groupDb.isNotEmpty ? groupDb : null,
     );
 
     if (!mounted) return;
@@ -347,8 +370,11 @@ class _ChatListScreenState extends State<ChatListScreen>
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                GroupChatScreen(groupId: groupId, groupName: groupName.trim()),
+            builder: (_) => GroupChatScreen(
+              groupId: groupId,
+              groupName: groupName.trim(),
+              groupDatabase: groupDb.isNotEmpty ? groupDb : null,
+            ),
           ),
         );
       }
@@ -539,8 +565,9 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userId = selectedItem['id']?.toString() ?? '';
     final userName = selectedItem['name']?.toString() ?? userId;
     final companyName = selectedItem['companyName']?.toString();
+    final targetDatabase = selectedItem['database']?.toString();
 
-    _openUserChat(userId, userName, companyName: companyName);
+    _openUserChat(userId, userName, companyName: companyName, targetDatabase: targetDatabase);
   }
 
   // ── Build ─────────────────────────────────────────────────────────
@@ -1245,6 +1272,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           userId,
           userName,
           companyName: companyName.isNotEmpty ? companyName : null,
+          targetDatabase: user['database']?.toString(),
         ),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1615,7 +1643,13 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
           ),
           onPressed: _selected.isEmpty
               ? null
-              : () => Navigator.pop(context, _selected.toList()),
+              : () {
+                  // Return full user objects so callers can access the 'database' field
+                  final selected = widget.allUsers
+                      .where((u) => _selected.contains(u['id']?.toString()))
+                      .toList();
+                  Navigator.pop(context, selected);
+                },
           child: Text("Next  (${_selected.length})"),
         ),
       ],

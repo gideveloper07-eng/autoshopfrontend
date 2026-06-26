@@ -11,11 +11,17 @@ import 'chat_document_picker_dialog.dart';
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
+  /// The database where this group's data lives (employee's company DB).
+  /// Passed through to send-message and create-task so they write to
+  /// the correct dealership DB even when the logged-in user belongs to
+  /// a different one.
+  final String? groupDatabase;
 
   const GroupChatScreen({
     super.key,
     required this.groupId,
     required this.groupName,
+    this.groupDatabase,
   });
 
   @override
@@ -172,6 +178,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       messageText: text.isNotEmpty ? text : (_selectedDocumentNo ?? ''),
       messageType: _selectedDocumentId != null ? 'DOCUMENT' : 'TEXT',
       documentId: _selectedDocumentId,
+      databaseName: widget.groupDatabase,
     );
 
     if (!mounted) return;
@@ -493,6 +500,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       priority: _selectedPriority,
                       startDate: _startDate?.toIso8601String(),
                       dueDate: _dueDate?.toIso8601String(),
+                      assignedToDatabase: _members
+                          .firstWhere(
+                            (m) => m['UserId']?.toString() == _selectedTaskUserId,
+                            orElse: () => {},
+                          )['DatabaseName']
+                          ?.toString(),
                     );
 
                     if (!mounted) return;
@@ -635,7 +648,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildTaskMessage(dynamic msg) {
     final taskId = msg['TaskId']?.toString() ?? '';
-
+    final taskDatabase = msg['TaskDatabase']?.toString() ?? '';
     final currentStatus = msg['TaskStatus']?.toString() ?? "Pending";
 
     return Container(
@@ -717,6 +730,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               final ok = await ApiService.updateTaskStatus(
                 taskId: taskId,
                 status: value,
+                groupId: widget.groupId,
+                taskDatabase: taskDatabase.isNotEmpty ? taskDatabase : null,
               );
 
               if (ok) {

@@ -405,11 +405,22 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     final allUsers = await ApiService.getCompanyUsers();
     if (!mounted) return;
 
-    final pickedIds = await showDialog<List<String>>(
+    // Returns List<Map<String,dynamic>> with full user objects (including 'database')
+    final pickedUsers = await showDialog<List<Map<String, dynamic>>>(
       context: context,
       builder: (_) => _PickMembersDialog(allUsers: allUsers),
     );
-    if (pickedIds == null || pickedIds.isEmpty) return;
+    if (pickedUsers == null || pickedUsers.isEmpty) return;
+
+    // Extract plain IDs and determine the group's target DB
+    final pickedIds = pickedUsers
+        .map((u) => u['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    final groupDb = pickedUsers
+        .map((u) => u['database']?.toString() ?? '')
+        .firstWhere((db) => db.isNotEmpty, orElse: () => '');
 
     // Step 2 — name the group
     if (!mounted) return;
@@ -423,6 +434,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     final result = await ApiService.createGroup(
       groupName: groupName.trim(),
       memberIds: pickedIds,
+      databaseName: groupDb.isNotEmpty ? groupDb : null,
     );
 
     if (!mounted) return;
@@ -438,8 +450,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                GroupChatScreen(groupId: groupId, groupName: groupName.trim()),
+            builder: (_) => GroupChatScreen(
+              groupId: groupId,
+              groupName: groupName.trim(),
+              groupDatabase: groupDb.isNotEmpty ? groupDb : null,
+            ),
           ),
         );
       }
@@ -1948,7 +1963,7 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
 }
 
 // ── Step 1: Pick Members Dialog ──────────────────────────────────────────────
-// Multi-select user list. Returns List<String> of selected userIds.
+// Multi-select user list. Returns List<Map<String,dynamic>> of selected users (full objects with 'database').
 
 class _PickMembersDialog extends StatefulWidget {
   final List<Map<String, dynamic>> allUsers;
@@ -2130,7 +2145,13 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
           ),
           onPressed: _selected.isEmpty
               ? null
-              : () => Navigator.pop(context, _selected.toList()),
+              : () {
+                  // Return full user objects so callers can access 'database'
+                  final selected = widget.allUsers
+                      .where((u) => _selected.contains(u['id']?.toString()))
+                      .toList();
+                  Navigator.pop(context, selected);
+                },
           child: Text("Next  (${_selected.length})"),
         ),
       ],

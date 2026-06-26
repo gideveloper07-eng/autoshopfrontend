@@ -17,12 +17,16 @@ class DirectChatScreen extends StatefulWidget {
   /// Optional company name shown below the user name in the app bar.
   /// Pass this when the contact belongs to a different dealership.
   final String? companyName;
+  /// The database where this group's data is stored (employee's company DB).
+  /// Used to route task creation and messages to the correct dealership DB.
+  final String? groupDatabase;
 
   const DirectChatScreen({
     super.key,
     required this.groupId,
     required this.userName,
     this.companyName,
+    this.groupDatabase,
   });
 
   @override
@@ -181,6 +185,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       messageText: text.isNotEmpty ? text : (_selectedDocumentType ?? ''),
       messageType: _selectedDocumentId != null ? 'DOCUMENT' : 'TEXT',
       documentId: _selectedDocumentId,
+      databaseName: widget.groupDatabase,
     );
     if (!mounted) return;
     if (ok) {
@@ -210,11 +215,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     // Determine the other participant in this DM group
     String assignedToId = '';
     String assignedToName = widget.userName;
+    String assignedToDatabase = widget.groupDatabase ?? '';
     for (final m in _members) {
       final uid = m['UserId']?.toString() ?? '';
       if (uid != _myId && uid.isNotEmpty) {
         assignedToId = uid;
         assignedToName = m['UserName']?.toString() ?? widget.userName;
+        // Use the member's stored DatabaseName if available
+        final memberDb = m['DatabaseName']?.toString() ?? '';
+        if (memberDb.isNotEmpty) assignedToDatabase = memberDb;
         break;
       }
     }
@@ -376,6 +385,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   priority: _selectedPriority,
                   startDate: _taskStartDate?.toIso8601String(),
                   dueDate: _taskDueDate?.toIso8601String(),
+                  assignedToDatabase: assignedToDatabase.isNotEmpty ? assignedToDatabase : null,
                 );
                 if (!mounted) return;
                 nav.pop();
@@ -403,12 +413,24 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   void _showNewGroupFlow() async {
     final allUsers = await ApiService.getCompanyUsers();
     if (!mounted) return;
-    final pickedIds = await showDialog<List<String>>(
+    // Returns List<Map<String,dynamic>> with full user objects (including 'database')
+    final pickedUsers = await showDialog<List<Map<String, dynamic>>>(
       context: context,
       builder: (_) => _DmPickMembersDialog(allUsers: allUsers),
     );
-    if (pickedIds == null || pickedIds.isEmpty) return;
+    if (pickedUsers == null || pickedUsers.isEmpty) return;
     if (!mounted) return;
+
+    final pickedIds = pickedUsers
+        .map((u) => u['id']?.toString() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    // Determine the group's target DB from the first member that has one set
+    final groupDb = pickedUsers
+        .map((u) => u['database']?.toString() ?? '')
+        .firstWhere((db) => db.isNotEmpty, orElse: () => '');
+
     final groupName = await showDialog<String>(
       context: context,
       builder: (_) => const _DmNameGroupDialog(),
@@ -417,6 +439,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final result = await ApiService.createGroup(
       groupName: groupName.trim(),
       memberIds: pickedIds,
+      databaseName: groupDb.isNotEmpty ? groupDb : null,
     );
     if (!mounted) return;
     if (result['success'] == true) {
@@ -431,8 +454,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                GroupChatScreen(groupId: gId, groupName: groupName.trim()),
+            builder: (_) => GroupChatScreen(
+              groupId: gId,
+              groupName: groupName.trim(),
+              groupDatabase: groupDb.isNotEmpty ? groupDb : null,
+            ),
           ),
         );
       }
@@ -857,6 +883,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   Widget _buildTaskMessage(dynamic msg) {
     final taskId = msg['TaskId']?.toString() ?? '';
+    final taskDatabase = msg['TaskDatabase']?.toString() ?? '';
     final currentStatus = msg['TaskStatus']?.toString() ?? 'Pending';
 
     return Container(
@@ -926,6 +953,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               final ok = await ApiService.updateTaskStatus(
                 taskId: taskId,
                 status: value,
+                groupId: widget.groupId,
+                taskDatabase: taskDatabase.isNotEmpty ? taskDatabase : null,
               );
               if (ok && mounted) {
                 await _loadMessages();
@@ -1395,7 +1424,13 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
           ),
           onPressed: _selected.isEmpty
               ? null
-              : () => Navigator.pop(context, _selected.toList()),
+              : () {
+                  // Return full user objects so callers can access 'database'
+                  final selected = widget.allUsers
+                      .where((u) => _selected.contains(u['id']?.toString()))
+                      .toList();
+                  Navigator.pop(context, selected);
+                },
           child: Text('Next  (${_selected.length})'),
         ),
       ],

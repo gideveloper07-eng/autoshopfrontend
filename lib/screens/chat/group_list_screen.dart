@@ -83,6 +83,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
           final group = _groups[index];
           final groupId = group['GroupId']?.toString() ?? '';
           final groupName = group['GroupName']?.toString() ?? 'Group';
+          final groupDatabase = group['DatabaseName']?.toString();
           final memberCount = (group['MemberCount'] as num?)?.toInt() ?? 0;
           final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
           final avatarLetter =
@@ -95,7 +96,9 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (_) => GroupChatScreen(
-                      groupId: groupId, groupName: groupName),
+                      groupId: groupId,
+                      groupName: groupName,
+                      groupDatabase: groupDatabase),
                 ),
               );
               _loadGroups(); // refresh on return

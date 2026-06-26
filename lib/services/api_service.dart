@@ -1100,6 +1100,7 @@ class ApiService {
   static Future<Map<String, dynamic>> createGroup({
     required String groupName,
     required List<String> memberIds,
+    String? databaseName,  // the dealership DB this group belongs to
   }) async {
     try {
       final token = await getToken();
@@ -1110,7 +1111,12 @@ class ApiService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({"groupName": groupName, "members": memberIds}),
+        body: jsonEncode({
+          "groupName": groupName,
+          "members": memberIds,
+          if (databaseName != null && databaseName.isNotEmpty)
+            "databaseName": databaseName,
+        }),
       );
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
@@ -1240,6 +1246,7 @@ class ApiService {
     required String priority,
     String? startDate,
     String? dueDate,
+    String? assignedToDatabase,  // the DB where the assigned user belongs
   }) async {
     try {
       final token = await getToken();
@@ -1260,6 +1267,8 @@ class ApiService {
           "priority": priority,
           if (startDate != null) "startDate": startDate,
           if (dueDate != null) "dueDate": dueDate,
+          if (assignedToDatabase != null && assignedToDatabase.isNotEmpty)
+            "assignedToDatabase": assignedToDatabase,
         }),
       );
 
@@ -1273,6 +1282,8 @@ class ApiService {
   static Future<bool> updateTaskStatus({
     required String taskId,
     required String status,
+    String? groupId,
+    String? taskDatabase,  // the DB where the task was saved (assigned user's company DB)
   }) async {
     try {
       final token = await getToken();
@@ -1285,7 +1296,13 @@ class ApiService {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({"taskId": taskId, "status": status}),
+        body: jsonEncode({
+          "taskId": taskId,
+          "status": status,
+          if (groupId != null && groupId.isNotEmpty) "groupId": groupId,
+          if (taskDatabase != null && taskDatabase.isNotEmpty)
+            "taskDatabase": taskDatabase,
+        }),
       );
 
       return response.statusCode == 200;
@@ -1359,6 +1376,7 @@ class ApiService {
     required String messageText,
     String? messageType,
     String? documentId,
+    String? databaseName,  // the DB where this group belongs (employee's company)
   }) async {
     try {
       final token = await getToken();
@@ -1376,6 +1394,8 @@ class ApiService {
           "messageText": messageText,
           "messageType": messageType ?? "TEXT",
           "documentId": documentId,
+          if (databaseName != null && databaseName.isNotEmpty)
+            "databaseName": databaseName,
         }),
       );
 
