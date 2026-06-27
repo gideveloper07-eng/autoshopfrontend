@@ -790,10 +790,27 @@ class ApiService {
     required String messageText,
     required String senderName,
     required String challanNo,
+    String? databaseName,
+    String? receiverDbName,
+    String? receiverUserId,
+    String? receiverName,
     String? messageType,
     String? documentId,
   }) async {
     try {
+      print(
+        jsonEncode({
+          "challanId": challanId,
+          "messageText": messageText,
+          "senderName": senderName,
+          "challanNo": challanNo,
+          "databaseName": databaseName,
+          "receiverUserId": receiverUserId,
+          "receiverName": receiverName,
+          "messageType": messageType,
+          "documentId": documentId,
+        }),
+      );
       final token = await getToken();
 
       if (token == null) return false;
@@ -809,6 +826,10 @@ class ApiService {
           "messageText": messageText,
           "senderName": senderName,
           "challanNo": challanNo,
+
+          "receiverUserId": receiverUserId,
+          "receiverName": receiverName,
+          "receiverDatabase": receiverDbName,
 
           "messageType": messageType,
           "documentId": documentId,
@@ -1100,7 +1121,7 @@ class ApiService {
   static Future<Map<String, dynamic>> createGroup({
     required String groupName,
     required List<String> memberIds,
-    String? databaseName,  // the dealership DB this group belongs to
+    String? databaseName, // the dealership DB this group belongs to
   }) async {
     try {
       final token = await getToken();
@@ -1198,6 +1219,26 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getMyDirectChats() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/my-direct-chats"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+      print(response.body);
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET DIRECT CHATS ERROR: $e");
+      return [];
+    }
+  }
+
   static Future<List<dynamic>> getMyGroups() async {
     try {
       final token = await getToken();
@@ -1246,7 +1287,7 @@ class ApiService {
     required String priority,
     String? startDate,
     String? dueDate,
-    String? assignedToDatabase,  // the DB where the assigned user belongs
+    String? assignedToDatabase, // the DB where the assigned user belongs
   }) async {
     try {
       final token = await getToken();
@@ -1283,7 +1324,8 @@ class ApiService {
     required String taskId,
     required String status,
     String? groupId,
-    String? taskDatabase,  // the DB where the task was saved (assigned user's company DB)
+    String?
+    taskDatabase, // the DB where the task was saved (assigned user's company DB)
   }) async {
     try {
       final token = await getToken();
@@ -1376,7 +1418,8 @@ class ApiService {
     required String messageText,
     String? messageType,
     String? documentId,
-    String? databaseName,  // the DB where this group belongs (employee's company)
+    String?
+    databaseName, // the DB where this group belongs (employee's company)
   }) async {
     try {
       final token = await getToken();

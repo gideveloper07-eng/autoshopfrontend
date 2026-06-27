@@ -14,9 +14,11 @@ import 'group_chat_screen.dart';
 class DirectChatScreen extends StatefulWidget {
   final String groupId;
   final String userName;
+
   /// Optional company name shown below the user name in the app bar.
   /// Pass this when the contact belongs to a different dealership.
   final String? companyName;
+
   /// The database where this group's data is stored (employee's company DB).
   /// Used to route task creation and messages to the correct dealership DB.
   final String? groupDatabase;
@@ -148,6 +150,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   Future<void> _loadMessages({bool isInitial = false}) async {
     final data = await ApiService.getGroupMessages(widget.groupId);
+
+    print("Messages received = ${data.length}");
+    print(messages);
+
     if (!mounted) return;
     final oldCount = messages.length;
     final hasNew = data.length > oldCount;
@@ -177,15 +183,53 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _msgCtrl.text.trim();
+    final senderName = await ApiService.getUserName() ?? "";
+    print("MY ID: $_myId");
+    print("GROUP MEMBERS:");
+    for (final m in _members) {
+      print(m);
+    }
+
     if (text.isEmpty && _selectedDocumentId == null) return;
     setState(() => _sending = true);
     _msgCtrl.clear();
-    final ok = await ApiService.sendGroupMessage(
-      groupId: widget.groupId,
+
+    String receiverUserId = "";
+    String receiverName = "";
+    String receiverDatabase = "";
+
+    print("MY ID = $_myId");
+
+    for (final m in _members) {
+      final uid = m["UserId"]?.toString() ?? "";
+
+      print("Checking member: $uid");
+
+      if (uid != _myId && uid.isNotEmpty) {
+        receiverUserId = uid;
+        receiverName = m["UserName"]?.toString() ?? "";
+        receiverDatabase = m["DatabaseName"]?.toString() ?? "";
+
+        print("FOUND RECEIVER");
+        print(receiverUserId);
+        print(receiverDatabase);
+        break;
+      }
+    }
+
+    print("receiverUserId = $receiverUserId");
+
+    final ok = await ApiService.sendChatMessage(
+      challanId: "0001",
       messageText: text.isNotEmpty ? text : (_selectedDocumentType ?? ''),
-      messageType: _selectedDocumentId != null ? 'DOCUMENT' : 'TEXT',
+      senderName: senderName,
+      challanNo: "", // or actual challan number
+      databaseName: '',
+      receiverDbName: receiverDatabase,
+      receiverUserId: receiverUserId,
+      receiverName: receiverName,
+      messageType: _selectedDocumentId != null ? "DOCUMENT" : "TEXT",
       documentId: _selectedDocumentId,
-      databaseName: widget.groupDatabase,
     );
     if (!mounted) return;
     if (ok) {
@@ -336,8 +380,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     onTap: () async {
                       final picked = await showDatePicker(
                         context: ctx,
-                        initialDate: _taskDueDate ??
-                            (_taskStartDate ?? DateTime.now()),
+                        initialDate:
+                            _taskDueDate ?? (_taskStartDate ?? DateTime.now()),
                         firstDate: DateTime(2020),
                         lastDate: DateTime(2100),
                       );
@@ -385,7 +429,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   priority: _selectedPriority,
                   startDate: _taskStartDate?.toIso8601String(),
                   dueDate: _taskDueDate?.toIso8601String(),
-                  assignedToDatabase: assignedToDatabase.isNotEmpty ? assignedToDatabase : null,
+                  assignedToDatabase: assignedToDatabase.isNotEmpty
+                      ? assignedToDatabase
+                      : null,
                 );
                 if (!mounted) return;
                 nav.pop();
