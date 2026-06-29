@@ -268,6 +268,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           builder: (_) => DirectChatScreen(
             groupId: existingGroup!["GroupId"]?.toString() ?? "",
             userName: targetUserName,
+            targetUserId: targetUserId,
             companyName: companyName,
             groupDatabase: existingGroup["DatabaseName"]?.toString(),
           ),
@@ -298,6 +299,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             builder: (_) => DirectChatScreen(
               groupId: groupId,
               userName: targetUserName,
+              targetUserId: targetUserId,
               companyName: companyName,
               groupDatabase:
                   targetDatabase, // newly created group uses target's DB
@@ -416,14 +418,60 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   List<Map<String, dynamic>> get _chattedUsers {
     return _directChats.map<Map<String, dynamic>>((chat) {
+      final directChat = Map<String, dynamic>.from(chat as Map);
+      final userId = _directChatUserId(directChat);
+      final userName = _directChatUserName(directChat, userId);
+      final lastMessage = _firstDirectChatValue(directChat, [
+        'LastMessage',
+        'MessageText',
+        'TaskDescription',
+      ]);
+      final lastMessageTime = _firstDirectChatValue(directChat, [
+        'LastMessageTime',
+        'MessageTime',
+      ]);
+
       return {
-        "id": chat["UserId"],
-        "name": chat["UserName"],
-        "companyName": chat["CompanyName"] ?? "",
-        "database": chat["DatabaseName"] ?? "",
-        "_dmGroup": chat,
+        "id": userId,
+        "name": userName,
+        "companyName": directChat["CompanyName"] ?? "",
+        "database": directChat["DatabaseName"] ?? "",
+        "_dmGroup": {
+          ...directChat,
+          "LastMessage": lastMessage,
+          "LastMessageTime": lastMessageTime,
+        },
       };
     }).toList();
+  }
+
+  String _firstDirectChatValue(Map<String, dynamic> chat, List<String> keys) {
+    for (final key in keys) {
+      final value = chat[key]?.toString().trim() ?? '';
+      if (value.isNotEmpty && value.toLowerCase() != 'null') return value;
+    }
+    return '';
+  }
+
+  String _directChatUserId(Map<String, dynamic> chat) {
+    final summaryUserId = _firstDirectChatValue(chat, ['UserId']);
+    if (summaryUserId.isNotEmpty) return summaryUserId;
+
+    final senderId = _firstDirectChatValue(chat, ['SenderUserId']);
+    final receiverId = _firstDirectChatValue(chat, ['ReceiverId']);
+
+    if (senderId.isNotEmpty && senderId != _myId) return senderId;
+    if (receiverId.isNotEmpty && receiverId != _myId) return receiverId;
+    return senderId.isNotEmpty ? senderId : receiverId;
+  }
+
+  String _directChatUserName(Map<String, dynamic> chat, String fallbackId) {
+    final name = _firstDirectChatValue(chat, [
+      'UserName',
+      'SenderName',
+      'AssignedToName',
+    ]);
+    return name.isNotEmpty ? name : fallbackId;
   }
 
   List<Map<String, dynamic>> get _filteredUsers {

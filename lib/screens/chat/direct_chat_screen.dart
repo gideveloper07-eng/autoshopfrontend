@@ -14,6 +14,7 @@ import 'group_chat_screen.dart';
 class DirectChatScreen extends StatefulWidget {
   final String groupId;
   final String userName;
+  final String targetUserId;
 
   /// Optional company name shown below the user name in the app bar.
   /// Pass this when the contact belongs to a different dealership.
@@ -27,6 +28,7 @@ class DirectChatScreen extends StatefulWidget {
     super.key,
     required this.groupId,
     required this.userName,
+    required this.targetUserId,
     this.companyName,
     this.groupDatabase,
   });
@@ -108,6 +110,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   }
 
   Future<void> _loadMembers() async {
+    if (widget.groupId.isEmpty) {
+      if (mounted) setState(() => _members = []);
+      return;
+    }
     final data = await ApiService.getGroupMembers(widget.groupId);
     if (mounted) setState(() => _members = data);
   }
@@ -149,7 +155,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // ── Data ────────────────────────────────────────────────────────
 
   Future<void> _loadMessages({bool isInitial = false}) async {
-    final data = await ApiService.getGroupMessages(widget.groupId);
+    final data = widget.targetUserId.isNotEmpty
+        ? await ApiService.getDirectChatMessages(widget.targetUserId)
+        : await ApiService.getGroupMessages(widget.groupId);
 
     print("Messages received = ${data.length}");
     print(messages);
@@ -194,9 +202,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     setState(() => _sending = true);
     _msgCtrl.clear();
 
-    String receiverUserId = "";
-    String receiverName = "";
-    String receiverDatabase = "";
+    String receiverUserId = widget.targetUserId;
+    String receiverName = widget.userName;
+    String receiverDatabase = widget.groupDatabase ?? "";
 
     print("MY ID = $_myId");
 
@@ -257,7 +265,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     _taskDueDate = null;
 
     // Determine the other participant in this DM group
-    String assignedToId = '';
+    String assignedToId = widget.targetUserId;
     String assignedToName = widget.userName;
     String assignedToDatabase = widget.groupDatabase ?? '';
     for (final m in _members) {

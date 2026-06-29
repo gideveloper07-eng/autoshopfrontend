@@ -785,6 +785,26 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getDirectChatMessages(String receiverId) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || receiverId.isEmpty) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/direct-messages/$receiverId"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET DIRECT CHAT ERROR: $e");
+      return [];
+    }
+  }
+
   static Future<bool> sendChatMessage({
     required String challanId,
     required String messageText,
@@ -1226,7 +1246,7 @@ class ApiService {
       if (token == null) return [];
 
       final response = await http.get(
-        Uri.parse("$baseUrl/api/chat/my-direct-chats"),
+        Uri.parse("$baseUrl/api/group/my-direct-chats"),
         headers: {"Authorization": "Bearer $token"},
       );
 
