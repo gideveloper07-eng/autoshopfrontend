@@ -1217,6 +1217,32 @@ class ApiService {
     }
   }
 
+  static Future<bool> deleteGroup({
+    required String groupId,
+    String? databaseName,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/delete-group"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "groupId": groupId,
+          if (databaseName != null && databaseName.isNotEmpty)
+            "databaseName": databaseName,
+        }),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("DELETE GROUP ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<bool> removeGroupMember({
     required String groupId,
     required String userId,

@@ -11,6 +11,7 @@ import 'chat_document_picker_dialog.dart';
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
+
   /// The database where this group's data lives (employee's company DB).
   /// Passed through to send-message and create-task so they write to
   /// the correct dealership DB even when the logged-in user belongs to
@@ -46,7 +47,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   final FocusNode _inputFocusNode = FocusNode();
   String? selectedDocumentId;
   String? selectedDocumentType;
-  
+
   List<dynamic> messages = [];
   bool loading = true;
   bool _sending = false;
@@ -267,6 +268,57 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
+  Future<void> _deleteGroup() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Delete Group"),
+        content: Text(
+          'Delete group "${widget.groupName}"? This will remove group messages and members.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final ok = await ApiService.deleteGroup(
+      groupId: widget.groupId,
+      databaseName: widget.groupDatabase,
+    );
+
+    if (!mounted) return;
+
+    if (ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Group deleted successfully")),
+      );
+      navigator.pop(true);
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(
+          backgroundColor: Colors.red,
+          content: Text("Failed to delete group"),
+        ),
+      );
+    }
+  }
+
   void _showGroupInfo() {
     showDialog(
       context: context,
@@ -444,8 +496,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: _dueDate ??
-                                (_startDate ?? DateTime.now()),
+                            initialDate:
+                                _dueDate ?? (_startDate ?? DateTime.now()),
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
                           );
@@ -502,7 +554,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       dueDate: _dueDate?.toIso8601String(),
                       assignedToDatabase: _members
                           .firstWhere(
-                            (m) => m['UserId']?.toString() == _selectedTaskUserId,
+                            (m) =>
+                                m['UserId']?.toString() == _selectedTaskUserId,
                             orElse: () => {},
                           )['DatabaseName']
                           ?.toString(),
@@ -822,6 +875,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   _showAddMember();
                 case 'removeMember':
                   _showRemoveMember();
+                case 'deleteGroup':
+                  _deleteGroup();
 
                 case 'groupInfo':
                   _showGroupInfo();
@@ -847,6 +902,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 child: _GMenuRow(
                   icon: Icons.person_remove_outlined,
                   label: 'Remove Member',
+                  danger: true,
+                ),
+              ),
+              PopupMenuItem(
+                value: 'deleteGroup',
+                child: _GMenuRow(
+                  icon: Icons.delete_outline,
+                  label: 'Delete Group',
                   danger: true,
                 ),
               ),

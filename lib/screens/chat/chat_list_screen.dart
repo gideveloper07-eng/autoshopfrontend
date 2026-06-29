@@ -317,7 +317,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       );
       await _loadAll(silent: true);
       if (groupId.isNotEmpty && mounted) {
-        Navigator.push(
+        await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => GroupChatScreen(
@@ -327,6 +327,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             ),
           ),
         );
+        _loadAll(silent: true);
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -757,7 +758,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 const Icon(Icons.groups_outlined, size: 18),
                 const SizedBox(width: 6),
                 const Text("Groups"),
-                if (_groups.isNotEmpty) ...[
+                if (_filteredGroups.isNotEmpty) ...[
                   const SizedBox(width: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -769,7 +770,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${_groups.length}',
+                      '${_filteredGroups.length}',
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
