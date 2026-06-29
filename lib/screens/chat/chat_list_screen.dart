@@ -233,7 +233,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   /// Open a 1-on-1 chat with a user.
-  /// Finds an existing direct-message group or creates one, then opens it.
+  /// Direct messages are stored in MA_ChallanChat, so this must not create MA_ChatGroups rows.
   void _openUserChat(
     String targetUserId,
     String targetUserName, {
@@ -242,80 +242,32 @@ class _ChatListScreenState extends State<ChatListScreen>
   }) async {
     if (targetUserId.isEmpty) return;
 
-    // Always show the lists when opening a chat.
-    final myId = _myId.isNotEmpty
-        ? _myId
-        : (await ApiService.getUserId() ?? '');
-
-    if (!mounted) return;
-
-    // Look for an existing 1-on-1 group with this user in the already-loaded list.
-    // DM group name pattern: "DM:userId1:userId2" (case-insensitive comparison)
-    Map<String, dynamic>? existingGroup;
-
+    Map<String, dynamic>? existingChat;
     try {
-      existingGroup = _directChats.cast<Map<String, dynamic>>().firstWhere(
+      existingChat = _directChats.cast<Map<String, dynamic>>().firstWhere(
         (g) => (g["UserId"]?.toString() ?? "") == targetUserId,
       );
     } catch (_) {
-      existingGroup = null;
+      existingChat = null;
     }
-
-    if (existingGroup != null) {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => DirectChatScreen(
-            groupId: existingGroup!["GroupId"]?.toString() ?? "",
-            userName: targetUserName,
-            targetUserId: targetUserId,
-            companyName: companyName,
-            groupDatabase: existingGroup["DatabaseName"]?.toString(),
-          ),
-        ),
-      );
-
-      _loadAll(silent: true);
-      return;
-    }
-
-    // No existing DM group — create one silently
-    final dmName = 'DM:$myId:$targetUserId';
-    final result = await ApiService.createGroup(
-      groupName: dmName,
-      memberIds: [targetUserId],
-      databaseName: targetDatabase, // save to target user's company DB
-    );
 
     if (!mounted) return;
 
-    if (result['success'] == true) {
-      final groupId = result['groupId']?.toString() ?? '';
-      await _loadAll(silent: true);
-      if (groupId.isNotEmpty && mounted) {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DirectChatScreen(
-              groupId: groupId,
-              userName: targetUserName,
-              targetUserId: targetUserId,
-              companyName: companyName,
-              groupDatabase:
-                  targetDatabase, // newly created group uses target's DB
-            ),
-          ),
-        );
-        _loadAll(silent: true);
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: Colors.red,
-          content: Text('Could not open chat. Please try again.'),
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DirectChatScreen(
+          groupId: existingChat?["GroupId"]?.toString() ?? "",
+          userName: targetUserName,
+          targetUserId: targetUserId,
+          companyName: companyName,
+          groupDatabase:
+              existingChat?["DatabaseName"]?.toString() ?? targetDatabase,
         ),
-      );
-    }
+      ),
+    );
+
+    _loadAll(silent: true);
   }
 
   /// New Group flow — Step 1 pick members, Step 2 name
