@@ -23,8 +23,8 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
   late Animation<double> _fadeAnim;
 
   // ── Brand colours (match login screen) ──────────────────────────────────────
-  static const Color kBlueDark  = Color(0xFF0D47A1);
-  static const Color kSteel     = Color(0xFFB9C7D9);
+  static const Color kBlueDark = Color(0xFF0D47A1);
+  static const Color kSteel = Color(0xFFB9C7D9);
 
   @override
   void initState() {
@@ -56,7 +56,10 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
     }
   }
 
-  Future<void> selectDealership(Map<String, dynamic> dealership, int index) async {
+  Future<void> selectDealership(
+    Map<String, dynamic> dealership,
+    int index,
+  ) async {
     setState(() => selectedIndex = index);
     try {
       final result = await ApiService.switchDatabase(
@@ -86,10 +89,8 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (_) => HomeScreen(
-                userName: userName,
-                userEmail: userEmail,
-              ),
+              builder: (_) =>
+                  HomeScreen(userName: userName, userEmail: userEmail),
             ),
             (route) => false,
           );
@@ -158,10 +159,10 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
   }
 
   Widget _bgGlow(double size, Color color) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+  );
 
   // ── Top hero header ──────────────────────────────────────────────────────────
   Widget _buildHeader() {
@@ -267,8 +268,11 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
           child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.store_mall_directory_outlined,
-                  size: 52, color: Color(0xFF1565C0)),
+              Icon(
+                Icons.store_mall_directory_outlined,
+                size: 52,
+                color: Color(0xFF1565C0),
+              ),
               SizedBox(height: 16),
               Text(
                 "No Dealerships Available",
@@ -412,7 +416,9 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
                       const SizedBox(height: 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
                           color: isSelected
@@ -449,9 +455,7 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
                         ? Icons.hourglass_top_rounded
                         : Icons.arrow_forward_ios_rounded,
                     size: 15,
-                    color: isSelected
-                        ? Colors.white
-                        : const Color(0xFF1565C0),
+                    color: isSelected ? Colors.white : const Color(0xFF1565C0),
                   ),
                 ),
               ],

@@ -17,6 +17,8 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen>
     with SingleTickerProviderStateMixin {
+  String _selectedCompany = "ALL";
+
   // ── Tabs ─────────────────────────────────────────────────────────
   late TabController _tabController;
 
@@ -68,6 +70,18 @@ class _ChatListScreenState extends State<ChatListScreen>
     super.dispose();
   }
 
+  List<String> get _companies {
+    final companies = _directChats
+        .map((e) => (e["CompanyName"] ?? "").toString())
+        .where((e) => e.isNotEmpty)
+        .toSet()
+        .toList();
+
+    companies.sort();
+
+    return ["ALL", ...companies];
+  }
+
   // ── Load ─────────────────────────────────────────────────────────
 
   Future<void> _loadAll({bool silent = false}) async {
@@ -77,10 +91,13 @@ class _ChatListScreenState extends State<ChatListScreen>
         errorMessage = null;
       });
     }
+    for (final chat in _directChats) {
+      debugPrint(chat.toString());
+    }
     try {
       final results = await Future.wait([
         ApiService.getChallanRetailIncentive(),
-        ApiService.getMyDirectChats(), // NEW
+        ApiService.getMyDirectChats(allChats: true), // NEW
         ApiService.getMyGroups(), // Existi
         ApiService.getMergedUsers(),
         ApiService.getUserId(),
@@ -88,6 +105,11 @@ class _ChatListScreenState extends State<ChatListScreen>
 
       final challanList = results[0] as List<Map<String, dynamic>>;
       final directChats = results[1] as List<dynamic>;
+      debugPrint("===== DIRECT CHATS =====");
+      for (final chat in directChats) {
+        debugPrint(chat.toString());
+      }
+      debugPrint("========================");
       final groupList = results[2] as List<dynamic>;
       final userList = results[3] as List<Map<String, dynamic>>;
       final myUserId = results[4] as String? ?? '';
@@ -117,37 +139,24 @@ class _ChatListScreenState extends State<ChatListScreen>
     }
   }
 
-  Future<void> _loadAllChatMeta(List<Map<String, dynamic>> list) async {
+  Future<void> _loadAllChatMeta(List<dynamic> chats) async {
     await Future.wait(
-      list.map((challan) async {
-        final challanId = challan['sp_462']?.toString() ?? '';
-        if (challanId.isEmpty) return;
+      chats.map((chat) async {
+        final userId = chat["UserId"]?.toString() ?? "";
+        final propertyCode = chat["PropertyCode"]?.toString() ?? "";
 
-        final results = await Future.wait([
-          ApiService.getChatMessages(challanId),
-          ApiService.getUnreadChatCount(challanId),
-        ]);
+        if (userId.isEmpty || propertyCode.isEmpty) return;
 
-        final messages = results[0] as List<dynamic>;
-        final unread = results[1] as int;
-
-        String lastMsg = '';
-        String lastTime = '';
-        if (messages.isNotEmpty) {
-          final last = messages.last;
-          lastMsg = last['MessageText']?.toString() ?? '';
-          if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
-            lastMsg =
-                '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
-          }
-          lastTime = last['MessageTime']?.toString() ?? '';
-        }
+        final unread = await ApiService.getUnreadChatCount(
+          userId,
+          propertyCode,
+        );
 
         if (mounted) {
           setState(() {
-            _chatMeta[challanId] = _ChatMeta(
-              lastMessage: lastMsg,
-              lastTime: lastTime,
+            _chatMeta[userId] = _ChatMeta(
+              lastMessage: chat["LastMessage"]?.toString() ?? "",
+              lastTime: chat["LastMessageTime"]?.toString() ?? "",
               unreadCount: unread,
             );
           });
@@ -156,34 +165,26 @@ class _ChatListScreenState extends State<ChatListScreen>
     );
   }
 
-  Future<void> _refreshSingleMeta(String challanId) async {
-    final results = await Future.wait([
-      ApiService.getChatMessages(challanId),
-      ApiService.getUnreadChatCount(challanId),
-    ]);
-
-    final messages = results[0] as List<dynamic>;
-    final unread = results[1] as int;
-
-    String lastMsg = '';
-    String lastTime = '';
-    if (messages.isNotEmpty) {
-      final last = messages.last;
-      lastMsg = last['MessageText']?.toString() ?? '';
-      if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
-        lastMsg =
-            '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
-      }
-      lastTime = last['MessageTime']?.toString() ?? '';
-    }
+  Future<void> _refreshSingleMeta(
+    String receiverId,
+    String receiverPropertyCode,
+  ) async {
+    final unread = await ApiService.getUnreadChatCount(
+      receiverId,
+      receiverPropertyCode,
+    );
 
     if (mounted) {
       setState(() {
-        _chatMeta[challanId] = _ChatMeta(
-          lastMessage: lastMsg,
-          lastTime: lastTime,
-          unreadCount: unread,
-        );
+        final old = _chatMeta[receiverId];
+
+        if (old != null) {
+          _chatMeta[receiverId] = _ChatMeta(
+            lastMessage: old.lastMessage,
+            lastTime: old.lastTime,
+            unreadCount: unread,
+          );
+        }
       });
     }
   }
@@ -212,7 +213,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       ),
     );
 
-    _refreshSingleMeta(challanId);
+    //  _refreshSingleMeta(challanId);
   }
 
   void _openGroup(dynamic group) async {
@@ -239,6 +240,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     String targetUserName, {
     String? companyName,
     String? targetDatabase, // the DB where the target user belongs
+    String? receiverPropertyCode,
   }) async {
     if (targetUserId.isEmpty) return;
 
@@ -263,6 +265,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           companyName: companyName,
           groupDatabase:
               existingChat?["DatabaseName"]?.toString() ?? targetDatabase,
+          receiverPropertyCode: receiverPropertyCode,
         ),
       ),
     );
@@ -384,11 +387,20 @@ class _ChatListScreenState extends State<ChatListScreen>
         'MessageTime',
       ]);
 
+      final companyName = (directChat["CompanyName"]?.toString() ?? "").trim();
+
+      debugPrint(
+        "User: $userName | CompanyName: '$companyName' | "
+        "PropertyCode: ${directChat["PropertyCode"]} | "
+        "DatabaseName: ${directChat["DatabaseName"]}",
+      );
+
       return {
         "id": userId,
         "name": userName,
-        "companyName": directChat["CompanyName"] ?? "",
+        "companyName": companyName,
         "database": directChat["DatabaseName"] ?? "",
+        "propertyCode": directChat["PropertyCode"] ?? "",
         "_dmGroup": {
           ...directChat,
           "LastMessage": lastMessage,
@@ -428,18 +440,28 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   List<Map<String, dynamic>> get _filteredUsers {
-    final list = _chattedUsers;
-    if (!_isSearching) return list;
-    final q = _searchCtrl.text.trim().toLowerCase();
-    if (q.isEmpty) return list;
-    return list.where((u) {
-      final name = (u['name']?.toString() ?? '').toLowerCase();
-      final id = (u['id']?.toString() ?? '').toLowerCase();
-      final lastMsg =
-          ((u['_dmGroup'] as Map?)?['LastMessage']?.toString() ?? '')
-              .toLowerCase();
-      return name.contains(q) || id.contains(q) || lastMsg.contains(q);
-    }).toList();
+    List<Map<String, dynamic>> list = _chattedUsers;
+
+    if (_selectedCompany != "ALL") {
+      list = list.where((u) {
+        return (u["companyName"] ?? "") == _selectedCompany;
+      }).toList();
+    }
+
+    if (_isSearching) {
+      final q = _searchCtrl.text.toLowerCase();
+
+      list = list.where((u) {
+        final name = (u["name"] ?? "").toString().toLowerCase();
+        final last = ((u["_dmGroup"] as Map?)?["LastMessage"] ?? "")
+            .toString()
+            .toLowerCase();
+
+        return name.contains(q) || last.contains(q);
+      }).toList();
+    }
+
+    return list;
   }
 
   // ── Formatters ────────────────────────────────────────────────────
@@ -556,6 +578,58 @@ class _ChatListScreenState extends State<ChatListScreen>
             tooltip: "New Group",
             onPressed: _showNewGroupFlow,
             child: const Icon(Icons.group_add_outlined),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildCompanyFilters() {
+    return Container(
+      height: 62,
+      color: Colors.white,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        itemCount: _companies.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (_, index) {
+          final company = _companies[index];
+
+          final selected = company == _selectedCompany;
+
+          return InkWell(
+            borderRadius: BorderRadius.circular(24),
+            onTap: () {
+              setState(() {
+                _selectedCompany = company;
+              });
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+              decoration: BoxDecoration(
+                color: selected ? const Color(0xff075E54) : Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xff128C7E), width: 1.2),
+                boxShadow: [
+                  if (selected)
+                    BoxShadow(
+                      color: Colors.green.withOpacity(.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                ],
+              ),
+              child: Text(
+                company.toUpperCase(),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: selected ? Colors.white : const Color(0xff075E54),
+                ),
+              ),
+            ),
           );
         },
       ),
@@ -817,9 +891,17 @@ class _ChatListScreenState extends State<ChatListScreen>
       return const Center(child: Text("No Direct Chats"));
     }
 
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (_, index) => _buildUserTile(items[index].user!),
+    return Column(
+      children: [
+        _buildCompanyFilters(),
+
+        Expanded(
+          child: ListView.builder(
+            itemCount: items.length,
+            itemBuilder: (_, index) => _buildUserTile(items[index].user!),
+          ),
+        ),
+      ],
     );
   }
   // ── Groups Tab ────────────────────────────────────────────────────
@@ -1157,7 +1239,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userName = user['name']?.toString() ?? userId;
     final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final companyName = user['companyName']?.toString() ?? '';
-
+    debugPrint("Rendering user: $userName | companyName='$companyName'");
     // Extract DM group metadata merged in _chattedUsers getter
     final dmGroup = user['_dmGroup'] as Map?;
     final lastMessage = dmGroup?['LastMessage']?.toString() ?? '';
@@ -1172,6 +1254,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           userName,
           companyName: companyName.isNotEmpty ? companyName : null,
           targetDatabase: user['database']?.toString(),
+          receiverPropertyCode: user['propertyCode']?.toString(),
         ),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

@@ -12,6 +12,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 // import 'package:screen_protector/screen_protector.dart'; // Temporarily disabled
 
 import 'providers/language_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
@@ -178,8 +179,11 @@ void main() {
       await ActivityService.initialize();
 
       runApp(
-        ChangeNotifierProvider(
-          create: (_) => LanguageProvider(),
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => LanguageProvider()),
+            ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ],
           child: const MyApp(),
         ),
       );
@@ -244,15 +248,18 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return MaterialApp(
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
-
-      // Hide debug banner in web
       showPerformanceOverlay: false,
-
       title: 'MyAutoShop',
+
+      // Theme
+      themeMode: themeProvider.themeMode,
+      theme: _buildLightTheme(),
+      darkTheme: _buildDarkTheme(),
 
       // Localization configuration
       locale: languageProvider.locale,
@@ -264,7 +271,6 @@ class _MyAppState extends State<MyApp> {
       ],
       supportedLocales: LanguageProvider.supportedLocales,
       localeResolutionCallback: (locale, supportedLocales) {
-        // Check if the current device locale is supported
         if (locale != null) {
           for (var supportedLocale in supportedLocales) {
             if (supportedLocale.languageCode == locale.languageCode) {
@@ -272,43 +278,58 @@ class _MyAppState extends State<MyApp> {
             }
           }
         }
-        // Return English as default
         return const Locale('en');
       },
 
-      theme: ThemeData(
-        useMaterial3: true,
-
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF8B1E3F),
-
-          brightness: Brightness.light,
-        ),
-
-        primaryColor: const Color(0xFF8B1E3F),
-
-        scaffoldBackgroundColor: Colors.white,
-
-        textTheme: GoogleFonts.poppinsTextTheme(),
-
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-
-          centerTitle: true,
-
-          backgroundColor: Colors.transparent,
-
-          foregroundColor: Colors.black,
-        ),
-      ),
-      // navigatorObservers: [RouteTracker()],
       initialRoute: '/',
-
       routes: {
         '/': (_) => const SplashScreen(),
-
         '/login': (_) => const LoginScreen(),
       },
+    );
+  }
+
+  ThemeData _buildLightTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF1F6AE2),
+        brightness: Brightness.light,
+      ),
+      primaryColor: const Color(0xFF1F6AE2),
+      scaffoldBackgroundColor: const Color(0xFFF5F9FF),
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.black,
+      ),
+      cardColor: Colors.white,
+      dividerColor: const Color(0xFFE0E0E0),
+    );
+  }
+
+  ThemeData _buildDarkTheme() {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xFF1F6AE2),
+        brightness: Brightness.dark,
+      ),
+      primaryColor: const Color(0xFF4DB7FF),
+      scaffoldBackgroundColor: const Color(0xFF0F1923),
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      appBarTheme: const AppBarTheme(
+        elevation: 0,
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Colors.white,
+      ),
+      cardColor: const Color(0xFF1A2535),
+      dividerColor: const Color(0xFF2A3A4A),
     );
   }
 }

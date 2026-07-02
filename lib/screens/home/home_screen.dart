@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../../providers/theme_provider.dart';
 //import '../../services/notification_service.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
@@ -35,9 +37,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoading = true;
   int _todayBooking = 0;
   int _todaySale = 0;
-  List<dynamic> _accessibleDatabases = [];   // ← for switch company button
-  String _currentCompanyName = "";           // ← shown in header subtitle
-  bool _webPermissionRequested = false;      // ← request once on first web tap
+  List<dynamic> _accessibleDatabases = []; // ← for switch company button
+  String _currentCompanyName = ""; // ← shown in header subtitle
+  bool _webPermissionRequested = false; // ← request once on first web tap
 
   // ── Chat preview state ────────────────────────────────────────────
   List<Map<String, dynamic>> _previewChallans = [];
@@ -59,14 +61,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Stagger all initialization to prevent forced reflow violations
     // Load security info first (needed for UI rendering)
     loadSecurity();
-    
+
     // Stagger other startup API calls with increased delays to reduce
     // simultaneous JavaScript thread operations on Flutter Web
     Future.delayed(const Duration(milliseconds: 150), loadUnreadCount);
     Future.delayed(const Duration(milliseconds: 300), loadDashboardStats);
     Future.delayed(const Duration(milliseconds: 450), _loadChatPreview);
     Future.delayed(const Duration(milliseconds: 600), _loadCompanyInfo);
-    
+
     // Defer Firebase operations to after initial paint
     Future.delayed(const Duration(milliseconds: 750), () {
       // On mobile: request immediately. On Web: Chrome requires a user gesture
@@ -170,7 +172,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         final challanId = c['sp_462']?.toString() ?? '';
         if (challanId.isEmpty) continue;
         final msgs = await ApiService.getChatMessages(challanId);
-        final unread = await ApiService.getUnreadChatCount(challanId);
+        final unread = 0; //await ApiService.getUnreadChatCount(challanId);
         String lastMsg = '';
         String lastTime = '';
         if (msgs.isNotEmpty) {
@@ -261,6 +263,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     _pendingChallanTimer?.cancel();
+    _removeAccountOverlay();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -384,6 +387,52 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
+  // ── Account top dropdown overlay ─────────────────────────────────
+  OverlayEntry? _accountOverlay;
+
+  void _showAccountSheet() {
+    if (_accountOverlay != null) {
+      _removeAccountOverlay();
+      return;
+    }
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final entry = OverlayEntry(
+      builder: (ctx) => _AccountDropdown(
+        userName: widget.userName,
+        userEmail: widget.userEmail,
+        companyName: _currentCompanyName,
+        isDark: themeProvider.isDark,
+        onToggleTheme: () {
+          themeProvider.toggleTheme();
+          // Rebuild overlay to reflect new toggle state
+          _accountOverlay?.markNeedsBuild();
+        },
+        onClose: _removeAccountOverlay,
+        onSettings: () {
+          _removeAccountOverlay();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              settings: const RouteSettings(name: 'SettingsScreen'),
+              builder: (_) => const SettingsScreen(),
+            ),
+          );
+        },
+        onLogout: () {
+          _removeAccountOverlay();
+          _logout();
+        },
+      ),
+    );
+    _accountOverlay = entry;
+    Overlay.of(context).insert(entry);
+  }
+
+  void _removeAccountOverlay() {
+    _accountOverlay?.remove();
+    _accountOverlay = null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -409,147 +458,83 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ── Row 1: car icon | app name | 3 icon buttons ──────
+                    // ── Single Row: car icon | app name | notification ──────
                     Row(
                       children: [
-                        // Car icon
-                        Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: const Icon(
-                            Icons.directions_car_rounded,
-                            color: Colors.white,
-                            size: 20,
+                        // Car icon — opens account dropdown
+                        GestureDetector(
+                          onTap: _showAccountSheet,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: const Icon(
+                              Icons.directions_car_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
-                        // App name stretches to fill available space
-                        const Expanded(
-                          child: Text(
-                            "MyAutoShop",
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
-                        // Notification
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                // Web: request notification permission on
-                                // first real user gesture to avoid the
-                                // Chrome [Violation] warning
-                                if (kIsWeb && !_webPermissionRequested) {
-                                  _webPermissionRequested = true;
-                                  await requestNotificationPermission();
-                                }
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                        name: 'NotificationScreen'),
-                                    builder: (_) => const NotificationScreen(),
-                                  ),
-                                );
-                                await loadUnreadCount();
-                              },
-                              child: _headerIconBtn(
-                                Icons.notifications,
-                                margin: const EdgeInsets.only(right: 8),
-                              ),
-                            ),
-                            if (unreadCount > 0)
-                              Positioned(
-                                right: 4,
-                                top: 2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                      minWidth: 16, minHeight: 16),
-                                  child: Text(
-                                    unreadCount > 99
-                                        ? "99+"
-                                        : unreadCount.toString(),
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
+                        // App name + company subtitle
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                "MyAutoShop",
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                  height: 1.1,
                                 ),
                               ),
-                          ],
-                        ),
-                        // Settings
-                        GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              settings: const RouteSettings(
-                                  name: 'SettingsScreen'),
-                              builder: (_) => const SettingsScreen(),
-                            ),
-                          ),
-                          child: _headerIconBtn(
-                            Icons.settings_rounded,
-                            margin: const EdgeInsets.only(right: 8),
+                              if (_currentCompanyName.isNotEmpty)
+                                Text(
+                                  _currentCompanyName,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white.withOpacity(0.75),
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.2,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        // Logout
-                        GestureDetector(
-                          onTap: _logout,
-                          child: _headerIconBtn(Icons.logout_rounded),
-                        ),
-                      ],
-                    ),
-
-                    // ── Row 2: company name  +  Switch pill ───────────────
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _currentCompanyName.isNotEmpty
-                                ? _currentCompanyName
-                                : "Your trusted auto service",
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        if (_accessibleDatabases.length > 1)
+                        // Switch pill (if multiple companies)
+                        if (_accessibleDatabases.length > 1) ...[
                           GestureDetector(
                             onTap: _switchCompany,
                             child: Container(
+                              margin: const EdgeInsets.only(right: 8),
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 4),
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                    color: Colors.white.withOpacity(0.4)),
+                                  color: Colors.white.withOpacity(0.4),
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: const [
-                                  Icon(Icons.swap_horiz_rounded,
-                                      color: Colors.white, size: 14),
+                                  Icon(
+                                    Icons.swap_horiz_rounded,
+                                    color: Colors.white,
+                                    size: 13,
+                                  ),
                                   SizedBox(width: 4),
                                   Text(
                                     "Switch",
@@ -563,6 +548,58 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ),
                             ),
                           ),
+                        ],
+                        // Notification bell
+                        Stack(
+                          children: [
+                            GestureDetector(
+                              onTap: () async {
+                                if (kIsWeb && !_webPermissionRequested) {
+                                  _webPermissionRequested = true;
+                                  await requestNotificationPermission();
+                                }
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'NotificationScreen',
+                                    ),
+                                    builder: (_) => const NotificationScreen(),
+                                  ),
+                                );
+                                await loadUnreadCount();
+                              },
+                              child: _headerIconBtn(Icons.notifications),
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                right: 4,
+                                top: 2,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  child: Text(
+                                    unreadCount > 99
+                                        ? "99+"
+                                        : unreadCount.toString(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ],
@@ -1293,13 +1330,41 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         builder: (context, constraints) {
           // Scale down elements when card is narrow (e.g. three cards on small screen)
           final w = constraints.maxWidth;
-          final pad = w < 100 ? 10.0 : w < 130 ? 14.0 : 20.0;
-          final iconSize = w < 100 ? 30.0 : w < 130 ? 38.0 : 48.0;
-          final iconInner = w < 100 ? 16.0 : w < 130 ? 20.0 : 26.0;
-          final arrowSize = w < 100 ? 20.0 : w < 130 ? 24.0 : 28.0;
-          final arrowIconSize = w < 100 ? 9.0 : w < 130 ? 11.0 : 13.0;
-          final labelSize = w < 100 ? 12.0 : w < 130 ? 14.0 : 17.0;
-          final subSize = w < 100 ? 9.0 : w < 130 ? 10.0 : 11.0;
+          final pad = w < 100
+              ? 10.0
+              : w < 130
+              ? 14.0
+              : 20.0;
+          final iconSize = w < 100
+              ? 30.0
+              : w < 130
+              ? 38.0
+              : 48.0;
+          final iconInner = w < 100
+              ? 16.0
+              : w < 130
+              ? 20.0
+              : 26.0;
+          final arrowSize = w < 100
+              ? 20.0
+              : w < 130
+              ? 24.0
+              : 28.0;
+          final arrowIconSize = w < 100
+              ? 9.0
+              : w < 130
+              ? 11.0
+              : 13.0;
+          final labelSize = w < 100
+              ? 12.0
+              : w < 130
+              ? 14.0
+              : 17.0;
+          final subSize = w < 100
+              ? 9.0
+              : w < 130
+              ? 10.0
+              : 11.0;
 
           return Container(
             padding: EdgeInsets.all(pad),
@@ -1401,6 +1466,465 @@ class _HomeChatMeta {
     required this.lastTime,
     required this.unreadCount,
   });
+}
+
+// ── Account dropdown that slides in from the top ──────────────────────────────
+
+class _AccountDropdown extends StatefulWidget {
+  final String userName;
+  final String userEmail;
+  final String companyName;
+  final bool isDark;
+  final VoidCallback onToggleTheme;
+  final VoidCallback onClose;
+  final VoidCallback onSettings;
+  final VoidCallback onLogout;
+
+  const _AccountDropdown({
+    required this.userName,
+    required this.userEmail,
+    required this.companyName,
+    required this.isDark,
+    required this.onToggleTheme,
+    required this.onClose,
+    required this.onSettings,
+    required this.onLogout,
+  });
+
+  @override
+  State<_AccountDropdown> createState() => _AccountDropdownState();
+}
+
+class _AccountDropdownState extends State<_AccountDropdown>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _slideAnim;
+  late Animation<double> _fadeAnim;
+  late bool _isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDark = widget.isDark;
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _slideAnim = Tween<double>(begin: -1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic),
+    );
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeOut),
+    );
+    _ctrl.forward();
+  }
+
+  Future<void> _close() async {
+    await _ctrl.reverse();
+    widget.onClose();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = widget.userName.isNotEmpty
+        ? widget.userName
+            .trim()
+            .split(' ')
+            .where((w) => w.isNotEmpty)
+            .take(2)
+            .map((w) => w[0].toUpperCase())
+            .join()
+        : 'U';
+
+    return Material(
+      color: Colors.transparent,
+      child: Stack(
+      children: [
+        // Dimmed backdrop — tap to close
+        FadeTransition(
+          opacity: _fadeAnim,
+          child: GestureDetector(
+            onTap: _close,
+            child: Container(
+              color: Colors.black.withOpacity(0.35),
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        ),
+        // Dropdown panel slides from top
+        AnimatedBuilder(
+          animation: _slideAnim,
+          builder: (_, child) => FractionalTranslation(
+            translation: Offset(0, _slideAnim.value),
+            child: child,
+          ),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(28),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 24,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Profile header ─────────────────────────────
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.vertical(
+                          bottom: Radius.circular(0),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Avatar circle with initials
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.25),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.6),
+                                width: 2,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  widget.userName.isNotEmpty
+                                      ? widget.userName
+                                      : "User",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                if (widget.userEmail.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    widget.userEmail,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                if (widget.companyName.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 9,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.22),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.4),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.business_rounded,
+                                          color: Colors.white.withOpacity(0.9),
+                                          size: 11,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          widget.companyName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          // Close button
+                          GestureDetector(
+                            onTap: _close,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // ── Menu items ─────────────────────────────────
+                    const SizedBox(height: 8),
+                    // Theme toggle
+                    GestureDetector(
+                      onTap: () {
+                        setState(() => _isDark = !_isDark);
+                        widget.onToggleTheme();
+                      },
+                      child: Container(
+                        color: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 13),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: _isDark
+                                    ? const Color(0xFF1E2D3D)
+                                    : const Color(0xFFFFF8E1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                _isDark
+                                    ? Icons.dark_mode_rounded
+                                    : Icons.light_mode_rounded,
+                                color: _isDark
+                                    ? const Color(0xFF90CAF9)
+                                    : const Color(0xFFFFA000),
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _isDark ? "Dark Mode" : "Light Mode",
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1A1A2E),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    _isDark
+                                        ? "Switch to light theme"
+                                        : "Switch to dark theme",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Animated toggle switch
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 250),
+                              width: 48,
+                              height: 26,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(13),
+                                color: _isDark
+                                    ? const Color(0xFF1565C0)
+                                    : Colors.grey.shade300,
+                              ),
+                              child: Stack(
+                                children: [
+                                  AnimatedPositioned(
+                                    duration: const Duration(milliseconds: 250),
+                                    curve: Curves.easeInOut,
+                                    left: _isDark ? 24 : 2,
+                                    top: 2,
+                                    child: Container(
+                                      width: 22,
+                                      height: 22,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white,
+                                        shape: BoxShape.circle,
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Color(0x33000000),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 1),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 72,
+                      endIndent: 20,
+                      color: Colors.grey.shade100,
+                    ),
+                    _DropdownMenuItem(
+                      icon: Icons.settings_rounded,
+                      iconBg: const Color(0xFFE3F2FD),
+                      iconColor: const Color(0xFF1565C0),
+                      label: "Settings",
+                      subtitle: "App preferences & configuration",
+                      onTap: widget.onSettings,
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 72,
+                      endIndent: 20,
+                      color: Colors.grey.shade100,
+                    ),
+                    _DropdownMenuItem(
+                      icon: Icons.logout_rounded,
+                      iconBg: const Color(0xFFFFEBEE),
+                      iconColor: Colors.red.shade600,
+                      label: "Logout",
+                      subtitle: "Sign out of your account",
+                      labelColor: Colors.red.shade600,
+                      onTap: widget.onLogout,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+    );
+  }
+}
+
+class _DropdownMenuItem extends StatelessWidget {
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+  final Color? labelColor;
+
+  const _DropdownMenuItem({
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+    this.labelColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        color: Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: iconColor, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: labelColor ?? const Color(0xFF1A1A2E),
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.grey.shade400,
+              size: 22,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ignore_for_file: deprecated_member_use

@@ -785,18 +785,34 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getDirectChatMessages(String receiverId) async {
+  static Future<List<dynamic>> getDirectChatMessages(
+    String receiverId,
+    String receiverPropertyCode,
+  ) async {
     try {
       final token = await getToken();
 
-      if (token == null || receiverId.isEmpty) return [];
+      if (token == null || receiverId.isEmpty || receiverPropertyCode.isEmpty) {
+        return [];
+      }
 
       final response = await http.get(
-        Uri.parse("$baseUrl/api/chat/direct-messages/$receiverId"),
+        Uri.parse(
+          "$baseUrl/api/chat/direct-messages/$receiverId/$receiverPropertyCode",
+        ),
         headers: {"Authorization": "Bearer $token"},
       );
 
+      if (response.statusCode != 200) {
+        print("GET DIRECT CHAT ERROR:");
+        print(response.statusCode);
+        print(response.body);
+        return [];
+      }
+
       final body = jsonDecode(response.body);
+
+      print(body);
 
       return body["data"] ?? [];
     } catch (e) {
@@ -816,6 +832,7 @@ class ApiService {
     String? receiverName,
     String? messageType,
     String? documentId,
+    String? receiverPropertyCode,
   }) async {
     try {
       print(
@@ -829,6 +846,7 @@ class ApiService {
           "receiverName": receiverName,
           "messageType": messageType,
           "documentId": documentId,
+          "receiverPropertyCode": receiverPropertyCode,
         }),
       );
       final token = await getToken();
@@ -853,6 +871,7 @@ class ApiService {
 
           "messageType": messageType,
           "documentId": documentId,
+          "receiverPropertyCode": receiverPropertyCode,
         }),
       );
 
@@ -909,13 +928,18 @@ class ApiService {
   }
 
   /// Returns the number of unread messages sent by others for a given challan.
-  static Future<int> getUnreadChatCount(String challanId) async {
+  static Future<int> getUnreadChatCount(
+    String receiverId,
+    String receiverPropertyCode,
+  ) async {
     try {
       final token = await getToken();
       if (token == null) return 0;
 
       final response = await http.get(
-        Uri.parse("$baseUrl/api/chat/unread-count/$challanId"),
+        Uri.parse(
+          "$baseUrl/api/chat/unread-count/$receiverId/$receiverPropertyCode",
+        ),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -923,12 +947,13 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        final body = jsonDecode(response.body);
         return (body["count"] as num?)?.toInt() ?? 0;
       }
+
       return 0;
     } catch (e) {
-      print("GET UNREAD CHAT COUNT ERROR: $e");
+      print(e);
       return 0;
     }
   }
@@ -1265,7 +1290,7 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getMyDirectChats() async {
+  /* static Future<List<dynamic>> getMyDirectChats() async {
     try {
       final token = await getToken();
 
@@ -1283,6 +1308,20 @@ class ApiService {
       print("GET DIRECT CHATS ERROR: $e");
       return [];
     }
+  }*/
+
+  static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
+    final token = await getToken();
+
+    if (token == null) return [];
+    final scope = allChats ? "all" : "property";
+
+    final res = await http.get(
+      Uri.parse("$baseUrl/api/group/my-direct-chats?scope=$scope"),
+      headers: {"Authorization": "Bearer $token"},
+    );
+    final body = jsonDecode(res.body);
+    return List<dynamic>.from(body["data"] ?? []);
   }
 
   static Future<List<dynamic>> getMyGroups() async {

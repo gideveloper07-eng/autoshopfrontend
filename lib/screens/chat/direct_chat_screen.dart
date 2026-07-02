@@ -19,6 +19,7 @@ class DirectChatScreen extends StatefulWidget {
   /// Optional company name shown below the user name in the app bar.
   /// Pass this when the contact belongs to a different dealership.
   final String? companyName;
+  final String? receiverPropertyCode;
 
   /// The database where this group's data is stored (employee's company DB).
   /// Used to route task creation and messages to the correct dealership DB.
@@ -30,6 +31,7 @@ class DirectChatScreen extends StatefulWidget {
     required this.userName,
     required this.targetUserId,
     this.companyName,
+    this.receiverPropertyCode,
     this.groupDatabase,
   });
 
@@ -155,8 +157,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // ── Data ────────────────────────────────────────────────────────
 
   Future<void> _loadMessages({bool isInitial = false}) async {
+    print(
+      "Loading messages for groupId=${widget.groupId}, targetUserId=${widget.targetUserId}",
+    );
     final data = widget.targetUserId.isNotEmpty
-        ? await ApiService.getDirectChatMessages(widget.targetUserId)
+        ? await ApiService.getDirectChatMessages(
+            widget.targetUserId,
+            widget.receiverPropertyCode ?? "",
+          )
         : await ApiService.getGroupMessages(widget.groupId);
 
     print("Messages received = ${data.length}");
@@ -238,6 +246,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       receiverName: receiverName,
       messageType: _selectedDocumentId != null ? "DOCUMENT" : "TEXT",
       documentId: _selectedDocumentId,
+      receiverPropertyCode: widget.receiverPropertyCode,
     );
     if (!mounted) return;
     if (ok) {

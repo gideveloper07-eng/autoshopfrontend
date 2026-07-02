@@ -1154,7 +1154,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Future<void> _loadUnreadChatCount() async {
-    final count = await ApiService.getUnreadChatCount(widget.sp462);
+    final count = 0; //await ApiService.getUnreadChatCount(widget.sp462);
     if (mounted) {
       setState(() {
         _unreadChatCount = count;
