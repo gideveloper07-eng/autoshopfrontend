@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -37,11 +37,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool isLoading = true;
   int _todayBooking = 0;
   int _todaySale = 0;
-  List<dynamic> _accessibleDatabases = []; // ← for switch company button
-  String _currentCompanyName = ""; // ← shown in header subtitle
-  bool _webPermissionRequested = false; // ← request once on first web tap
+  List<dynamic> _accessibleDatabases = []; // â† for switch company button
+  String _currentCompanyName = ""; // â† shown in header subtitle
+  bool _webPermissionRequested = false;
+  bool _showWelcome = true; // hides after 5 s // â† request once on first web tap
 
-  // ── Chat preview state ────────────────────────────────────────────
+  // â”€â”€ Chat preview state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   List<Map<String, dynamic>> _previewChallans = [];
   final Map<String, _HomeChatMeta> _previewMeta = {};
   List<dynamic> _previewGroups = [];
@@ -93,6 +94,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       const Duration(minutes: 1),
       (_) => _checkPendingChallanNotifications(),
     );
+    // Hide welcome message after 5 seconds
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _showWelcome = false);
+    });
   }
 
   Future<void> loadDashboardStats() async {
@@ -105,7 +110,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Load accessible databases + current company name ─────────────
+  // â”€â”€ Load accessible databases + current company name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _loadCompanyInfo() async {
     final databases = await ApiService.getAccessibleDatabases();
     final session = await ApiService.getUserSession();
@@ -129,7 +134,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Open dealership selector and refresh home on return ──────────
+  // â”€â”€ Open dealership selector and refresh home on return â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Future<void> _switchCompany() async {
     await Navigator.push(
       context,
@@ -145,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     loadUnreadCount();
   }
 
-  // ── Chat preview loader ───────────────────────────────────────────
+  // â”€â”€ Chat preview loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _loadChatPreview() async {
     setState(() => _chatPreviewLoading = true);
@@ -180,7 +185,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           lastMsg = last['MessageText']?.toString() ?? '';
           if ((last['MessageType']?.toString() ?? 'TEXT') == 'DOCUMENT') {
             lastMsg =
-                '📄 ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
+                'ðŸ“„ ${last['DocumentType'] ?? ''} #${last['DocumentNo'] ?? ''}';
           }
           lastTime = last['MessageTime']?.toString() ?? '';
         }
@@ -372,7 +377,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  // ── Reusable square icon button for the header ───────────────────
+  // â”€â”€ Reusable square icon button for the header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   Widget _headerIconBtn(IconData icon, {EdgeInsets margin = EdgeInsets.zero}) {
     return Container(
       width: 36,
@@ -387,7 +392,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // ── Account top dropdown overlay ─────────────────────────────────
+  // â”€â”€ Account top dropdown overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   OverlayEntry? _accountOverlay;
 
   void _showAccountSheet() {
@@ -439,7 +444,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── HEADER ────────────────────────────────────────────────────
+          // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             decoration: BoxDecoration(
               gradient: AppColors.vibrantGradient,
@@ -458,10 +463,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ── Single Row: car icon | app name | notification ──────
+                    // â”€â”€ Single Row: car icon | app name | notification â”€â”€â”€â”€â”€â”€
                     Row(
                       children: [
-                        // Car icon — opens account dropdown
+                        // Car icon â€” opens account dropdown
                         GestureDetector(
                           onTap: _showAccountSheet,
                           child: Container(
@@ -608,48 +613,53 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // ── BODY ──────────────────────────────────────────────────────
+          // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Welcome row
-                  Row(
-                    children: [
-                      const Text("👋 ", style: TextStyle(fontSize: 22)),
-                      RichText(
-                        text: TextSpan(
-                          style: const TextStyle(
-                            fontSize: 18,
-                            color: AppColors.textPrimary,
-                          ),
-                          children: [
-                            const TextSpan(text: "Welcome, "),
-                            TextSpan(
-                              text: widget.userName.split(' ').first,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                  // Welcome banner — visible for 5 s after login
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    transitionBuilder: (child, anim) =>
+                        FadeTransition(opacity: anim, child: child),
+                    child: _showWelcome
+                        ? Column(
+                            key: const ValueKey('welcome'),
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text("👋 ", style: TextStyle(fontSize: 22)),
+                                  RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      children: [
+                                        const TextSpan(text: "Welcome, "),
+                                        TextSpan(
+                                          text: widget.userName.split(' ').first,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                              const SizedBox(height: 24),
+                            ],
+                          )
+                        : const SizedBox.shrink(key: ValueKey('hidden')),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "What would you like to do today?",
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
 
-                  // ── TODAY STATS ROW ───────────────────────────────────
+                  // â”€â”€ TODAY STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Row(
                     children: [
                       Expanded(
@@ -683,7 +693,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                   const SizedBox(height: 20),
 
-                  // ── DASHBOARD CARDS ───────────────────────────────────
+                  // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
                     Column(
                       children: [
@@ -771,7 +781,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // ── Chat preview card (WhatsApp-style on home screen) ────────────
+  // â”€â”€ Chat preview card (WhatsApp-style on home screen) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Widget _buildChatPreviewCard() {
     final hasChallans = _previewChallans.isNotEmpty;
@@ -793,7 +803,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
       child: Column(
         children: [
-          // ── Header row ──────────────────────────────────────────
+          // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           GestureDetector(
             onTap: () async {
               await Navigator.push(
@@ -920,13 +930,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             ),
           ),
 
-          // ── Loading ──────────────────────────────────────────────
+          // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           if (_chatPreviewLoading)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(child: CircularProgressIndicator()),
             )
-          // ── Empty state ──────────────────────────────────────────
+          // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           else if (isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
@@ -946,7 +956,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             )
           else ...[
-            // ── Individual Chats ─────────────────────────────────
+            // â”€â”€ Individual Chats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (hasChallans) ...[
               _previewSectionHeader(
                 icon: Icons.person_outline,
@@ -993,7 +1003,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               }),
             ],
 
-            // ── Groups ───────────────────────────────────────────
+            // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             if (hasGroups) ...[
               _previewSectionHeader(
                 icon: Icons.groups_outlined,
@@ -1041,7 +1051,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               }),
             ],
 
-            // ── "View all" footer ────────────────────────────────
+            // â”€â”€ "View all" footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             GestureDetector(
               onTap: () async {
                 await Navigator.push(
@@ -1066,7 +1076,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 ),
                 child: const Center(
                   child: Text(
-                    "View all chats →",
+                    "View all chats â†’",
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1454,7 +1464,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 }
 
-// ── Simple holder for per-challan chat metadata shown on home screen ──────────
+// â”€â”€ Simple holder for per-challan chat metadata shown on home screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _HomeChatMeta {
   final String lastMessage;
@@ -1468,7 +1478,7 @@ class _HomeChatMeta {
   });
 }
 
-// ── Account dropdown that slides in from the top ──────────────────────────────
+// â”€â”€ Account dropdown that slides in from the top â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _AccountDropdown extends StatefulWidget {
   final String userName;
@@ -1546,73 +1556,94 @@ class _AccountDropdownState extends State<_AccountDropdown>
       color: Colors.transparent,
       child: Stack(
       children: [
-        // Dimmed backdrop — tap to close
+        // Dimmed backdrop â€” tap to close
         FadeTransition(
           opacity: _fadeAnim,
           child: GestureDetector(
             onTap: _close,
             child: Container(
-              color: Colors.black.withOpacity(0.35),
+              color: Colors.black.withOpacity(0.45),
               width: double.infinity,
               height: double.infinity,
             ),
           ),
         ),
-        // Dropdown panel slides from top
+        // Side drawer slides in from left
         AnimatedBuilder(
           animation: _slideAnim,
           builder: (_, child) => FractionalTranslation(
-            translation: Offset(0, _slideAnim.value),
+            translation: Offset(_slideAnim.value, 0),
             child: child,
           ),
           child: Align(
-            alignment: Alignment.topCenter,
+            alignment: Alignment.centerLeft,
             child: Container(
-              width: double.infinity,
+              width: 300,
+              height: double.infinity,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  bottom: Radius.circular(28),
+                borderRadius: BorderRadius.horizontal(
+                  right: Radius.circular(24),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Color(0x33000000),
-                    blurRadius: 24,
-                    offset: Offset(0, 8),
+                    color: Color(0x44000000),
+                    blurRadius: 32,
+                    offset: Offset(8, 0),
                   ),
                 ],
               ),
               child: SafeArea(
-                bottom: false,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // ── Profile header ─────────────────────────────
+                    // â”€â”€ Profile header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                     Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(0),
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(24),
                         ),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Close button top-right
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: GestureDetector(
+                              onTap: _close,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
                           // Avatar circle with initials
                           Container(
-                            width: 54,
-                            height: 54,
+                            width: 62,
+                            height: 62,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.25),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.6),
-                                width: 2,
+                                color: Colors.white.withOpacity(0.7),
+                                width: 2.5,
                               ),
                             ),
                             child: Center(
@@ -1620,100 +1651,83 @@ class _AccountDropdownState extends State<_AccountDropdown>
                                 initials,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 20,
+                                  fontSize: 24,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1,
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.userName.isNotEmpty
-                                      ? widget.userName
-                                      : "User",
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                if (widget.userEmail.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    widget.userEmail,
-                                    style: TextStyle(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 12,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                                if (widget.companyName.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 9,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.22),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.4),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.business_rounded,
-                                          color: Colors.white.withOpacity(0.9),
-                                          size: 11,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          widget.companyName,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
+                          const SizedBox(height: 12),
+                          // Name
+                          Text(
+                            widget.userName.isNotEmpty
+                                ? widget.userName
+                                : "User",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.2,
                             ),
                           ),
-                          // Close button
-                          GestureDetector(
-                            onTap: _close,
-                            child: Container(
-                              width: 32,
-                              height: 32,
+                          // Email
+                          if (widget.userEmail.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.userEmail,
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.8),
+                                fontSize: 12,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                          // Company badge
+                          if (widget.companyName.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.22),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.4),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.white,
-                                size: 18,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.business_rounded,
+                                    color: Colors.white.withOpacity(0.9),
+                                    size: 12,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    widget.companyName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
+                          ],
                         ],
                       ),
                     ),
-                    // ── Menu items ─────────────────────────────────
-                    const SizedBox(height: 8),
+                    // â”€â”€ Menu items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            const SizedBox(height: 8),
                     // Theme toggle
                     GestureDetector(
                       onTap: () {
@@ -1753,7 +1767,7 @@ class _AccountDropdownState extends State<_AccountDropdown>
                                   Text(
                                     _isDark ? "Dark Mode" : "Light Mode",
                                     style: const TextStyle(
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w700,
                                       color: Color(0xFF1A1A2E),
                                     ),
@@ -1764,7 +1778,7 @@ class _AccountDropdownState extends State<_AccountDropdown>
                                         ? "Switch to light theme"
                                         : "Switch to dark theme",
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       color: Colors.grey.shade500,
                                     ),
                                   ),
@@ -1774,10 +1788,10 @@ class _AccountDropdownState extends State<_AccountDropdown>
                             // Animated toggle switch
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 250),
-                              width: 48,
-                              height: 26,
+                              width: 44,
+                              height: 24,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(13),
+                                borderRadius: BorderRadius.circular(12),
                                 color: _isDark
                                     ? const Color(0xFF1565C0)
                                     : Colors.grey.shade300,
@@ -1787,11 +1801,11 @@ class _AccountDropdownState extends State<_AccountDropdown>
                                   AnimatedPositioned(
                                     duration: const Duration(milliseconds: 250),
                                     curve: Curves.easeInOut,
-                                    left: _isDark ? 24 : 2,
+                                    left: _isDark ? 22 : 2,
                                     top: 2,
                                     child: Container(
-                                      width: 22,
-                                      height: 22,
+                                      width: 20,
+                                      height: 20,
                                       decoration: const BoxDecoration(
                                         color: Colors.white,
                                         shape: BoxShape.circle,
@@ -1812,36 +1826,30 @@ class _AccountDropdownState extends State<_AccountDropdown>
                         ),
                       ),
                     ),
-                    Divider(
-                      height: 1,
-                      indent: 72,
-                      endIndent: 20,
-                      color: Colors.grey.shade100,
+                            Divider(height: 1, indent: 72, endIndent: 20, color: Colors.grey.shade100),
+                            _DropdownMenuItem(
+                              icon: Icons.settings_rounded,
+                              iconBg: const Color(0xFFE3F2FD),
+                              iconColor: const Color(0xFF1565C0),
+                              label: "Settings",
+                              subtitle: "App preferences & configuration",
+                              onTap: widget.onSettings,
+                            ),
+                            Divider(height: 1, indent: 72, endIndent: 20, color: Colors.grey.shade100),
+                            _DropdownMenuItem(
+                              icon: Icons.logout_rounded,
+                              iconBg: const Color(0xFFFFEBEE),
+                              iconColor: Colors.red.shade600,
+                              label: "Logout",
+                              subtitle: "Sign out of your account",
+                              labelColor: Colors.red.shade600,
+                              onTap: widget.onLogout,
+                            ),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
                     ),
-                    _DropdownMenuItem(
-                      icon: Icons.settings_rounded,
-                      iconBg: const Color(0xFFE3F2FD),
-                      iconColor: const Color(0xFF1565C0),
-                      label: "Settings",
-                      subtitle: "App preferences & configuration",
-                      onTap: widget.onSettings,
-                    ),
-                    Divider(
-                      height: 1,
-                      indent: 72,
-                      endIndent: 20,
-                      color: Colors.grey.shade100,
-                    ),
-                    _DropdownMenuItem(
-                      icon: Icons.logout_rounded,
-                      iconBg: const Color(0xFFFFEBEE),
-                      iconColor: Colors.red.shade600,
-                      label: "Logout",
-                      subtitle: "Sign out of your account",
-                      labelColor: Colors.red.shade600,
-                      onTap: widget.onLogout,
-                    ),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
