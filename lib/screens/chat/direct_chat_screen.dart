@@ -9,6 +9,25 @@ import '../../services/api_service.dart';
 import 'chat_document_picker_dialog.dart';
 import 'group_chat_screen.dart';
 
+// ── Avatar color helper ─────────────────────────────────────────────────────
+const List<Color> _kAvatarColors = [
+  Color(0xFF00BCD4), // cyan
+  Color(0xFF7B68EE), // slate blue
+  Color(0xFFFF7043), // deep orange
+  Color(0xFF26A69A), // teal
+  Color(0xFFAB47BC), // purple
+  Color(0xFF42A5F5), // blue
+  Color(0xFFEC407A), // pink
+  Color(0xFF66BB6A), // green
+  Color(0xFFFFB300), // amber
+  Color(0xFF8D6E63), // brown
+];
+
+Color _avatarColorFrom(String name) {
+  if (name.isEmpty) return _kAvatarColors[0];
+  return _kAvatarColors[name.codeUnitAt(0) % _kAvatarColors.length];
+}
+
 /// A 1-on-1 direct chat screen backed by a group conversation.
 /// UI is identical to ChallanChatDialog (individual chat style).
 class DirectChatScreen extends StatefulWidget {
@@ -75,8 +94,10 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   final Map<int, GlobalKey> _itemKeys = {};
 
   Timer? _timer;
-  static const Color _green = Color(0xFF075E54);
-  static const Color _subGreen = Color(0xFF128C7E);
+  static const Color _appBarBg = Colors.white;
+  static const Color _appBarText = Color(0xFF111B21);
+  static const Color _appBarIcon = Color(0xFF54656F);
+  static const Color _sendButtonBg = Color(0xFF111B21);
 
   @override
   void initState() {
@@ -234,7 +255,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     }
 
     print("receiverUserId = $receiverUserId");
+    print("widget.targetUserId = ${widget.targetUserId}");
 
+    for (final m in _members) {
+      print(m);
+    }
+
+    print("Final receiverUserId = $receiverUserId");
     final ok = await ApiService.sendChatMessage(
       challanId: "0001",
       messageText: text.isNotEmpty ? text : (_selectedDocumentType ?? ''),
@@ -509,7 +536,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       final gId = result['groupId']?.toString() ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: _green,
+          backgroundColor: const Color(0xFF111B21),
           content: Text('Group "$groupName" created!'),
         ),
       );
@@ -517,6 +544,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
+            settings: const RouteSettings(name: 'GroupChatScreen'),
             builder: (_) => GroupChatScreen(
               groupId: gId,
               groupName: groupName.trim(),
@@ -645,7 +673,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFECE5DD),
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: _buildAppBar(),
       body: Column(
         children: [
@@ -668,18 +696,19 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: _green,
-      iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: _appBarBg,
+      elevation: 0.5,
+      iconTheme: IconThemeData(color: _appBarIcon),
       titleSpacing: 0,
       title: _isSearching
           ? TextField(
               controller: _searchCtrl,
               focusNode: _searchFocus,
-              style: const TextStyle(color: Colors.white),
-              cursorColor: Colors.white,
+              style: TextStyle(color: _appBarText, fontSize: 16),
+              cursorColor: _appBarText,
               decoration: InputDecoration(
                 hintText: 'Search messages…',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                hintStyle: TextStyle(color: _appBarIcon.withOpacity(0.6)),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -692,7 +721,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: _avatarColorFrom(widget.userName),
                     shape: BoxShape.circle,
                   ),
                   child: Center(
@@ -716,8 +745,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     children: [
                       Text(
                         widget.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: _appBarText,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -729,7 +758,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                         Text(
                           widget.companyName!,
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
+                            color: _appBarIcon,
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
                           ),
@@ -745,13 +774,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         IconButton(
           icon: Icon(
             _isSearching ? Icons.close : Icons.search,
-            color: Colors.white,
+            color: _appBarIcon,
           ),
           onPressed: _toggleSearch,
         ),
         if (!_isSearching)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(Icons.more_vert, color: _appBarIcon),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -773,7 +802,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ? PreferredSize(
               preferredSize: const Size.fromHeight(36),
               child: Container(
-                color: _subGreen,
+                color: const Color(0xFFF0F2F5),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 6,
@@ -788,16 +817,16 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             ? 'No results'
                             : '${_currentMatch + 1} of ${_matchIndices.length} matches',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
+                          color: _appBarIcon,
                           fontSize: 13,
                         ),
                       ),
                     ),
                     if (_matchIndices.isNotEmpty) ...[
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.keyboard_arrow_up,
-                          color: Colors.white,
+                          color: _appBarIcon,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,
@@ -806,9 +835,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       ),
                       const SizedBox(width: 8),
                       IconButton(
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.keyboard_arrow_down,
-                          color: Colors.white,
+                          color: _appBarIcon,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,
@@ -869,7 +898,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       : isMatch
                       ? const Color(0xFFFFF9C4)
                       : isMine
-                      ? const Color(0xFFDCF8C6)
+                      ? const Color(0xFFD9FDD3)
                       : Colors.white,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
@@ -897,7 +926,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: _green,
+                            color: Color(0xFF54656F),
                           ),
                         ),
                       ),
@@ -1091,7 +1120,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFFD1E8D5),
+            color: const Color(0xFFE8E8E8),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
@@ -1124,7 +1153,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: _green,
+              color: const Color(0xFF111B21),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
@@ -1266,7 +1295,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Material(
-                    color: _green,
+                    color: _sendButtonBg,
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
@@ -1348,20 +1377,21 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
+            const Icon(Icons.group_add_outlined, color: Color(0xFF54656F), size: 20),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
                 'Add Group Members',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF111B21),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1371,12 +1401,12 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: const Color(0xFF111B21).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_selected.length} selected',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  style: const TextStyle(color: Color(0xFF111B21), fontSize: 12),
                 ),
               ),
           ],
@@ -1424,7 +1454,7 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 8,
                           ),
-                          activeColor: const Color(0xFF075E54),
+                          activeColor: const Color(0xFF111B21),
                           value: sel,
                           onChanged: uid.isEmpty
                               ? null
@@ -1439,8 +1469,8 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
                                 },
                           secondary: CircleAvatar(
                             backgroundColor: sel
-                                ? const Color(0xFF075E54)
-                                : const Color(0xFF128C7E),
+                                ? const Color(0xFF111B21)
+                                : _avatarColorFrom(uname),
                             child: sel
                                 ? const Icon(
                                     Icons.check,
@@ -1479,7 +1509,7 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF075E54),
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -1523,19 +1553,20 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
           children: [
-            Icon(Icons.group, color: Colors.white, size: 20),
+            Icon(Icons.group, color: Color(0xFF54656F), size: 20),
             SizedBox(width: 10),
             Text(
               'Name Your Group',
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF111B21),
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -1563,7 +1594,7 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF075E54),
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

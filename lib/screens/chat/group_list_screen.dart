@@ -95,6 +95,7 @@ class _GroupListScreenState extends State<GroupListScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
+                  settings: const RouteSettings(name: 'GroupChatScreen'),
                   builder: (_) => GroupChatScreen(
                       groupId: groupId,
                       groupName: groupName,

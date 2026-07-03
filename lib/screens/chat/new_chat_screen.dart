@@ -32,8 +32,19 @@ class _NewChatScreenState extends State<NewChatScreen> {
     });
   }
 
-  static const Color _green = Color(0xFF075E54);
-  static const Color _teal = Color(0xFF128C7E);
+  static const Color _iconGrey = Color(0xFF54656F);
+
+  static const List<Color> _avatarPalette = [
+    Color(0xFF00BCD4), Color(0xFF7B68EE), Color(0xFFFF7043),
+    Color(0xFF26A69A), Color(0xFFAB47BC), Color(0xFF42A5F5),
+    Color(0xFFEC407A), Color(0xFF66BB6A), Color(0xFFFFB300),
+    Color(0xFF8D6E63),
+  ];
+
+  static Color _avatarColorFromName(String name) {
+    if (name.isEmpty) return _avatarPalette[0];
+    return _avatarPalette[name.codeUnitAt(0) % _avatarPalette.length];
+  }
 
   List<Map<String, dynamic>> get _filteredUsers {
     final query = _searchCtrl.text.trim().toLowerCase();
@@ -98,19 +109,19 @@ class _NewChatScreenState extends State<NewChatScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: _green,
-        elevation: 1,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+        iconTheme: const IconThemeData(color: Color(0xFF54656F)),
         titleSpacing: 0,
         title: _isSearching
             ? TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocusNode,
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-                cursorColor: Colors.white,
+                style: const TextStyle(color: Color(0xFF111B21), fontSize: 18),
+                cursorColor: Color(0xFF111B21),
                 decoration: const InputDecoration(
                   hintText: "Search…",
-                  hintStyle: TextStyle(color: Colors.white60, fontSize: 18),
+                  hintStyle: TextStyle(color: Color(0xFF54656F), fontSize: 18),
                   border: InputBorder.none,
                 ),
                 onChanged: (_) => setState(() {}),
@@ -121,7 +132,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   const Text(
                     "Select contact",
                     style: TextStyle(
-                      color: Colors.white,
+                      color: Color(0xFF111B21),
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -130,7 +141,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   Text(
                     "${widget.allUsers.length} contacts",
                     style: const TextStyle(
-                      color: Colors.white70,
+                      color: Color(0xFF54656F),
                       fontSize: 12,
                     ),
                   ),
@@ -139,7 +150,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
         actions: [
           IconButton(
             icon: Icon(_isSearching ? Icons.close : Icons.search,
-                color: Colors.white),
+                color: const Color(0xFF54656F)),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -155,7 +166,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: const Icon(Icons.more_vert, color: Color(0xFF54656F)),
             onPressed: () {},
           ),
         ],
@@ -190,7 +201,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     if (!_isSearching) {
       items.add(ListTile(
         leading: const CircleAvatar(
-          backgroundColor: _teal,
+          backgroundColor: Color(0xFF111B21),
           child: Icon(Icons.group, color: Colors.white),
         ),
         title: const Text(
@@ -201,7 +212,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       ));
       items.add(ListTile(
         leading: const CircleAvatar(
-          backgroundColor: _teal,
+          backgroundColor: Color(0xFF111B21),
           child: Icon(Icons.person_add, color: Colors.white),
         ),
         title: const Text(
@@ -229,7 +240,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
         items.add(_chatTile(
           key: ValueKey('challan_$challanId'),
           avatarLetter: avatarLetter,
-          avatarColor: _green,
+          avatarColor: _avatarColorFromName(title),
           title: title,
           subtitle: lastMsg.isNotEmpty ? lastMsg : 'Challan #$challanNo',
           timeLabel: lastTime,
@@ -274,11 +285,11 @@ class _NewChatScreenState extends State<NewChatScreen> {
         items.add(ListTile(
           key: ValueKey('user_$userId'),
           leading: CircleAvatar(
-            backgroundColor: const Color(0xFFEFEFEF),
+            backgroundColor: _avatarColorFromName(userName),
             child: Text(
               avatarLetter,
               style: const TextStyle(
-                color: _green,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -297,7 +308,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: companyName.isNotEmpty
-                  ? const Color(0xFF075E54)
+                  ? const Color(0xFF54656F)
                   : Colors.grey,
               fontSize: 13,
               fontWeight: companyName.isNotEmpty
@@ -319,7 +330,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: _green),
+          Icon(icon, size: 14, color: _iconGrey),
           const SizedBox(width: 6),
           Text(
             label,

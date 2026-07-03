@@ -53,6 +53,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'HomeScreen'),
           builder: (_) => HomeScreen(
             userName: session['userName'] ?? session['userId'] ?? 'User',
             userEmail: session['userEmail'] ?? '',
@@ -63,7 +64,10 @@ class _SplashScreenState extends State<SplashScreen>
       // No session — show login
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(
+          settings: const RouteSettings(name: '/login'),
+          builder: (_) => const LoginScreen(),
+        ),
       );
     }
   }

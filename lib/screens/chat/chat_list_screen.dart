@@ -8,6 +8,31 @@ import 'direct_chat_screen.dart';
 import 'group_chat_screen.dart';
 import 'new_chat_screen.dart';
 
+// ── WhatsApp-style colour palette ─────────────────────────────────────────────
+const Color _kAppBarBg    = Colors.white;
+const Color _kAppBarText  = Color(0xFF111B21);
+const Color _kAppBarIcon  = Color(0xFF54656F);
+
+// WhatsApp-style avatar palette — picks a consistent color from the name
+const List<Color> _kAvatarColors = [
+  Color(0xFF00BCD4), // cyan
+  Color(0xFF7B68EE), // slate blue
+  Color(0xFFFF7043), // deep orange
+  Color(0xFF26A69A), // teal
+  Color(0xFFAB47BC), // purple
+  Color(0xFF42A5F5), // blue
+  Color(0xFFEC407A), // pink
+  Color(0xFF66BB6A), // green
+  Color(0xFFFFB300), // amber
+  Color(0xFF8D6E63), // brown
+];
+
+Color _avatarColor(String name) {
+  if (name.isEmpty) return _kAvatarColors[0];
+  final index = name.codeUnitAt(0) % _kAvatarColors.length;
+  return _kAvatarColors[index];
+}
+
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});
 
@@ -43,7 +68,9 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Polling ──────────────────────────────────────────────────────
   Timer? _pollTimer;
 
-  static const Color _green = Color(0xFF075E54);
+  static const Color _appBarBg   = _kAppBarBg;
+  static const Color _appBarText = _kAppBarText;
+  static const Color _appBarIcon = _kAppBarIcon;
 
   String _myId = '';
 
@@ -205,6 +232,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'ChallanChatDialog'),
         builder: (_) => ChallanChatDialog(
           challanId: challanId,
           challanNo: challanNo,
@@ -223,6 +251,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'GroupChatScreen'),
         builder: (_) => GroupChatScreen(
           groupId: groupId,
           groupName: groupName,
@@ -255,9 +284,15 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     if (!mounted) return;
 
+    // If an existing chat is found, prefer its PropertyCode so messages load correctly.
+    final resolvedPropertyCode = receiverPropertyCode?.isNotEmpty == true
+        ? receiverPropertyCode
+        : existingChat?["PropertyCode"]?.toString();
+
     await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'DirectChatScreen'),
         builder: (_) => DirectChatScreen(
           groupId: existingChat?["GroupId"]?.toString() ?? "",
           userName: targetUserName,
@@ -265,7 +300,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           companyName: companyName,
           groupDatabase:
               existingChat?["DatabaseName"]?.toString() ?? targetDatabase,
-          receiverPropertyCode: receiverPropertyCode,
+          receiverPropertyCode: resolvedPropertyCode,
         ),
       ),
     );
@@ -314,7 +349,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       final groupId = result['groupId']?.toString() ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: _green,
+          backgroundColor: const Color(0xFF111B21),
           content: Text('Group "$groupName" created!'),
         ),
       );
@@ -323,6 +358,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         await Navigator.push(
           context,
           MaterialPageRoute(
+            settings: const RouteSettings(name: 'GroupChatScreen'),
             builder: (_) => GroupChatScreen(
               groupId: groupId,
               groupName: groupName.trim(),
@@ -503,6 +539,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final selectedItem = await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'NewChatScreen'),
         builder: (_) =>
             NewChatScreen(allUsers: _allUsers, recentChallans: recentChallans),
       ),
@@ -525,6 +562,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       await Navigator.push(
         context,
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'ChallanChatDialog'),
           builder: (_) => ChallanChatDialog(
             challanId: challanId,
             challanNo: challanNo,
@@ -542,11 +580,34 @@ class _ChatListScreenState extends State<ChatListScreen>
     final companyName = selectedItem['companyName']?.toString();
     final targetDatabase = selectedItem['database']?.toString();
 
+    // The id from _allUsers may be a UUID while _directChats stores the short
+    // login UserId. Try to find the matching existing chat by UserName so we
+    // can pass the correct UserId and PropertyCode to DirectChatScreen.
+    Map<String, dynamic>? matchedDirectChat;
+    try {
+      matchedDirectChat = _directChats.cast<Map<String, dynamic>>().firstWhere(
+        (g) =>
+            (g["UserId"]?.toString() ?? '').toLowerCase() ==
+                userId.toLowerCase() ||
+            (g["UserName"]?.toString() ?? '').toLowerCase() ==
+                userName.toLowerCase(),
+      );
+    } catch (_) {
+      matchedDirectChat = null;
+    }
+
+    // Prefer the short userId and propertyCode from the existing direct chat
+    final resolvedUserId = matchedDirectChat?["UserId"]?.toString() ?? userId;
+    final resolvedPropertyCode = matchedDirectChat?["PropertyCode"]?.toString();
+    final resolvedDatabase =
+        matchedDirectChat?["DatabaseName"]?.toString() ?? targetDatabase;
+
     _openUserChat(
-      userId,
+      resolvedUserId,
       userName,
       companyName: companyName,
-      targetDatabase: targetDatabase,
+      targetDatabase: resolvedDatabase,
+      receiverPropertyCode: resolvedPropertyCode,
     );
   }
 
@@ -573,7 +634,7 @@ class _ChatListScreenState extends State<ChatListScreen>
             return const SizedBox.shrink();
           }
           return FloatingActionButton(
-            backgroundColor: _green,
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             tooltip: "New Group",
             onPressed: _showNewGroupFlow,
@@ -592,41 +653,31 @@ class _ChatListScreenState extends State<ChatListScreen>
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         itemCount: _companies.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, index) {
           final company = _companies[index];
-
           final selected = company == _selectedCompany;
 
           return InkWell(
             borderRadius: BorderRadius.circular(24),
-            onTap: () {
-              setState(() {
-                _selectedCompany = company;
-              });
-            },
+            onTap: () => setState(() => _selectedCompany = company),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: selected ? const Color(0xff075E54) : Colors.white,
+                color: selected ? const Color(0xFF111B21) : Colors.white,
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: const Color(0xff128C7E), width: 1.2),
-                boxShadow: [
-                  if (selected)
-                    BoxShadow(
-                      color: Colors.green.withOpacity(.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                ],
+                border: Border.all(
+                  color: selected ? const Color(0xFF111B21) : const Color(0xFFD1D7DB),
+                  width: 1.2,
+                ),
               ),
               child: Text(
                 company.toUpperCase(),
                 style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: selected ? Colors.white : const Color(0xff075E54),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: selected ? Colors.white : const Color(0xFF111B21),
                 ),
               ),
             ),
@@ -638,19 +689,20 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: _green,
-      iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: _appBarBg,
+      elevation: 0.5,
+      iconTheme: IconThemeData(color: _appBarIcon),
       titleSpacing: _isSearching ? 0 : 16,
       title: _isSearching
           ? TextField(
               controller: _searchCtrl,
               focusNode: _searchFocusNode,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              cursorColor: Colors.white,
+              style: TextStyle(color: _appBarText, fontSize: 16),
+              cursorColor: const Color(0xFF111B21),
               decoration: InputDecoration(
                 hintText: "Search chats…",
                 hintStyle: TextStyle(
-                  color: Colors.white.withOpacity(0.6),
+                  color: _appBarIcon.withOpacity(0.6),
                   fontSize: 16,
                 ),
                 border: InputBorder.none,
@@ -674,20 +726,20 @@ class _ChatListScreenState extends State<ChatListScreen>
                       width: 35,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return const Icon(
+                        return Icon(
                           Icons.chat_bubble_outline,
-                          color: Colors.white,
+                          color: _appBarIcon,
                           size: 24,
                         );
                       },
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
+                  Text(
                     "MyAutoShop",
                     style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      color: _appBarText,
+                      fontWeight: FontWeight.w600,
                       fontSize: 18,
                     ),
                   ),
@@ -699,7 +751,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                         vertical: 2,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: const Color(0xFF111B21),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -720,7 +772,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         IconButton(
           icon: Icon(
             _isSearching ? Icons.close : Icons.search,
-            color: Colors.white,
+            color: _appBarIcon,
           ),
           onPressed: () {
             setState(() {
@@ -739,7 +791,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
         // New Chat Button
         IconButton(
-          icon: const Icon(Icons.chat_outlined, color: Colors.white),
+          icon: Icon(Icons.chat_outlined, color: _appBarIcon),
           tooltip: "New Chat",
           onPressed: _showNewChatFlow,
         ),
@@ -747,7 +799,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         // Three-dot menu
         if (!_isSearching)
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(Icons.more_vert, color: _appBarIcon),
             tooltip: "Menu",
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -779,14 +831,14 @@ class _ChatListScreenState extends State<ChatListScreen>
       // ── Tab bar ──────────────────────────────────────────────────
       bottom: TabBar(
         controller: _tabController,
-        indicatorColor: Colors.white,
+        indicatorColor: const Color(0xFF111B21),
         indicatorWeight: 3,
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white60,
+        labelColor: const Color(0xFF111B21),
+        unselectedLabelColor: _appBarIcon,
         labelStyle: const TextStyle(
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           fontSize: 14,
-          letterSpacing: 0.4,
+          letterSpacing: 0.3,
         ),
         unselectedLabelStyle: const TextStyle(
           fontWeight: FontWeight.w500,
@@ -808,7 +860,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: const Color(0xFF111B21).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -818,6 +870,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF111B21),
                       ),
                     ),
                   ),
@@ -840,7 +893,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: const Color(0xFF111B21).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -848,6 +901,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF111B21),
                       ),
                     ),
                   ),
@@ -937,7 +991,7 @@ class _ChatListScreenState extends State<ChatListScreen>
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _green,
+                  backgroundColor: const Color(0xFF111B21),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -966,7 +1020,7 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     return RefreshIndicator(
       onRefresh: () => _loadAll(),
-      color: _green,
+      color: const Color(0xFF111B21),
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
         itemCount: grps.length,
@@ -1009,11 +1063,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [_green, const Color(0xFF128C7E)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: _avatarColor(customerName.isNotEmpty ? customerName : challanNo),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1058,7 +1108,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                             timeLabel,
                             style: TextStyle(
                               fontSize: 11,
-                              color: unreadCount > 0 ? _green : Colors.grey,
+                              color: unreadCount > 0 ? const Color(0xFF111B21) : Colors.grey,
                               fontWeight: unreadCount > 0
                                   ? FontWeight.w600
                                   : FontWeight.normal,
@@ -1095,7 +1145,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: _green,
+                              color: const Color(0xFF111B21),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -1148,11 +1198,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 width: 50,
                 height: 50,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [const Color(0xFF1565C0), const Color(0xFF1E88E5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: _avatarColor(groupName),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1267,12 +1313,8 @@ class _ChatListScreenState extends State<ChatListScreen>
               Container(
                 width: 50,
                 height: 50,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF075E54), Color(0xFF128C7E)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: BoxDecoration(
+                  color: _avatarColor(userName),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1330,7 +1372,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 11,
-                            color: Color(0xFF075E54),
+                            color: Color(0xFF54656F),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -1484,20 +1526,21 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: _kAppBarBg,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            const Icon(Icons.group_add_outlined, color: Colors.white, size: 20),
+            const Icon(Icons.group_add_outlined, color: Color(0xFF54656F), size: 20),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
                 "Add Group Members",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: _kAppBarText,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1507,12 +1550,12 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
+                  color: const Color(0xFF111B21).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   "${_selected.length} selected",
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  style: const TextStyle(color: Color(0xFF111B21), fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
           ],
@@ -1562,7 +1605,7 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                             horizontal: 8,
                             vertical: 0,
                           ),
-                          activeColor: const Color(0xFF075E54),
+                          activeColor: const Color(0xFF111B21),
                           value: isSelected,
                           onChanged: userId.isEmpty
                               ? null
@@ -1577,8 +1620,8 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                                 },
                           secondary: CircleAvatar(
                             backgroundColor: isSelected
-                                ? const Color(0xFF075E54)
-                                : const Color(0xFF128C7E),
+                                ? const Color(0xFF111B21)
+                                : _avatarColor(userName),
                             child: isSelected
                                 ? const Icon(
                                     Icons.check,
@@ -1617,7 +1660,7 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF075E54),
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -1663,19 +1706,20 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
           children: [
-            Icon(Icons.group, color: Colors.white, size: 20),
+            Icon(Icons.group, color: const Color(0xFF54656F), size: 20),
             SizedBox(width: 10),
             Text(
               "Name Your Group",
               style: TextStyle(
-                color: Colors.white,
+                color: _kAppBarText,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -1703,7 +1747,7 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF075E54),
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

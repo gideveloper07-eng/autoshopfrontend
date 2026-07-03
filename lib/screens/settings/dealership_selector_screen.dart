@@ -89,6 +89,7 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
+              settings: const RouteSettings(name: 'HomeScreen'),
               builder: (_) =>
                   HomeScreen(userName: userName, userEmail: userEmail),
             ),

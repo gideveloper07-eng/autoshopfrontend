@@ -15,10 +15,12 @@ import 'providers/language_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
+import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
 
 // ── Global navigator key — lets us navigate from outside widget tree ──────────
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final AppRouteObserver appRouteObserver = AppRouteObserver();
 
 // ── Local notifications plugin instance ───────────────────────────────────────
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -83,6 +85,7 @@ void _openChatFromNotification(String challanId, {String challanNo = ''}) {
 
   navigatorKey.currentState?.push(
     MaterialPageRoute(
+      settings: const RouteSettings(name: 'ChallanChatDialog'),
       builder: (_) => ChallanChatDialog(
         challanId: challanId,
         challanNo: challanNo.isNotEmpty ? challanNo : challanId,
@@ -282,6 +285,11 @@ class _MyAppState extends State<MyApp> {
       },
 
       initialRoute: '/',
+      navigatorObservers: [appRouteObserver],
+      builder: (context, child) => ChatBubbleOverlay(
+        routeObserver: appRouteObserver,
+        child: child ?? const SizedBox.shrink(),
+      ),
       routes: {
         '/': (_) => const SplashScreen(),
         '/login': (_) => const LoginScreen(),
@@ -330,6 +338,146 @@ class _MyAppState extends State<MyApp> {
       ),
       cardColor: const Color(0xFF1A2535),
       dividerColor: const Color(0xFF2A3A4A),
+    );
+  }
+}
+
+class AppRouteObserver extends NavigatorObserver with ChangeNotifier {
+  String? currentRouteName = '/';
+  bool _showChatBubble = false;
+
+  bool get showChatBubble => _showChatBubble;
+
+  void _setRoute(Route<dynamic>? route) {
+    final routeName = route?.settings.name;
+    currentRouteName = routeName;
+
+    if (routeName == '/' ||
+        routeName == '/login' ||
+        routeName == '/dealership' ||
+        routeName == 'ChatListScreen' ||
+        routeName == 'DirectChatScreen' ||
+        routeName == 'GroupChatScreen' ||
+        routeName == 'ChallanChatDialog' ||
+        routeName == 'NewChatScreen') {
+      _showChatBubble = false;
+    } else if (routeName != null) {
+      _showChatBubble = true;
+    }
+
+    notifyListeners();
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _setRoute(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _setRoute(previousRoute);
+    super.didPop(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _setRoute(newRoute);
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _setRoute(previousRoute);
+    super.didRemove(route, previousRoute);
+  }
+}
+
+class ChatBubbleOverlay extends StatelessWidget {
+  final AppRouteObserver routeObserver;
+  final Widget child;
+
+  const ChatBubbleOverlay({
+    super.key,
+    required this.routeObserver,
+    required this.child,
+  });
+
+  void _openChat() {
+    if (routeObserver.currentRouteName == 'ChatListScreen') return;
+
+    navigatorKey.currentState?.push(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'ChatListScreen'),
+        builder: (_) => const ChatListScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        child,
+        AnimatedBuilder(
+          animation: routeObserver,
+          builder: (context, _) {
+            if (!routeObserver.showChatBubble) {
+              return const SizedBox.shrink();
+            }
+
+            final isCompact = MediaQuery.sizeOf(context).width < 600;
+            final isChallanDetails = routeObserver.currentRouteName ==
+                'ChallanEditDetailsScreen';
+            final bubbleSize = isCompact ? 56.0 : 64.0;
+            final bottomOffset = isChallanDetails ? 92.0 : 18.0;
+
+            return Positioned(
+              left: isCompact && !isChallanDetails ? 18 : null,
+              right: isCompact && !isChallanDetails ? null : 18,
+              bottom: bottomOffset,
+              child: SafeArea(
+                minimum: const EdgeInsets.only(bottom: 6),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Semantics(
+                    button: true,
+                    label: 'Open chat',
+                    child: InkWell(
+                      onTap: _openChat,
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        width: bubbleSize,
+                        height: bubbleSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFF1F7BFF), Color(0xFF055DFF)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0B63FF).withOpacity(0.35),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.chat_bubble_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

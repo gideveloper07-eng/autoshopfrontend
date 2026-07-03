@@ -138,12 +138,16 @@ class _LoginScreenState extends State<LoginScreen> {
       if (databases.length > 1) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const DealershipSelectorScreen()),
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/dealership'),
+            builder: (_) => const DealershipSelectorScreen(),
+          ),
         );
       } else {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
+            settings: const RouteSettings(name: 'HomeScreen'),
             builder: (_) => HomeScreen(
               userName: res['name'] ?? res['userId'] ?? 'User',
               userEmail: res['email'] ?? '',

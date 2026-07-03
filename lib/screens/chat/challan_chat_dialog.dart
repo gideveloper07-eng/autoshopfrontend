@@ -450,6 +450,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
         Navigator.push(
           context,
           MaterialPageRoute(
+            settings: const RouteSettings(name: 'GroupChatScreen'),
             builder: (_) => GroupChatScreen(
               groupId: groupId,
               groupName: groupName.trim(),

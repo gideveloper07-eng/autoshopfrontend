@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -139,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     await Navigator.push(
       context,
       MaterialPageRoute(
+        settings: const RouteSettings(name: '/dealership'),
         builder: (_) => const DealershipSelectorScreen(fromHome: true),
       ),
     );
@@ -371,7 +372,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        MaterialPageRoute(
+          settings: const RouteSettings(name: '/login'),
+          builder: (_) => const LoginScreen(),
+        ),
         (_) => false,
       );
     }
@@ -737,6 +741,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
+                                      settings: const RouteSettings(
+                                        name: 'ChatListScreen',
+                                      ),
                                       builder: (_) => const ChatListScreen(),
                                     ),
                                   );
@@ -990,6 +997,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
+                        settings: const RouteSettings(name: 'ChallanChatDialog'),
                         builder: (_) => ChallanChatDialog(
                           challanId: challanId,
                           challanNo: challanNo,
@@ -1039,6 +1047,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
+                        settings: const RouteSettings(name: 'GroupChatScreen'),
                         builder: (_) => GroupChatScreen(
                           groupId: groupId,
                           groupName: groupName,

@@ -8,6 +8,19 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
 import 'chat_document_picker_dialog.dart';
 
+// Avatar color palette
+const List<Color> _kAvatarPalette = [
+  Color(0xFF00BCD4), Color(0xFF7B68EE), Color(0xFFFF7043),
+  Color(0xFF26A69A), Color(0xFFAB47BC), Color(0xFF42A5F5),
+  Color(0xFFEC407A), Color(0xFF66BB6A), Color(0xFFFFB300),
+  Color(0xFF8D6E63),
+];
+
+Color _avatarColorForGroup(String name) {
+  if (name.isEmpty) return _kAvatarPalette[0];
+  return _kAvatarPalette[name.codeUnitAt(0) % _kAvatarPalette.length];
+}
+
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
@@ -67,7 +80,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Polling ────────────────────────────────────────────────────
   Timer? _timer;
 
-  static const Color _green = Color(0xFF075E54);
+  static const Color _appBarBg   = Colors.white;
+  static const Color _appBarText = Color(0xFF111B21);
+  static const Color _appBarIcon = Color(0xFF54656F);
+  static const Color _sendBg     = Color(0xFF111B21);
 
   @override
   void initState() {
@@ -326,20 +342,21 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         titlePadding: EdgeInsets.zero,
         title: Container(
-          decoration: const BoxDecoration(
-            color: _green,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Colors.white, size: 20),
+              const Icon(Icons.info_outline, color: Color(0xFF54656F), size: 20),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.groupName,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: Color(0xFF111B21),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -594,7 +611,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: _green),
+          Icon(icon, size: 18, color: const Color(0xFF54656F)),
           const SizedBox(width: 10),
           Text(
             "$label: ",
@@ -807,10 +824,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFECE5DD),
+      backgroundColor: const Color(0xFFF0F2F5),
       appBar: AppBar(
-        backgroundColor: _green,
-        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: _appBarBg,
+        elevation: 0.5,
+        iconTheme: IconThemeData(color: _appBarIcon),
         titleSpacing: 0,
         title: Row(
           children: [
@@ -818,7 +836,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: _avatarColorForGroup(widget.groupName),
                 shape: BoxShape.circle,
               ),
               child: Center(
@@ -841,8 +859,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 children: [
                   Text(
                     widget.groupName,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: _appBarText,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -852,7 +870,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         ? "Group"
                         : "${_members.length} member${_members.length == 1 ? '' : 's'}",
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: _appBarIcon,
                       fontSize: 12,
                     ),
                   ),
@@ -863,7 +881,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
+            icon: Icon(Icons.more_vert, color: _appBarIcon),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -964,7 +982,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFD1E8D5),
+                                    color: const Color(0xFFE8E8E8),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -996,7 +1014,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFD1E8D5),
+                                        color: const Color(0xFFE8E8E8),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
@@ -1029,7 +1047,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isMine
-                                        ? const Color(0xFFDCF8C6)
+                                        ? const Color(0xFFD9FDD3)
                                         : Colors.white,
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(18),
@@ -1067,7 +1085,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 12,
-                                              color: _green,
+                                              color: Color(0xFF54656F),
                                             ),
                                           ),
                                         ),
@@ -1129,7 +1147,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                   vertical: 7,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _green,
+                                  color: const Color(0xFF111B21),
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
@@ -1341,7 +1359,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Material(
-                              color: _green,
+                              color: _sendBg,
                               shape: const CircleBorder(),
                               child: InkWell(
                                 customBorder: const CircleBorder(),
@@ -1428,9 +1446,10 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -1439,7 +1458,7 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
               widget.removeMode
                   ? Icons.person_remove_outlined
                   : Icons.people_outline,
-              color: Colors.white,
+              color: const Color(0xFF54656F),
               size: 20,
             ),
             const SizedBox(width: 10),
@@ -1447,7 +1466,7 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
               child: Text(
                 widget.removeMode ? "Remove Member" : "Group Members",
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF111B21),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1456,13 +1475,13 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
+                color: const Color(0xFF111B21).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 "${_list.length}",
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color(0xFF111B21),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1506,7 +1525,7 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
                       vertical: 4,
                     ),
                     leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF075E54),
+                      backgroundColor: _avatarColorForGroup(userName),
                       child: Text(
                         userName.isNotEmpty ? userName[0].toUpperCase() : '?',
                         style: const TextStyle(
@@ -1533,7 +1552,7 @@ class _GroupMembersDialogState extends State<_GroupMembersDialog> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF075E54),
+                              color: const Color(0xFF111B21),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -1680,23 +1699,24 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF075E54),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
           children: [
             Icon(
               Icons.person_add_alt_1_outlined,
-              color: Colors.white,
+              color: Color(0xFF54656F),
               size: 20,
             ),
             SizedBox(width: 10),
             Text(
               "Add Member",
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF111B21),
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -1752,8 +1772,8 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
                           ),
                           leading: CircleAvatar(
                             backgroundColor: isAdded
-                                ? Colors.green
-                                : const Color(0xFF128C7E),
+                                ? const Color(0xFF111B21)
+                                : _avatarColorForGroup(userName),
                             child: isAdded
                                 ? const Icon(
                                     Icons.check,
@@ -1781,7 +1801,7 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
                               ? const Text(
                                   "Added",
                                   style: TextStyle(
-                                    color: Colors.green,
+                                    color: Color(0xFF111B21),
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -1796,7 +1816,7 @@ class _GroupAddMemberDialogState extends State<_GroupAddMemberDialog> {
                                 )
                               : ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF075E54),
+                                    backgroundColor: const Color(0xFF111B21),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
