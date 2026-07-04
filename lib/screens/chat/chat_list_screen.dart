@@ -596,9 +596,15 @@ class _ChatListScreenState extends State<ChatListScreen>
       matchedDirectChat = null;
     }
 
-    // Prefer the short userId and propertyCode from the existing direct chat
+    // Prefer the short userId and propertyCode from the existing direct chat.
+    // Fall back to the propertyCode / companyCode embedded in the user map
+    // (populated by getMergedUsers) so cross-company detection always works,
+    // even when there is no existing chat history yet.
     final resolvedUserId = matchedDirectChat?["UserId"]?.toString() ?? userId;
-    final resolvedPropertyCode = matchedDirectChat?["PropertyCode"]?.toString();
+    final resolvedPropertyCode =
+        matchedDirectChat?["PropertyCode"]?.toString() ??
+        selectedItem['propertyCode']?.toString() ??
+        selectedItem['companyCode']?.toString();
     final resolvedDatabase =
         matchedDirectChat?["DatabaseName"]?.toString() ?? targetDatabase;
 

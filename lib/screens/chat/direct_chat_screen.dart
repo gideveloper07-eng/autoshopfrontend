@@ -78,6 +78,43 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   String? _selectedDocumentId;
   String? _selectedDocumentType;
 
+  /// Returns the receiver's PropertyCode.
+  /// Uses [widget.receiverPropertyCode] if set, otherwise extracts it from
+  /// loaded messages by finding the other participant's SenderPropertyCode.
+  String get _receiverPropertyCode {
+    final fromWidget = widget.receiverPropertyCode ?? '';
+    if (fromWidget.isNotEmpty) return fromWidget;
+
+    // Infer from messages: look for a message NOT sent by me and grab its
+    // SenderPropertyCode.
+    for (final msg in messages) {
+      final senderId = msg['SenderUserId']?.toString() ??
+          msg['SenderId']?.toString() ?? '';
+      final senderPropCode = msg['SenderPropertyCode']?.toString() ?? '';
+      if (senderId != _myId && senderPropCode.isNotEmpty) {
+        return senderPropCode;
+      }
+    }
+    return '';
+  }
+
+  /// Returns the receiver's company name for display in messages.
+  /// Uses [widget.companyName] if set, otherwise infers from messages.
+  String get _receiverCompanyName {
+    final fromWidget = widget.companyName ?? '';
+    if (fromWidget.isNotEmpty) return fromWidget;
+
+    for (final msg in messages) {
+      final senderId = msg['SenderUserId']?.toString() ??
+          msg['SenderId']?.toString() ?? '';
+      final companyName = msg['CompanyName']?.toString() ?? '';
+      if (senderId != _myId && companyName.isNotEmpty) {
+        return companyName;
+      }
+    }
+    return '';
+  }
+
   // ── Task assign ─────────────────────────────────────────────────
   final TextEditingController _taskTitleCtrl = TextEditingController();
   final TextEditingController _taskDescCtrl = TextEditingController();
@@ -293,7 +330,53 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   // ── Task assign dialog ───────────────────────────────────────────
 
-  void _showAssignTaskDialog() {
+  void _showAssignTaskDialog() async {
+    // ── Cross-company check ────────────────────────────────────────────────
+    // Tasks can only be assigned within the same company. If the receiver
+    // belongs to a different company, show the switch-company message.
+    final receiverCode = _receiverPropertyCode;
+    if (receiverCode.isNotEmpty) {
+      final session = await ApiService.getUserSession();
+      final currentCode =
+          (session?['companyCode'] ?? '').toString().trim().toLowerCase();
+      if (currentCode.isNotEmpty &&
+          receiverCode.toLowerCase() != currentCode) {
+        if (!mounted) return;
+        final companyLabel =
+            _receiverCompanyName.isNotEmpty ? _receiverCompanyName : 'the other company';
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.swap_horiz_rounded, color: Colors.orange, size: 26),
+                SizedBox(width: 10),
+                Text(
+                  'Switch Company',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+            content: Text(
+              'Tasks can only be assigned to employees of the same company.\n\n'
+              'Please switch to $companyLabel to assign a task to this user.',
+              style: const TextStyle(fontSize: 14),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+    }
+    // ── Same company — show the task dialog ───────────────────────────────
     _taskTitleCtrl.clear();
     _taskDescCtrl.clear();
     _selectedPriority = 'Medium';
@@ -1072,7 +1155,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         // will deny access — show the switch-company message immediately.
         final session = await ApiService.getUserSession();
         final currentPropertyCode = session?['companyCode'] ?? '';
-        final receiverPropertyCode = widget.receiverPropertyCode ?? '';
+        final receiverPropertyCode = _receiverPropertyCode;
 
         if (receiverPropertyCode.isNotEmpty &&
             currentPropertyCode.isNotEmpty &&
@@ -1097,7 +1180,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ],
               ),
               content: Text(
-                'This document belongs to ${widget.companyName?.isNotEmpty == true ? widget.companyName! : "another company"}.\n\n'
+                'This document belongs to ${_receiverCompanyName.isNotEmpty ? _receiverCompanyName : "another company"}.\n\n'
                 'Please switch to that company to view this document.',
                 style: const TextStyle(fontSize: 14),
               ),
@@ -1297,9 +1380,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                                       context: context,
                                       builder: (_) => ChatDocumentPickerDialog(
                                         receiverPropertyCode:
-                                            widget.receiverPropertyCode ?? "",
+                                            _receiverPropertyCode,
                                         receiverCompanyName:
-                                            widget.companyName ?? "",
+                                            _receiverCompanyName,
                                       ),
                                     );
                                 if (selectedDoc != null && mounted) {

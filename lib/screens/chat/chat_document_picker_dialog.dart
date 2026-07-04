@@ -36,34 +36,38 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
   }
 
   Future<void> loadDocuments() async {
-    // ── Client-side cross-company check ─────────────────────────────────────
-    // Compare the current session's companyCode against the receiver's
-    // propertyCode. If they differ this is a cross-company chat and we must
-    // not show the current company's documents to be shared.
     final session = await ApiService.getUserSession();
-    final currentPropertyCode =
-        (session?['companyCode'] ?? '').toString().trim().toLowerCase();
-    final receiverCode =
-        widget.receiverPropertyCode.trim().toLowerCase();
 
+    final currentPropertyCode = (session?['companyCode'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+
+    final receiverCode = widget.receiverPropertyCode.trim().toLowerCase();
+
+    print("========== DOCUMENT CHECK ==========");
+    print("Current Company : $currentPropertyCode");
+    print("Receiver Company: $receiverCode");
+    print("====================================");
+
+    // Different company
     if (receiverCode.isNotEmpty &&
         currentPropertyCode.isNotEmpty &&
         receiverCode != currentPropertyCode) {
       if (!mounted) return;
-      // Close the loading dialog and show the switch-company message inline.
-      final companyLabel = widget.receiverCompanyName.isNotEmpty
-          ? widget.receiverCompanyName
-          : 'the other company';
+
       setState(() {
         loading = false;
         _requireSwitch = true;
         _switchMessage =
-            'Please switch to $companyLabel to share documents.';
+            "Please switch to ${widget.receiverCompanyName} to fetch documents.";
       });
+
       return;
     }
 
-    // ── Same company — load documents from backend ───────────────────────────
+    // Same company -> load documents
+    // Same company -> load documents
     final response = await ApiService.getChatDocuments(
       receiverPropertyCode: widget.receiverPropertyCode,
       receiverCompanyName: widget.receiverCompanyName,
@@ -71,13 +75,13 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
 
     if (!mounted) return;
 
-    // Backend may also signal a switch requirement (double safety).
+    // Extra safety (backend check)
     if (response["requireSwitch"] == true) {
       setState(() {
         loading = false;
         _requireSwitch = true;
-        _switchMessage = response["message"]?.toString() ??
-            'Please switch company to share documents.';
+        _switchMessage =
+            response["message"] ?? "Please switch company to fetch documents.";
       });
       return;
     }
@@ -133,8 +137,8 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
               child: loading
                   ? const Center(child: CircularProgressIndicator())
                   : _requireSwitch
-                      ? _buildSwitchMessage()
-                      : _buildDocumentList(),
+                  ? _buildSwitchMessage()
+                  : _buildDocumentList(),
             ),
           ],
         ),
