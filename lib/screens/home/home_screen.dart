@@ -10,8 +10,6 @@ import '../../providers/theme_provider.dart';
 import '../auth/login_screen.dart';
 import '../challan/challan_screen.dart';
 import '../chat/chat_list_screen.dart';
-import '../chat/challan_chat_dialog.dart';
-import '../chat/group_chat_screen.dart';
 import '../notification/notification_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/dealership_selector_screen.dart';
@@ -413,8 +411,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         isDark: themeProvider.isDark,
         onToggleTheme: () {
           themeProvider.toggleTheme();
-          // Rebuild overlay to reflect new toggle state
-          _accountOverlay?.markNeedsBuild();
         },
         onClose: _removeAccountOverlay,
         onSettings: () {
@@ -445,7 +441,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -701,56 +697,25 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
                     Column(
                       children: [
-                        // Row 1: Challan + Chat
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _dashCard(
-                                icon: Icons.receipt_long_rounded,
-                                label: "Challan",
-                                subtitle: "View & manage challans",
-                                gradient: const [
-                                  Color(0xFF0A2E5C),
-                                  Color(0xFF3B2A96),
-                                  Color(0xFF6A4BD8),
-                                ],
-                                accentColor: AppColors.secondary,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ChallanScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _dashCard(
-                                icon: Icons.chat_rounded,
-                                label: "Chat",
-                                subtitle: "Open chats & groups",
-                                gradient: const [
-                                  Color(0xFF4A148C),
-                                  Color(0xFF7B1FA2),
-                                  Color(0xFFAB47BC),
-                                ],
-                                accentColor: Color(0xFFE1BEE7),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(
-                                        name: 'ChatListScreen',
-                                      ),
-                                      builder: (_) => const ChatListScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
+                        // Row 1: Challan full width
+                        _dashCard(
+                          icon: Icons.receipt_long_rounded,
+                          label: "Challan",
+                          subtitle: "View & manage challans",
+                          gradient: const [
+                            Color(0xFF0A2E5C),
+                            Color(0xFF3B2A96),
+                            Color(0xFF6A4BD8),
                           ],
+                          accentColor: AppColors.secondary,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ChallanScreen(),
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 12),
                         // Row 2: Tasks full width
@@ -794,11 +759,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final hasChallans = _previewChallans.isNotEmpty;
     final hasGroups = _previewGroups.isNotEmpty;
     final isEmpty = !hasChallans && !hasGroups;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardBg = isDark ? const Color(0xFF1A2535) : Colors.white;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -997,12 +964,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        settings: const RouteSettings(name: 'ChallanChatDialog'),
-                        builder: (_) => ChallanChatDialog(
-                          challanId: challanId,
-                          challanNo: challanNo,
-                          customerName: customerName,
-                        ),
+                        settings: const RouteSettings(name: 'ChatListScreen'),
+                        builder: (_) => const ChatListScreen(),
                       ),
                     );
                     _loadChatPreview();
@@ -1047,11 +1010,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     await Navigator.push(
                       context,
                       MaterialPageRoute(
-                        settings: const RouteSettings(name: 'GroupChatScreen'),
-                        builder: (_) => GroupChatScreen(
-                          groupId: groupId,
-                          groupName: groupName,
-                        ),
+                        settings: const RouteSettings(name: 'ChatListScreen'),
+                        builder: (_) => const ChatListScreen(),
                       ),
                     );
                     _loadChatPreview();
@@ -1075,7 +1035,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 11),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF0F1923)
+                      : const Color(0xFFF5F5F5),
                   borderRadius: const BorderRadius.vertical(
                     bottom: Radius.circular(20),
                   ),
@@ -1105,10 +1067,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     required IconData icon,
     required String label,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
+        color: isDark ? const Color(0xFF0F1923) : const Color(0xFFF0F0F0),
         border: Border(
           top: BorderSide(color: Colors.grey.withOpacity(0.15)),
           bottom: BorderSide(color: Colors.grey.withOpacity(0.15)),
@@ -1120,10 +1083,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF555555),
+              color: isDark ? const Color(0xFF8A9BB0) : const Color(0xFF555555),
               letterSpacing: 0.3,
             ),
           ),
@@ -1142,12 +1105,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     required bool isLast,
     required VoidCallback onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tileBg = isDark ? const Color(0xFF1A2535) : Colors.white;
+    final titleColor = isDark ? const Color(0xFFE8EDF5) : const Color(0xFF1A1A1A);
+    final subtitleColor = isDark ? const Color(0xFF8A9BB0) : Colors.grey;
+    final subtitleUnreadColor = isDark ? const Color(0xFFCDD5E0) : const Color(0xFF222222);
+
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: tileBg,
           border: isLast
               ? null
               : Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.1))),
@@ -1190,7 +1159,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             fontWeight: unreadCount > 0
                                 ? FontWeight.w700
                                 : FontWeight.w600,
-                            color: const Color(0xFF1A1A1A),
+                            color: titleColor,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -1202,7 +1171,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           timeLabel,
                           style: TextStyle(
                             fontSize: 11,
-                            color: unreadCount > 0 ? _chatGreen : Colors.grey,
+                            color: unreadCount > 0 ? _chatGreen : subtitleColor,
                             fontWeight: unreadCount > 0
                                 ? FontWeight.w600
                                 : FontWeight.normal,
@@ -1222,8 +1191,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           style: TextStyle(
                             fontSize: 12,
                             color: unreadCount > 0
-                                ? const Color(0xFF222222)
-                                : Colors.grey,
+                                ? subtitleUnreadColor
+                                : subtitleColor,
                             fontWeight: unreadCount > 0
                                 ? FontWeight.w500
                                 : FontWeight.normal,
@@ -1519,12 +1488,10 @@ class _AccountDropdownState extends State<_AccountDropdown>
   late AnimationController _ctrl;
   late Animation<double> _slideAnim;
   late Animation<double> _fadeAnim;
-  late bool _isDark;
 
   @override
   void initState() {
     super.initState();
-    _isDark = widget.isDark;
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 280),
@@ -1561,315 +1528,319 @@ class _AccountDropdownState extends State<_AccountDropdown>
             .join()
         : 'U';
 
-    return Material(
-      color: Colors.transparent,
-      child: Stack(
-      children: [
-        // Dimmed backdrop â€” tap to close
-        FadeTransition(
-          opacity: _fadeAnim,
-          child: GestureDetector(
-            onTap: _close,
-            child: Container(
-              color: Colors.black.withOpacity(0.45),
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          ),
-        ),
-        // Side drawer slides in from left
-        AnimatedBuilder(
-          animation: _slideAnim,
-          builder: (_, child) => FractionalTranslation(
-            translation: Offset(_slideAnim.value, 0),
-            child: child,
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              width: 300,
-              height: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.horizontal(
-                  right: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x44000000),
-                    blurRadius: 32,
-                    offset: Offset(8, 0),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isDark = themeProvider.isDark;
+        final drawerBg = isDark ? const Color(0xFF1A2535) : Colors.white;
+        final textHighColor = isDark ? const Color(0xFFE8EDF5) : const Color(0xFF1A1A2E);
+        final textMidColor = isDark ? const Color(0xFF8A9BB0) : Colors.grey.shade500;
+        final dividerColor = isDark ? const Color(0xFF2A3A4A) : Colors.grey.shade100;
+
+        return Material(
+          color: Colors.transparent,
+          child: Stack(
+            children: [
+              // Dimmed backdrop - tap to close
+              FadeTransition(
+                opacity: _fadeAnim,
+                child: GestureDetector(
+                  onTap: _close,
+                  child: Container(
+                    color: Colors.black.withOpacity(0.45),
+                    width: double.infinity,
+                    height: double.infinity,
                   ),
-                ],
+                ),
               ),
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // â”€â”€ Profile header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.only(
-                          topRight: Radius.circular(24),
-                        ),
+              // Side drawer slides in from left
+              AnimatedBuilder(
+                animation: _slideAnim,
+                builder: (_, child) => FractionalTranslation(
+                  translation: Offset(_slideAnim.value, 0),
+                  child: child,
+                ),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    width: 300,
+                    height: double.infinity,
+                    decoration: BoxDecoration(
+                      color: drawerBg,
+                      borderRadius: const BorderRadius.horizontal(
+                        right: Radius.circular(24),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Close button top-right
-                          Align(
-                            alignment: Alignment.topRight,
-                            child: GestureDetector(
-                              onTap: _close,
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Avatar circle with initials
-                          Container(
-                            width: 62,
-                            height: 62,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.25),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.7),
-                                width: 2.5,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          // Name
-                          Text(
-                            widget.userName.isNotEmpty
-                                ? widget.userName
-                                : "User",
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                          // Email
-                          if (widget.userEmail.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              widget.userEmail,
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.8),
-                                fontSize: 12,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                          // Company badge
-                          if (widget.companyName.isNotEmpty) ...[
-                            const SizedBox(height: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.22),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.4),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.business_rounded,
-                                    color: Colors.white.withOpacity(0.9),
-                                    size: 12,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    widget.companyName,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x44000000),
+                          blurRadius: 32,
+                          offset: Offset(8, 0),
+                        ),
+                      ],
                     ),
-                    // â”€â”€ Menu items â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            const SizedBox(height: 8),
-                    // Theme toggle
-                    GestureDetector(
-                      onTap: () {
-                        setState(() => _isDark = !_isDark);
-                        widget.onToggleTheme();
-                      },
-                      child: Container(
-                        color: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 13),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: _isDark
-                                    ? const Color(0xFF1E2D3D)
-                                    : const Color(0xFFFFF8E1),
-                                borderRadius: BorderRadius.circular(12),
+                    child: SafeArea(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Profile header (gradient - always same)
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              child: Icon(
-                                _isDark
-                                    ? Icons.dark_mode_rounded
-                                    : Icons.light_mode_rounded,
-                                color: _isDark
-                                    ? const Color(0xFF90CAF9)
-                                    : const Color(0xFFFFA000),
-                                size: 22,
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(24),
                               ),
                             ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _isDark ? "Dark Mode" : "Light Mode",
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1A1A2E),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Align(
+                                  alignment: Alignment.topRight,
+                                  child: GestureDetector(
+                                    onTap: _close,
+                                    child: Container(
+                                      width: 30,
+                                      height: 30,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(height: 1),
+                                ),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: 62,
+                                  height: 62,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.25),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.7),
+                                      width: 2.5,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      initials,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  widget.userName.isNotEmpty ? widget.userName : "User",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                                if (widget.userEmail.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
                                   Text(
-                                    _isDark
-                                        ? "Switch to light theme"
-                                        : "Switch to dark theme",
+                                    widget.userEmail,
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey.shade500,
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 12,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                if (widget.companyName.isNotEmpty) ...[
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.22),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.4),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.business_rounded,
+                                          color: Colors.white.withOpacity(0.9),
+                                          size: 12,
+                                        ),
+                                        const SizedBox(width: 5),
+                                        Text(
+                                          widget.companyName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
-                            // Animated toggle switch
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 250),
-                              width: 44,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: _isDark
-                                    ? const Color(0xFF1565C0)
-                                    : Colors.grey.shade300,
-                              ),
-                              child: Stack(
+                          ),
+                          // Menu items
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
                                 children: [
-                                  AnimatedPositioned(
-                                    duration: const Duration(milliseconds: 250),
-                                    curve: Curves.easeInOut,
-                                    left: _isDark ? 22 : 2,
-                                    top: 2,
+                                  const SizedBox(height: 8),
+                                  // Theme toggle
+                                  GestureDetector(
+                                    onTap: widget.onToggleTheme,
                                     child: Container(
-                                      width: 20,
-                                      height: 20,
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        shape: BoxShape.circle,
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Color(0x33000000),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 1),
+                                      color: Colors.transparent,
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 20, vertical: 13),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color: isDark
+                                                  ? const Color(0xFF1E2D3D)
+                                                  : const Color(0xFFFFF8E1),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(
+                                              isDark
+                                                  ? Icons.dark_mode_rounded
+                                                  : Icons.light_mode_rounded,
+                                              color: isDark
+                                                  ? const Color(0xFF90CAF9)
+                                                  : const Color(0xFFFFA000),
+                                              size: 22,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  isDark ? "Dark Mode" : "Light Mode",
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: textHighColor,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 1),
+                                                Text(
+                                                  isDark
+                                                      ? "Switch to light theme"
+                                                      : "Switch to dark theme",
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: textMidColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          // Animated toggle switch
+                                          AnimatedContainer(
+                                            duration: const Duration(milliseconds: 250),
+                                            width: 44,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(12),
+                                              color: isDark
+                                                  ? const Color(0xFF1565C0)
+                                                  : Colors.grey.shade300,
+                                            ),
+                                            child: Stack(
+                                              children: [
+                                                AnimatedPositioned(
+                                                  duration: const Duration(milliseconds: 250),
+                                                  curve: Curves.easeInOut,
+                                                  left: isDark ? 22 : 2,
+                                                  top: 2,
+                                                  child: Container(
+                                                    width: 20,
+                                                    height: 20,
+                                                    decoration: const BoxDecoration(
+                                                      color: Colors.white,
+                                                      shape: BoxShape.circle,
+                                                      boxShadow: [
+                                                        BoxShadow(
+                                                          color: Color(0x33000000),
+                                                          blurRadius: 4,
+                                                          offset: Offset(0, 1),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
                                   ),
+                                  Divider(height: 1, indent: 72, endIndent: 20, color: dividerColor),
+                                  _DropdownMenuItem(
+                                    icon: Icons.settings_rounded,
+                                    iconBg: isDark ? const Color(0xFF1E3A5F) : const Color(0xFFE3F2FD),
+                                    iconColor: const Color(0xFF1565C0),
+                                    label: "Settings",
+                                    subtitle: "App preferences & configuration",
+                                    labelColor: textHighColor,
+                                    subtitleColor: textMidColor,
+                                    onTap: widget.onSettings,
+                                  ),
+                                  Divider(height: 1, indent: 72, endIndent: 20, color: dividerColor),
+                                  _DropdownMenuItem(
+                                    icon: Icons.logout_rounded,
+                                    iconBg: isDark ? const Color(0xFF3B1A1A) : const Color(0xFFFFEBEE),
+                                    iconColor: Colors.red.shade400,
+                                    label: "Logout",
+                                    subtitle: "Sign out of your account",
+                                    labelColor: Colors.red.shade400,
+                                    subtitleColor: textMidColor,
+                                    onTap: widget.onLogout,
+                                  ),
+                                  const SizedBox(height: 20),
                                 ],
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                            Divider(height: 1, indent: 72, endIndent: 20, color: Colors.grey.shade100),
-                            _DropdownMenuItem(
-                              icon: Icons.settings_rounded,
-                              iconBg: const Color(0xFFE3F2FD),
-                              iconColor: const Color(0xFF1565C0),
-                              label: "Settings",
-                              subtitle: "App preferences & configuration",
-                              onTap: widget.onSettings,
-                            ),
-                            Divider(height: 1, indent: 72, endIndent: 20, color: Colors.grey.shade100),
-                            _DropdownMenuItem(
-                              icon: Icons.logout_rounded,
-                              iconBg: const Color(0xFFFFEBEE),
-                              iconColor: Colors.red.shade600,
-                              label: "Logout",
-                              subtitle: "Sign out of your account",
-                              labelColor: Colors.red.shade600,
-                              onTap: widget.onLogout,
-                            ),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ),
-      ],
-    ),
+        );
+      },
     );
   }
 }
+
 
 class _DropdownMenuItem extends StatelessWidget {
   final IconData icon;
@@ -1879,6 +1850,7 @@ class _DropdownMenuItem extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final Color? labelColor;
+  final Color? subtitleColor;
 
   const _DropdownMenuItem({
     required this.icon,
@@ -1888,6 +1860,7 @@ class _DropdownMenuItem extends StatelessWidget {
     required this.subtitle,
     required this.onTap,
     this.labelColor,
+    this.subtitleColor,
   });
 
   @override
@@ -1926,7 +1899,7 @@ class _DropdownMenuItem extends StatelessWidget {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade500,
+                      color: subtitleColor ?? Colors.grey.shade500,
                     ),
                   ),
                 ],

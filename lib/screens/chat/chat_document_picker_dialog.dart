@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 
 class ChatDocumentPickerDialog extends StatefulWidget {
-  const ChatDocumentPickerDialog({super.key});
+  final String receiverPropertyCode;
+  final String receiverCompanyName;
+
+  const ChatDocumentPickerDialog({
+    super.key,
+    required this.receiverPropertyCode,
+    required this.receiverCompanyName,
+  });
 
   @override
   State<ChatDocumentPickerDialog> createState() =>
@@ -15,6 +22,11 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
 
   bool loading = true;
 
+  /// Set when we detect a cross-company situation — shows the switch message
+  /// instead of the document list.
+  bool _requireSwitch = false;
+  String _switchMessage = '';
+
   final TextEditingController searchController = TextEditingController();
 
   @override
@@ -24,7 +36,53 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
   }
 
   Future<void> loadDocuments() async {
-    final data = await ApiService.getChatDocuments();
+    // ── Client-side cross-company check ─────────────────────────────────────
+    // Compare the current session's companyCode against the receiver's
+    // propertyCode. If they differ this is a cross-company chat and we must
+    // not show the current company's documents to be shared.
+    final session = await ApiService.getUserSession();
+    final currentPropertyCode =
+        (session?['companyCode'] ?? '').toString().trim().toLowerCase();
+    final receiverCode =
+        widget.receiverPropertyCode.trim().toLowerCase();
+
+    if (receiverCode.isNotEmpty &&
+        currentPropertyCode.isNotEmpty &&
+        receiverCode != currentPropertyCode) {
+      if (!mounted) return;
+      // Close the loading dialog and show the switch-company message inline.
+      final companyLabel = widget.receiverCompanyName.isNotEmpty
+          ? widget.receiverCompanyName
+          : 'the other company';
+      setState(() {
+        loading = false;
+        _requireSwitch = true;
+        _switchMessage =
+            'Please switch to $companyLabel to share documents.';
+      });
+      return;
+    }
+
+    // ── Same company — load documents from backend ───────────────────────────
+    final response = await ApiService.getChatDocuments(
+      receiverPropertyCode: widget.receiverPropertyCode,
+      receiverCompanyName: widget.receiverCompanyName,
+    );
+
+    if (!mounted) return;
+
+    // Backend may also signal a switch requirement (double safety).
+    if (response["requireSwitch"] == true) {
+      setState(() {
+        loading = false;
+        _requireSwitch = true;
+        _switchMessage = response["message"]?.toString() ??
+            'Please switch company to share documents.';
+      });
+      return;
+    }
+
+    final data = List<Map<String, dynamic>>.from(response["data"] ?? []);
 
     setState(() {
       documents = data;
@@ -37,7 +95,6 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
     setState(() {
       filteredDocuments = documents.where((doc) {
         final no = (doc["DocumentNo"] ?? "").toString().toLowerCase();
-
         return no.contains(value.toLowerCase());
       }).toList();
     });
@@ -51,6 +108,7 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
         height: 600,
         child: Column(
           children: [
+            // ── Header ────────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.all(15),
               color: Colors.blue,
@@ -70,46 +128,111 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.all(10),
-              child: TextField(
-                controller: searchController,
-                onChanged: search,
-                decoration: const InputDecoration(
-                  hintText: "Search document...",
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
-
+            // ── Body ─────────────────────────────────────────────────────
             Expanded(
               child: loading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      itemCount: filteredDocuments.length,
-                      itemBuilder: (context, index) {
-                        final doc = filteredDocuments[index];
-
-                        return ListTile(
-                          leading: Icon(
-                            doc["DocumentType"] == "CHALLAN"
-                                ? Icons.description
-                                : Icons.picture_as_pdf,
-                            color: Colors.red,
-                          ),
-                          title: Text(doc["DocumentNo"] ?? ""),
-                          subtitle: Text(doc["DocumentType"] ?? ""),
-                          onTap: () {
-                            Navigator.pop(context, doc);
-                          },
-                        );
-                      },
-                    ),
+                  : _requireSwitch
+                      ? _buildSwitchMessage()
+                      : _buildDocumentList(),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  /// Shown when the receiver belongs to a different company.
+  Widget _buildSwitchMessage() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.swap_horiz_rounded,
+              color: Colors.orange,
+              size: 36,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Switch Company Required',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A1A2E),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _switchMessage,
+            style: const TextStyle(fontSize: 14, color: Colors.black54),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Normal document list shown when same-company.
+  Widget _buildDocumentList() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: TextField(
+            controller: searchController,
+            onChanged: search,
+            decoration: const InputDecoration(
+              hintText: "Search document...",
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: filteredDocuments.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No documents found.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: filteredDocuments.length,
+                  itemBuilder: (context, index) {
+                    final doc = filteredDocuments[index];
+                    return ListTile(
+                      leading: Icon(
+                        doc["DocumentType"] == "CHALLAN"
+                            ? Icons.description
+                            : Icons.picture_as_pdf,
+                        color: Colors.red,
+                      ),
+                      title: Text(doc["DocumentNo"] ?? ""),
+                      subtitle: Text(doc["DocumentType"] ?? ""),
+                      onTap: () {
+                        Navigator.pop(context, doc);
+                      },
+                    );
+                  },
+                ),
+        ),
+      ],
     );
   }
 }

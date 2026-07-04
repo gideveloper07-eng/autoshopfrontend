@@ -958,14 +958,26 @@ class ApiService {
     }
   }
 
-  static Future<List<Map<String, dynamic>>> getChatDocuments() async {
+  static Future<Map<String, dynamic>> getChatDocuments({
+    required String receiverPropertyCode,
+    required String receiverCompanyName,
+  }) async {
     try {
       final token = await getToken();
 
-      if (token == null) return [];
+      if (token == null) {
+        return {"success": false, "data": []};
+      }
+
+      final uri = Uri.parse("$baseUrl/api/chat/documents").replace(
+        queryParameters: {
+          "receiverPropertyCode": receiverPropertyCode,
+          "receiverCompanyName": receiverCompanyName,
+        },
+      );
 
       final response = await http.get(
-        Uri.parse("$baseUrl/api/chat/documents"),
+        uri,
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -973,19 +985,14 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        final body = jsonDecode(response.body);
-
-        if (body["success"] == true && body["data"] is List) {
-          return List<Map<String, dynamic>>.from(
-            body["data"].map((e) => Map<String, dynamic>.from(e)),
-          );
-        }
+        return jsonDecode(response.body);
       }
 
-      return [];
+      return {"success": false, "data": []};
     } catch (e) {
       print("GET DOCUMENTS ERROR: $e");
-      return [];
+
+      return {"success": false, "data": []};
     }
   }
 

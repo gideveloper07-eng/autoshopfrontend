@@ -816,10 +816,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             : _matchIndices.isEmpty
                             ? 'No results'
                             : '${_currentMatch + 1} of ${_matchIndices.length} matches',
-                        style: TextStyle(
-                          color: _appBarIcon,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: _appBarIcon, fontSize: 13),
                       ),
                     ),
                     if (_matchIndices.isNotEmpty) ...[
@@ -1069,8 +1066,91 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
+
+        // If this is a cross-company chat, check upfront whether the current
+        // session's company matches the receiver's company. If not, the backend
+        // will deny access — show the switch-company message immediately.
+        final session = await ApiService.getUserSession();
+        final currentPropertyCode = session?['companyCode'] ?? '';
+        final receiverPropertyCode = widget.receiverPropertyCode ?? '';
+
+        if (receiverPropertyCode.isNotEmpty &&
+            currentPropertyCode.isNotEmpty &&
+            receiverPropertyCode.toLowerCase() !=
+                currentPropertyCode.toLowerCase()) {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.swap_horiz_rounded,
+                      color: Colors.orange, size: 26),
+                  SizedBox(width: 10),
+                  Text(
+                    'Switch Company',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              content: Text(
+                'This document belongs to ${widget.companyName?.isNotEmpty == true ? widget.companyName! : "another company"}.\n\n'
+                'Please switch to that company to view this document.',
+                style: const TextStyle(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
+        // Same company — fetch and open the document.
         final doc = await ApiService.getDocument(documentId);
-        if (doc == null) return;
+
+        if (doc == null) {
+          // Fallback: access denied even within same company context.
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.swap_horiz_rounded,
+                      color: Colors.orange, size: 26),
+                  SizedBox(width: 10),
+                  Text(
+                    'Switch Company',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'This document belongs to a different company.\n\n'
+                'Please switch to the correct company to view this document.',
+                style: TextStyle(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
         final filePath = doc['FilePath']?.toString() ?? '';
         if (filePath.isEmpty) return;
         final url = 'http://myautoshop365.com/$filePath';
@@ -1215,8 +1295,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                                 final selectedDoc =
                                     await showDialog<Map<String, dynamic>>(
                                       context: context,
-                                      builder: (_) =>
-                                          const ChatDocumentPickerDialog(),
+                                      builder: (_) => ChatDocumentPickerDialog(
+                                        receiverPropertyCode:
+                                            widget.receiverPropertyCode ?? "",
+                                        receiverCompanyName:
+                                            widget.companyName ?? "",
+                                      ),
                                     );
                                 if (selectedDoc != null && mounted) {
                                   setState(() {
@@ -1385,7 +1469,11 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            const Icon(Icons.group_add_outlined, color: Color(0xFF54656F), size: 20),
+            const Icon(
+              Icons.group_add_outlined,
+              color: Color(0xFF54656F),
+              size: 20,
+            ),
             const SizedBox(width: 10),
             const Expanded(
               child: Text(
@@ -1406,7 +1494,10 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
                 ),
                 child: Text(
                   '${_selected.length} selected',
-                  style: const TextStyle(color: Color(0xFF111B21), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF111B21),
+                    fontSize: 12,
+                  ),
                 ),
               ),
           ],

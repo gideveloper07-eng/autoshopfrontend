@@ -10,9 +10,15 @@ import 'chat_document_picker_dialog.dart';
 
 // Avatar color palette
 const List<Color> _kAvatarPalette = [
-  Color(0xFF00BCD4), Color(0xFF7B68EE), Color(0xFFFF7043),
-  Color(0xFF26A69A), Color(0xFFAB47BC), Color(0xFF42A5F5),
-  Color(0xFFEC407A), Color(0xFF66BB6A), Color(0xFFFFB300),
+  Color(0xFF00BCD4),
+  Color(0xFF7B68EE),
+  Color(0xFFFF7043),
+  Color(0xFF26A69A),
+  Color(0xFFAB47BC),
+  Color(0xFF42A5F5),
+  Color(0xFFEC407A),
+  Color(0xFF66BB6A),
+  Color(0xFFFFB300),
   Color(0xFF8D6E63),
 ];
 
@@ -80,10 +86,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Polling ────────────────────────────────────────────────────
   Timer? _timer;
 
-  static const Color _appBarBg   = Colors.white;
+  static const Color _appBarBg = Colors.white;
   static const Color _appBarText = Color(0xFF111B21);
   static const Color _appBarIcon = Color(0xFF54656F);
-  static const Color _sendBg     = Color(0xFF111B21);
+  static const Color _sendBg = Color(0xFF111B21);
 
   @override
   void initState() {
@@ -350,7 +356,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           child: Row(
             children: [
-              const Icon(Icons.info_outline, color: Color(0xFF54656F), size: 20),
+              const Icon(
+                Icons.info_outline,
+                color: Color(0xFF54656F),
+                size: 20,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -869,10 +879,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     _members.isEmpty
                         ? "Group"
                         : "${_members.length} member${_members.length == 1 ? '' : 's'}",
-                    style: TextStyle(
-                      color: _appBarIcon,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: _appBarIcon, fontSize: 12),
                   ),
                 ],
               ),
@@ -1271,7 +1278,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                                 >(
                                                   context: this.context,
                                                   builder: (_) =>
-                                                      const ChatDocumentPickerDialog(),
+                                                      ChatDocumentPickerDialog(
+                                                        receiverPropertyCode:
+                                                            "",
+                                                        receiverCompanyName: "",
+                                                      ),
                                                 );
 
                                             if (selectedDoc != null) {

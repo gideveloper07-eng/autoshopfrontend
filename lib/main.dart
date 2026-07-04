@@ -298,46 +298,106 @@ class _MyAppState extends State<MyApp> {
   }
 
   ThemeData _buildLightTheme() {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF1F6AE2),
+      onPrimary: Colors.white,
+      secondary: Color(0xFF4DB7FF),
+      onSecondary: Colors.white,
+      error: Color(0xFFE53935),
+      onError: Colors.white,
+      surface: Colors.white,
+      onSurface: Color(0xFF10253F),
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1F6AE2),
-        brightness: Brightness.light,
-      ),
+      colorScheme: colorScheme,
       primaryColor: const Color(0xFF1F6AE2),
       scaffoldBackgroundColor: const Color(0xFFF5F9FF),
+      cardColor: Colors.white,
+      dividerColor: const Color(0xFFE0E0E0),
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
+        foregroundColor: Color(0xFF10253F),
       ),
-      cardColor: Colors.white,
-      dividerColor: const Color(0xFFE0E0E0),
+      cardTheme: CardThemeData(
+        color: Colors.white,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF1F6AE2)),
+      listTileTheme: const ListTileThemeData(
+        textColor: Color(0xFF10253F),
+        iconColor: Color(0xFF1F6AE2),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? const Color(0xFF1F6AE2)
+              : Colors.grey.shade400,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? const Color(0xFF1F6AE2).withOpacity(0.4)
+              : Colors.grey.shade300,
+        ),
+      ),
     );
   }
 
   ThemeData _buildDarkTheme() {
+    const colorScheme = ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF4DB7FF),
+      onPrimary: Color(0xFF003258),
+      secondary: Color(0xFF8ED2FF),
+      onSecondary: Color(0xFF003258),
+      error: Color(0xFFEF5350),
+      onError: Colors.white,
+      surface: Color(0xFF1A2535),
+      onSurface: Color(0xFFE8EDF5),
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF1F6AE2),
-        brightness: Brightness.dark,
-      ),
+      colorScheme: colorScheme,
       primaryColor: const Color(0xFF4DB7FF),
       scaffoldBackgroundColor: const Color(0xFF0F1923),
+      cardColor: const Color(0xFF1A2535),
+      dividerColor: const Color(0xFF2A3A4A),
       textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: Color(0xFFE8EDF5),
       ),
-      cardColor: const Color(0xFF1A2535),
-      dividerColor: const Color(0xFF2A3A4A),
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1A2535),
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      iconTheme: const IconThemeData(color: Color(0xFF4DB7FF)),
+      listTileTheme: const ListTileThemeData(
+        textColor: Color(0xFFE8EDF5),
+        iconColor: Color(0xFF4DB7FF),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? const Color(0xFF4DB7FF)
+              : Colors.grey.shade600,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected)
+              ? const Color(0xFF4DB7FF).withOpacity(0.4)
+              : Colors.grey.shade800,
+        ),
+      ),
     );
   }
 }

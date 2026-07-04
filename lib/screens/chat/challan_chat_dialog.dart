@@ -198,8 +198,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                         onTap: () async {
                           final picked = await showDatePicker(
                             context: context,
-                            initialDate: _dueDate ??
-                                (_startDate ?? DateTime.now()),
+                            initialDate:
+                                _dueDate ?? (_startDate ?? DateTime.now()),
                             firstDate: DateTime(2020),
                             lastDate: DateTime(2100),
                           );
@@ -739,8 +739,49 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
+
+        // Check if the document belongs to the current company before opening.
+        // The backend returns null / 403 if the current token's property code
+        // doesn't have access to this document.
         final doc = await ApiService.getDocument(documentId);
-        if (doc == null) return;
+
+        if (doc == null) {
+          // Document not accessible — likely a cross-company document.
+          // Show a clear message to the user.
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.swap_horiz_rounded,
+                      color: Colors.orange, size: 26),
+                  SizedBox(width: 10),
+                  Text(
+                    'Switch Company',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'This document belongs to a different company.\n\n'
+                'Please switch to the correct company to view this document.',
+                style: TextStyle(fontSize: 14),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
+
         final filePath = doc["FilePath"]?.toString() ?? "";
         if (filePath.isEmpty) return;
         final url = "http://myautoshop365.com/$filePath";
@@ -818,7 +859,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
           const SizedBox(height: 8),
 
-          Text("Assigned To: ${task["AssignedToName"] ?? task["AssignedTo"] ?? ""}"),
+          Text(
+            "Assigned To: ${task["AssignedToName"] ?? task["AssignedTo"] ?? ""}",
+          ),
 
           if ((task["TaskDescription"]?.toString() ?? '').isNotEmpty)
             Padding(
@@ -1381,7 +1424,10 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                                               >(
                                                 context: this.context,
                                                 builder: (_) =>
-                                                    const ChatDocumentPickerDialog(),
+                                                    ChatDocumentPickerDialog(
+                                                      receiverPropertyCode: "",
+                                                      receiverCompanyName: "",
+                                                    ),
                                               );
 
                                           if (selectedDoc != null) {
