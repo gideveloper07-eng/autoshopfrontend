@@ -1485,6 +1485,49 @@ class ApiService {
     }
   }
 
+  /// Creates an individual (direct-chat) task.
+  /// Stores in MA_ChatTasks with GroupId=NULL, ChallanId=NULL in the
+  /// communication DB. Also posts a TASK message into MA_ChallanChat.
+  static Future<bool> createIndividualTask({
+    required String receiverId,
+    required String receiverPropertyCode,
+    required String taskTitle,
+    required String taskDescription,
+    required String priority,
+    String? startDate,
+    String? dueDate,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/chat/create-individual-task"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({
+          "receiverId": receiverId,
+          "receiverPropertyCode": receiverPropertyCode,
+          "taskTitle": taskTitle,
+          "taskDescription": taskDescription,
+          "priority": priority,
+          if (startDate != null) "startDate": startDate,
+          if (dueDate != null) "dueDate": dueDate,
+        }),
+      );
+
+      print("INDIVIDUAL TASK STATUS : ${response.statusCode}");
+      print("INDIVIDUAL TASK BODY   : ${response.body}");
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print("CREATE INDIVIDUAL TASK ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<List<dynamic>> getTasks() async {
     try {
       final token = await getToken();
@@ -1501,6 +1544,28 @@ class ApiService {
       return body["data"] ?? [];
     } catch (e) {
       print(e);
+      return [];
+    }
+  }
+
+  /// Fetches individual (direct-chat) tasks from the communication DB.
+  /// These are tasks with GroupId=NULL created via create-individual-task.
+  static Future<List<dynamic>> getIndividualTasks() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/chat/individual-tasks"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      final body = jsonDecode(response.body);
+
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET INDIVIDUAL TASKS ERROR: $e");
       return [];
     }
   }

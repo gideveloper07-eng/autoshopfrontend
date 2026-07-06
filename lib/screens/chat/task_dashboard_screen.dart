@@ -21,12 +21,29 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen> {
   Future<void> _loadTasks() async {
     setState(() => _loading = true);
 
-    final data = await ApiService.getTasks();
+    // Fetch group tasks and individual tasks separately, then merge
+    final results = await Future.wait([
+      ApiService.getTasks(),
+      ApiService.getIndividualTasks(),
+    ]);
+
+    final groupTasks = results[0];
+    final individualTasks = results[1];
+
+    // Merge and sort by CreatedDate descending
+    final merged = [...groupTasks, ...individualTasks];
+    merged.sort((a, b) {
+      final dateA = DateTime.tryParse(a['CreatedDate']?.toString() ?? '') ??
+          DateTime(2000);
+      final dateB = DateTime.tryParse(b['CreatedDate']?.toString() ?? '') ??
+          DateTime(2000);
+      return dateB.compareTo(dateA);
+    });
 
     if (!mounted) return;
 
     setState(() {
-      _tasks = data;
+      _tasks = merged;
       _loading = false;
     });
   }

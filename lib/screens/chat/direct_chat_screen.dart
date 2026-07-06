@@ -548,17 +548,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 if (_taskTitleCtrl.text.trim().isEmpty) return;
                 final messenger = ScaffoldMessenger.of(context);
                 final nav = Navigator.of(ctx);
-                final ok = await ApiService.createTask(
-                  groupId: widget.groupId,
+                final ok = await ApiService.createIndividualTask(
+                  receiverId: assignedToId.isNotEmpty ? assignedToId : _myId,
+                  receiverPropertyCode: widget.receiverPropertyCode ?? '',
                   taskTitle: _taskTitleCtrl.text.trim(),
                   taskDescription: _taskDescCtrl.text.trim(),
-                  assignedTo: assignedToId.isNotEmpty ? assignedToId : _myId,
                   priority: _selectedPriority,
                   startDate: _taskStartDate?.toIso8601String(),
                   dueDate: _taskDueDate?.toIso8601String(),
-                  assignedToDatabase: assignedToDatabase.isNotEmpty
-                      ? assignedToDatabase
-                      : null,
                 );
                 if (!mounted) return;
                 nav.pop();
