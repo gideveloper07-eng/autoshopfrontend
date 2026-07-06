@@ -743,7 +743,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                   if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
                       !isLoading)
-                    _buildChatPreviewCard(),
+                    const SizedBox.shrink(), // Chat card removed
                 ],
               ),
             ),

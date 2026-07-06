@@ -29,13 +29,19 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen> {
 
     final groupTasks = results[0];
     final individualTasks = results[1];
+    print("GROUP TASKS: ${groupTasks.length}");
+    print(groupTasks);
 
+    print("INDIVIDUAL TASKS: ${individualTasks.length}");
+    print(individualTasks);
     // Merge and sort by CreatedDate descending
     final merged = [...groupTasks, ...individualTasks];
     merged.sort((a, b) {
-      final dateA = DateTime.tryParse(a['CreatedDate']?.toString() ?? '') ??
+      final dateA =
+          DateTime.tryParse(a['CreatedDate']?.toString() ?? '') ??
           DateTime(2000);
-      final dateB = DateTime.tryParse(b['CreatedDate']?.toString() ?? '') ??
+      final dateB =
+          DateTime.tryParse(b['CreatedDate']?.toString() ?? '') ??
           DateTime(2000);
       return dateB.compareTo(dateA);
     });

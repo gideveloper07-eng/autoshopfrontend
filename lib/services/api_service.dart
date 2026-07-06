@@ -1535,7 +1535,7 @@ class ApiService {
       if (token == null) return [];
 
       final response = await http.get(
-        Uri.parse("$baseUrl/api/group/tasks"),
+        Uri.parse("$baseUrl/api/chat/get-tasks"),
         headers: {"Authorization": "Bearer $token"},
       );
 
@@ -1560,6 +1560,9 @@ class ApiService {
         Uri.parse("$baseUrl/api/chat/individual-tasks"),
         headers: {"Authorization": "Bearer $token"},
       );
+
+      print("INDIVIDUAL TASK STATUS: ${response.statusCode}");
+      print("INDIVIDUAL TASK BODY: ${response.body}");
 
       final body = jsonDecode(response.body);
 
