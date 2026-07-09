@@ -1706,99 +1706,139 @@ class _AccountDropdownState extends State<_AccountDropdown>
                                 children: [
                                   const SizedBox(height: 8),
                                   // Theme toggle
-                                  GestureDetector(
-                                    onTap: widget.onToggleTheme,
-                                    child: Container(
-                                      color: Colors.transparent,
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 20, vertical: 13),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 44,
-                                            height: 44,
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? const Color(0xFF1E2D3D)
-                                                  : const Color(0xFFFFF8E1),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              isDark
-                                                  ? Icons.dark_mode_rounded
-                                                  : Icons.light_mode_rounded,
-                                              color: isDark
-                                                  ? const Color(0xFF90CAF9)
-                                                  : const Color(0xFFFFA000),
-                                              size: 22,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  isDark ? "Dark Mode" : "Light Mode",
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w700,
-                                                    color: textHighColor,
-                                                  ),
+                                  Consumer<ThemeProvider>(
+                                    builder: (ctx, tp, _) {
+                                      final autoOn = tp.isAuto;
+                                      return GestureDetector(
+                                        onTap: autoOn
+                                            ? widget.onSettings
+                                            : widget.onToggleTheme,
+                                        child: Container(
+                                          color: Colors.transparent,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 20, vertical: 13),
+                                          child: Row(
+                                            children: [
+                                              Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: BoxDecoration(
+                                                  color: isDark
+                                                      ? const Color(0xFF1E2D3D)
+                                                      : const Color(0xFFFFF8E1),
+                                                  borderRadius: BorderRadius.circular(12),
                                                 ),
-                                                const SizedBox(height: 1),
-                                                Text(
-                                                  isDark
-                                                      ? "Switch to light theme"
-                                                      : "Switch to dark theme",
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    color: textMidColor,
-                                                  ),
+                                                child: Icon(
+                                                  autoOn
+                                                      ? Icons.auto_awesome_rounded
+                                                      : isDark
+                                                          ? Icons.dark_mode_rounded
+                                                          : Icons.light_mode_rounded,
+                                                  color: autoOn
+                                                      ? const Color(0xFF1A56DB)
+                                                      : isDark
+                                                          ? const Color(0xFF90CAF9)
+                                                          : const Color(0xFFFFA000),
+                                                  size: 22,
                                                 ),
-                                              ],
-                                            ),
-                                          ),
-                                          // Animated toggle switch
-                                          AnimatedContainer(
-                                            duration: const Duration(milliseconds: 250),
-                                            width: 44,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              borderRadius: BorderRadius.circular(12),
-                                              color: isDark
-                                                  ? const Color(0xFF1565C0)
-                                                  : Colors.grey.shade300,
-                                            ),
-                                            child: Stack(
-                                              children: [
-                                                AnimatedPositioned(
-                                                  duration: const Duration(milliseconds: 250),
-                                                  curve: Curves.easeInOut,
-                                                  left: isDark ? 22 : 2,
-                                                  top: 2,
-                                                  child: Container(
-                                                    width: 20,
-                                                    height: 20,
-                                                    decoration: const BoxDecoration(
-                                                      color: Colors.white,
-                                                      shape: BoxShape.circle,
-                                                      boxShadow: [
-                                                        BoxShadow(
-                                                          color: Color(0x33000000),
-                                                          blurRadius: 4,
-                                                          offset: Offset(0, 1),
+                                              ),
+                                              const SizedBox(width: 14),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      children: [
+                                                        Text(
+                                                          autoOn
+                                                              ? "Auto Theme"
+                                                              : isDark ? "Dark Mode" : "Light Mode",
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: textHighColor,
+                                                          ),
                                                         ),
+                                                        if (autoOn) ...[
+                                                          const SizedBox(width: 6),
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(
+                                                                horizontal: 6, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: const Color(0xFF1A56DB).withOpacity(0.12),
+                                                              borderRadius: BorderRadius.circular(6),
+                                                            ),
+                                                            child: Text(
+                                                              isDark ? '🌙 Night' : '☀️ Day',
+                                                              style: const TextStyle(
+                                                                fontSize: 10,
+                                                                fontWeight: FontWeight.w600,
+                                                                color: Color(0xFF1A56DB),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ],
                                                     ),
-                                                  ),
+                                                    const SizedBox(height: 1),
+                                                    Text(
+                                                      autoOn
+                                                          ? '${tp.sunriseLabel} sunrise · ${tp.sunsetLabel} sunset'
+                                                          : isDark
+                                                              ? "Switch to light theme"
+                                                              : "Switch to dark theme",
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: textMidColor,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
+                                              ),
+                                              // Animated toggle switch
+                                              AnimatedContainer(
+                                                duration: const Duration(milliseconds: 250),
+                                                width: 44,
+                                                height: 24,
+                                                decoration: BoxDecoration(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  color: autoOn
+                                                      ? const Color(0xFF1A56DB)
+                                                      : isDark
+                                                          ? const Color(0xFF1565C0)
+                                                          : Colors.grey.shade300,
+                                                ),
+                                                child: Stack(
+                                                  children: [
+                                                    AnimatedPositioned(
+                                                      duration: const Duration(milliseconds: 250),
+                                                      curve: Curves.easeInOut,
+                                                      left: (autoOn || isDark) ? 22 : 2,
+                                                      top: 2,
+                                                      child: Container(
+                                                        width: 20,
+                                                        height: 20,
+                                                        decoration: const BoxDecoration(
+                                                          color: Colors.white,
+                                                          shape: BoxShape.circle,
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Color(0x33000000),
+                                                              blurRadius: 4,
+                                                              offset: Offset(0, 1),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   Divider(height: 1, indent: 72, endIndent: 20, color: dividerColor),
                                   _DropdownMenuItem(

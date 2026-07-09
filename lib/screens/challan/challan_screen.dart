@@ -144,13 +144,7 @@ class _ChallanScreenState extends State<ChallanScreen>
   String _dateFilter = 'challan';
 
   static const Color _primary = Color(0xFF0D3F8A); // dark splash blue
-  static const Color _secondary = Color(0xFF3B2A96); // deep purple
   static const Color _accent = Color(0xFF57D1FF); // bright cyan accent
-  static const Color _bg = Color(0xFFF4F9FF);
-  static const Color _cardBg = Colors.white;
-  static const Color _textDark = Color(0xFF1E293B);
-  static const Color _textMid = Color(0xFF64748B);
-  static const Color _gridBorder = Color(0xFFC7D2FE);
   static const Color _gridHeaderBorder = Color(0xFF27406D);
 
   List<_ColDef> _columns(AppLocalizations l10n) {
@@ -372,19 +366,27 @@ class _ChallanScreenState extends State<ChallanScreen>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = theme.scaffoldBackgroundColor;
+    final cardBg = theme.colorScheme.surface;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+    final gridBorder = isDark ? const Color(0xFF2A3A4A) : const Color(0xFFC7D2FE);
+
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: bg,
       body: Column(
         children: [
           _buildHeader(l10n),
           Expanded(
             child: _loading
-                ? _buildLoader(l10n)
+                ? _buildLoader(l10n, textMid)
                 : _error != null
-                ? _buildError(l10n)
+                ? _buildError(l10n, textDark, textMid)
                 : _rows.isEmpty
-                ? _buildEmpty(l10n)
-                : _buildGrid(l10n),
+                ? _buildEmpty(l10n, textMid)
+                : _buildGrid(l10n, cardBg, textMid, gridBorder),
           ),
         ],
       ),
@@ -507,7 +509,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildLoader(AppLocalizations l10n) {
+  Widget _buildLoader(AppLocalizations l10n, Color textMid) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -524,9 +526,9 @@ class _ChallanScreenState extends State<ChallanScreen>
           const SizedBox(height: 18),
           Text(
             l10n.loadingChallans,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: _textMid,
+              color: textMid,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -535,7 +537,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildError(AppLocalizations l10n) {
+  Widget _buildError(AppLocalizations l10n, Color textDark, Color textMid) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -558,17 +560,17 @@ class _ChallanScreenState extends State<ChallanScreen>
             const SizedBox(height: 20),
             Text(
               l10n.failedToLoadChallans,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: _textDark,
+                color: textDark,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _textMid),
+              style: TextStyle(fontSize: 12, color: textMid),
             ),
             const SizedBox(height: 28),
             ElevatedButton.icon(
@@ -594,7 +596,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildEmpty(AppLocalizations l10n) {
+  Widget _buildEmpty(AppLocalizations l10n, Color textMid) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -611,10 +613,10 @@ class _ChallanScreenState extends State<ChallanScreen>
           const SizedBox(height: 20),
           Text(
             l10n.noChallansFound,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _textMid,
+              color: textMid,
             ),
           ),
         ],
@@ -622,7 +624,7 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildGrid(AppLocalizations l10n) {
+  Widget _buildGrid(AppLocalizations l10n, Color cardBg, Color textMid, Color gridBorder) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: Column(
@@ -653,7 +655,7 @@ class _ChallanScreenState extends State<ChallanScreen>
             child: Container(
               height: 52,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
@@ -662,13 +664,13 @@ class _ChallanScreenState extends State<ChallanScreen>
                     offset: const Offset(0, 3),
                   ),
                 ],
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: gridBorder),
               ),
               child: Row(
                 children: [
                   const SizedBox(width: 14),
 
-                  const Icon(Icons.search, color: Color(0xFF64748B)),
+                  Icon(Icons.search, color: textMid),
 
                   const SizedBox(width: 10),
 
@@ -718,9 +720,9 @@ class _ChallanScreenState extends State<ChallanScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: _cardBg,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _gridBorder, width: 1),
+                border: Border.all(color: gridBorder, width: 1),
                 boxShadow: [
                   BoxShadow(
                     color: _primary.withValues(alpha: 0.06),
@@ -731,18 +733,18 @@ class _ChallanScreenState extends State<ChallanScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.filter_list_rounded,
                     size: 18,
-                    color: _textMid,
+                    color: textMid,
                   ),
                   const SizedBox(width: 8),
                   Text(
                     l10n.showDate,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: _textMid,
+                      color: textMid,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -792,9 +794,9 @@ class _ChallanScreenState extends State<ChallanScreen>
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Container(
                 decoration: BoxDecoration(
-                  color: _cardBg,
+                  color: cardBg,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _gridBorder, width: 1.2),
+                  border: Border.all(color: gridBorder, width: 1.2),
                   boxShadow: [
                     BoxShadow(
                       color: _primary.withValues(alpha: 0.08),
@@ -806,8 +808,8 @@ class _ChallanScreenState extends State<ChallanScreen>
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
-                    _buildTableHeader(l10n),
-                    Expanded(child: _buildTableRows()),
+                    _buildTableHeader(l10n, gridBorder),
+                    Expanded(child: _buildTableRows(gridBorder)),
                   ],
                 ),
               ),
@@ -818,16 +820,16 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildTableHeader(AppLocalizations l10n) {
+  Widget _buildTableHeader(AppLocalizations l10n, Color gridBorder) {
     final columns = _columns(l10n);
     return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
           colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border(bottom: BorderSide(color: _gridBorder, width: 1.2)),
+        border: Border(bottom: BorderSide(color: gridBorder, width: 1.2)),
       ),
       child: Row(
         children: [
@@ -835,7 +837,7 @@ class _ChallanScreenState extends State<ChallanScreen>
             Expanded(
               flex: columns[i].flex,
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
                     right: BorderSide(color: _gridHeaderBorder, width: 1),
                   ),
@@ -879,14 +881,16 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildTableRows() {
+  Widget _buildTableRows(Color gridBorder) {
     final l10n = AppLocalizations.of(context)!;
     final columns = _columns(l10n);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return ListView.separated(
       itemCount: _filteredRows.length,
       separatorBuilder: (_, __) {
-        return const Divider(height: 1, thickness: 1, color: _gridBorder);
+        return Divider(height: 1, thickness: 1, color: gridBorder);
       },
       itemBuilder: (context, index) {
         final row = _filteredRows[index];
@@ -898,6 +902,7 @@ class _ChallanScreenState extends State<ChallanScreen>
           cellFn: _cell,
           onEdit: () => _onEdit(row),
           editLabel: l10n.edit,
+          isDark: isDark,
         );
       },
     );
@@ -944,13 +949,10 @@ class _StatChip extends StatelessWidget {
 }
 
 class _DataRow extends StatelessWidget {
-  static const Color _borderColor = Color(0xFFC7D2FE);
-  static const Color _evenRowColor = Colors.white;
-  static const Color _oddRowColor = Color(0xFFEAF1FF);
-
   final Map<String, dynamic> row;
   final List<_ColDef> columns;
   final bool isEven;
+  final bool isDark;
   final String Function(Map<String, dynamic>, String) cellFn;
   final VoidCallback onEdit;
   final String editLabel;
@@ -959,6 +961,7 @@ class _DataRow extends StatelessWidget {
     required this.row,
     required this.columns,
     required this.isEven,
+    required this.isDark,
     required this.cellFn,
     required this.onEdit,
     required this.editLabel,
@@ -966,8 +969,21 @@ class _DataRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final evenRowColor = theme.colorScheme.surface;
+    final oddRowColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF1E2E42)
+        : const Color(0xFFEAF1FF);
+    final borderColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF2A3A4A)
+        : const Color(0xFFC7D2FE);
+    final textColor = theme.colorScheme.onSurface;
+    final subTextColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF8A9BB0)
+        : const Color(0xFF475569);
+
     return Container(
-      color: isEven ? _evenRowColor : _oddRowColor,
+      color: isEven ? evenRowColor : oddRowColor,
       child: Row(
         children: [
           ...columns.map((col) {
@@ -977,9 +993,9 @@ class _DataRow extends StatelessWidget {
             return Expanded(
               flex: col.flex,
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(
-                    right: BorderSide(color: _borderColor, width: 1),
+                    right: BorderSide(color: borderColor, width: 1),
                   ),
                 ),
                 child: Padding(
@@ -1020,8 +1036,8 @@ class _DataRow extends StatelessWidget {
                                 ? FontWeight.w600
                                 : FontWeight.w700,
                             color: (col.key == 'date' || col.key == 'exdate')
-                                ? const Color(0xFF475569)
-                                : const Color(0xFF1E293B),
+                                ? subTextColor
+                                : textColor,
                           ),
                         ),
                 ),
@@ -1031,9 +1047,9 @@ class _DataRow extends StatelessWidget {
           SizedBox(
             width: 112,
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
-                  right: BorderSide(color: _borderColor, width: 1),
+                  right: BorderSide(color: borderColor, width: 1),
                 ),
               ),
               child: Center(
@@ -1167,12 +1183,14 @@ class _EditSheetState extends State<_EditSheet> {
   @override
   Widget build(BuildContext context) {
     final bottom = MediaQuery.of(context).viewInsets.bottom;
+    final theme = Theme.of(context);
+    final cardBg = theme.colorScheme.surface;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       padding: EdgeInsets.fromLTRB(20, 24, 20, 20 + bottom),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: cardBg,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -1274,6 +1292,12 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final unselectedBg = isDark ? const Color(0xFF2A3A4A) : const Color(0xFFF1F5F9);
+    final unselectedBorder = isDark ? const Color(0xFF3A4A5A) : const Color(0xFFE2E8F0);
+    final unselectedText = theme.colorScheme.onSurface.withValues(alpha: 0.7);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1288,12 +1312,12 @@ class _FilterChip extends StatelessWidget {
                   end: Alignment.bottomRight,
                 )
               : null,
-          color: isSelected ? null : const Color(0xFFF1F5F9),
+          color: isSelected ? null : unselectedBg,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
                 ? const Color(0xFF27406D)
-                : const Color(0xFFE2E8F0),
+                : unselectedBorder,
             width: 1,
           ),
         ),
@@ -1304,7 +1328,7 @@ class _FilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            color: isSelected ? Colors.white : const Color(0xFF64748B),
+            color: isSelected ? Colors.white : unselectedText,
           ),
         ),
       ),

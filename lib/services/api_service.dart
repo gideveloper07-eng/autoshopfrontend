@@ -835,49 +835,50 @@ class ApiService {
     String? receiverPropertyCode,
   }) async {
     try {
-      print(
-        jsonEncode({
-          "challanId": challanId,
-          "messageText": messageText,
-          "senderName": senderName,
-          "challanNo": challanNo,
-          "databaseName": databaseName,
-          "receiverUserId": receiverUserId,
-          "receiverName": receiverName,
-          "messageType": messageType,
-          "documentId": documentId,
-          "receiverPropertyCode": receiverPropertyCode,
-        }),
-      );
       final token = await getToken();
 
-      if (token == null) return false;
+      if (token == null || token.isEmpty) {
+        print("❌ SEND CHAT: Token not found");
+        return false;
+      }
+
+      final requestBody = {
+        "challanId": challanId,
+        "messageText": messageText,
+        "senderName": senderName,
+        "challanNo": challanNo,
+
+        // Sender/current database
+        "databaseName": databaseName,
+
+        // Receiver information
+        "receiverUserId": receiverUserId,
+        "receiverName": receiverName,
+        "receiverDatabase": receiverDbName,
+        "receiverPropertyCode": receiverPropertyCode,
+
+        "messageType": messageType ?? "TEXT",
+        "documentId": documentId,
+      };
+
+      print("════════ SEND CHAT REQUEST ════════");
+      print(jsonEncode(requestBody));
 
       final response = await http.post(
-        Uri.parse("$baseUrl/api/chat/send"),
+        Uri.parse("$baseUrl/api/chat/send-message"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
-        body: jsonEncode({
-          "challanId": challanId,
-          "messageText": messageText,
-          "senderName": senderName,
-          "challanNo": challanNo,
-
-          "receiverUserId": receiverUserId,
-          "receiverName": receiverName,
-          "receiverDatabase": receiverDbName,
-
-          "messageType": messageType,
-          "documentId": documentId,
-          "receiverPropertyCode": receiverPropertyCode,
-        }),
+        body: jsonEncode(requestBody),
       );
+
+      print("SEND CHAT STATUS: ${response.statusCode}");
+      print("SEND CHAT RESPONSE: ${response.body}");
 
       return response.statusCode == 200;
     } catch (e) {
-      print("SEND CHAT ERROR: $e");
+      print("❌ SEND CHAT ERROR: $e");
       return false;
     }
   }
@@ -1570,6 +1571,54 @@ class ApiService {
     } catch (e) {
       print("GET INDIVIDUAL TASKS ERROR: $e");
       return [];
+    }
+  }
+
+  /// Fetches group tasks assigned via group chat (stored in company DBs).
+  /// Calls GET /api/group/tasks
+  static Future<List<dynamic>> getGroupTasks() async {
+    try {
+      final token = await getToken();
+      if (token == null) return [];
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/tasks"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      print("GROUP TASK STATUS: ${response.statusCode}");
+      print("GROUP TASK BODY: ${response.body}");
+
+      final body = jsonDecode(response.body);
+      return body["data"] ?? [];
+    } catch (e) {
+      print("GET GROUP TASKS ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Updates the status of any task (challan, individual, or group).
+  /// Calls POST /api/chat/update-task-status
+  static Future<bool> updateChatTaskStatus({
+    required String taskId,
+    required String status,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/chat/update-task-status"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"taskId": taskId, "status": status}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("UPDATE CHAT TASK STATUS ERROR: $e");
+      return false;
     }
   }
 

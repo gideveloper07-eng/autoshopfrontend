@@ -35,9 +35,15 @@ class _NewChatScreenState extends State<NewChatScreen> {
   static const Color _iconGrey = Color(0xFF54656F);
 
   static const List<Color> _avatarPalette = [
-    Color(0xFF00BCD4), Color(0xFF7B68EE), Color(0xFFFF7043),
-    Color(0xFF26A69A), Color(0xFFAB47BC), Color(0xFF42A5F5),
-    Color(0xFFEC407A), Color(0xFF66BB6A), Color(0xFFFFB300),
+    Color(0xFF00BCD4),
+    Color(0xFF7B68EE),
+    Color(0xFFFF7043),
+    Color(0xFF26A69A),
+    Color(0xFFAB47BC),
+    Color(0xFF42A5F5),
+    Color(0xFFEC407A),
+    Color(0xFF66BB6A),
+    Color(0xFFFFB300),
     Color(0xFF8D6E63),
   ];
 
@@ -64,7 +70,9 @@ class _NewChatScreenState extends State<NewChatScreen> {
       final name = (u['name']?.toString() ?? '').toLowerCase();
       final id = (u['id']?.toString() ?? '').toLowerCase();
       final email = (u['email']?.toString() ?? '').toLowerCase();
-      return name.contains(query) || id.contains(query) || email.contains(query);
+      return name.contains(query) ||
+          id.contains(query) ||
+          email.contains(query);
     }).toList();
   }
 
@@ -74,7 +82,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
     if (query.isEmpty) return widget.recentChallans;
     return widget.recentChallans.where((c) {
       final no = (c['sp_468']?.toString() ?? '').toLowerCase();
-      final name = (c['sp_469']?.toString() ?? '').toLowerCase();
+      final name = (c['challanmade']?.toString() ?? '').toLowerCase();
       final msg = (c['lastMessage']?.toString() ?? '').toLowerCase();
       return no.contains(query) || name.contains(query) || msg.contains(query);
     }).toList();
@@ -107,21 +115,31 @@ class _NewChatScreenState extends State<NewChatScreen> {
     final filteredChallans = _filteredChallans;
 
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0.5,
-        iconTheme: const IconThemeData(color: Color(0xFF54656F)),
+        iconTheme: IconThemeData(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF8A9BB0)
+              : _iconGrey,
+        ),
         titleSpacing: 0,
         title: _isSearching
             ? TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocusNode,
-                style: const TextStyle(color: Color(0xFF111B21), fontSize: 18),
-                cursorColor: Color(0xFF111B21),
-                decoration: const InputDecoration(
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontSize: 18,
+                ),
+                cursorColor: Theme.of(context).colorScheme.onSurface,
+                decoration: InputDecoration(
                   hintText: "Search…",
-                  hintStyle: TextStyle(color: Color(0xFF54656F), fontSize: 18),
+                  hintStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 18,
+                  ),
                   border: InputBorder.none,
                 ),
                 onChanged: (_) => setState(() {}),
@@ -129,10 +147,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "Select contact",
                     style: TextStyle(
-                      color: Color(0xFF111B21),
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -140,8 +158,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
                   const SizedBox(height: 2),
                   Text(
                     "${widget.allUsers.length} contacts",
-                    style: const TextStyle(
-                      color: Color(0xFF54656F),
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -149,8 +169,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
               ),
         actions: [
           IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search,
-                color: const Color(0xFF54656F)),
+            icon: Icon(
+              _isSearching ? Icons.close : Icons.search,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF8A9BB0)
+                  : _iconGrey,
+            ),
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
@@ -166,7 +190,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF54656F)),
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF8A9BB0)
+                  : _iconGrey,
+            ),
             onPressed: () {},
           ),
         ],
@@ -199,58 +228,68 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
     // ── Action tiles (New group / New contact) ──────────────
     if (!_isSearching) {
-      items.add(ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFF111B21),
-          child: Icon(Icons.group, color: Colors.white),
+      items.add(
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.group, color: Colors.white),
+          ),
+          title: const Text(
+            "New group",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          onTap: () => Navigator.pop(context, 'TRIGGER_NEW_GROUP'),
         ),
-        title: const Text(
-          "New group",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+      );
+      items.add(
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            child: const Icon(Icons.person_add, color: Colors.white),
+          ),
+          title: const Text(
+            "New contact",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          trailing: const Icon(Icons.qr_code, color: Colors.grey),
+          onTap: () {},
         ),
-        onTap: () => Navigator.pop(context, 'TRIGGER_NEW_GROUP'),
-      ));
-      items.add(ListTile(
-        leading: const CircleAvatar(
-          backgroundColor: Color(0xFF111B21),
-          child: Icon(Icons.person_add, color: Colors.white),
-        ),
-        title: const Text(
-          "New contact",
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-        ),
-        trailing: const Icon(Icons.qr_code, color: Colors.grey),
-        onTap: () {},
-      ));
+      );
     }
 
     // ── Recent Challan Chats ─────────────────────────────────
     if (filteredChallans.isNotEmpty) {
-      items.add(_sectionHeader(Icons.receipt_long_outlined, "Recent Challan Chats"));
+      items.add(
+        _sectionHeader(Icons.receipt_long_outlined, "Recent Challan Chats"),
+      );
+
       for (final challan in filteredChallans) {
         final challanId = challan['sp_462']?.toString() ?? '';
         final challanNo = challan['sp_468']?.toString() ?? '';
-        final customerName = challan['sp_469']?.toString() ?? '';
+        final customerName = challan['challanmade']?.toString() ?? '';
         final lastMsg = challan['lastMessage']?.toString() ?? '';
         final lastTime = _formatTime(challan['lastTime']?.toString());
-        final title =
-            customerName.isNotEmpty ? customerName : 'Challan #$challanNo';
+        final title = customerName.isNotEmpty
+            ? customerName
+            : 'Challan #$challanNo';
         final avatarLetter = title.isNotEmpty ? title[0].toUpperCase() : 'C';
 
-        items.add(_chatTile(
-          key: ValueKey('challan_$challanId'),
-          avatarLetter: avatarLetter,
-          avatarColor: _avatarColorFromName(title),
-          title: title,
-          subtitle: lastMsg.isNotEmpty ? lastMsg : 'Challan #$challanNo',
-          timeLabel: lastTime,
-          onTap: () => Navigator.pop(context, {
-            '_type': 'challan',
-            'challanId': challanId,
-            'challanNo': challanNo,
-            'customerName': customerName,
-          }),
-        ));
+        items.add(
+          _chatTile(
+            key: ValueKey('challan_$challanId'),
+            avatarLetter: avatarLetter,
+            avatarColor: _avatarColorFromName(title),
+            title: title,
+            subtitle: lastMsg.isNotEmpty ? lastMsg : 'Challan #$challanNo',
+            timeLabel: lastTime,
+            onTap: () => Navigator.pop(context, {
+              '_type': 'challan',
+              'challanId': challanId,
+              'challanNo': challanNo,
+              'customerName': customerName,
+            }),
+          ),
+        );
       }
     }
 
@@ -259,15 +298,17 @@ class _NewChatScreenState extends State<NewChatScreen> {
 
     // ── Users ────────────────────────────────────────────────
     if (filteredUsers.isEmpty) {
-      items.add(const Padding(
-        padding: EdgeInsets.symmetric(vertical: 32),
-        child: Center(
-          child: Text(
-            "No contacts found",
-            style: TextStyle(color: Colors.grey, fontSize: 15),
+      items.add(
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Center(
+            child: Text(
+              "No contacts found",
+              style: TextStyle(color: Colors.grey, fontSize: 15),
+            ),
           ),
         ),
-      ));
+      );
     } else {
       for (final user in filteredUsers) {
         final userId = user['id']?.toString() ?? '';
@@ -277,47 +318,47 @@ class _NewChatScreenState extends State<NewChatScreen> {
         final subtitle = companyName.isNotEmpty
             ? companyName
             : userEmail.isNotEmpty
-                ? userEmail
-                : 'No description/email';
-        final avatarLetter =
-            userName.isNotEmpty ? userName[0].toUpperCase() : '?';
+            ? userEmail
+            : 'No description/email';
+        final avatarLetter = userName.isNotEmpty
+            ? userName[0].toUpperCase()
+            : '?';
 
-        items.add(ListTile(
-          key: ValueKey('user_$userId'),
-          leading: CircleAvatar(
-            backgroundColor: _avatarColorFromName(userName),
-            child: Text(
-              avatarLetter,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+        items.add(
+          ListTile(
+            key: ValueKey('user_$userId'),
+            leading: CircleAvatar(
+              backgroundColor: _avatarColorFromName(userName),
+              child: Text(
+                avatarLetter,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
-          ),
-          title: Text(
-            userName,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
+            title: Text(
+              userName,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
-          ),
-          subtitle: Text(
-            subtitle,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: companyName.isNotEmpty
-                  ? const Color(0xFF54656F)
-                  : Colors.grey,
-              fontSize: 13,
-              fontWeight: companyName.isNotEmpty
-                  ? FontWeight.w500
-                  : FontWeight.normal,
+            subtitle: Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: companyName.isNotEmpty
+                    ? const Color(0xFF54656F)
+                    : Colors.grey,
+                fontSize: 13,
+                fontWeight: companyName.isNotEmpty
+                    ? FontWeight.w500
+                    : FontWeight.normal,
+              ),
             ),
+            onTap: () => Navigator.pop(context, user),
           ),
-          onTap: () => Navigator.pop(context, user),
-        ));
+        );
       }
     }
 
@@ -325,19 +366,25 @@ class _NewChatScreenState extends State<NewChatScreen> {
   }
 
   Widget _sectionHeader(IconData icon, String label) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF1E2E42) : const Color(0xFFF0F2F5);
+    final textColor = isDark
+        ? const Color(0xFF8A9BB0)
+        : const Color(0xFF555555);
     return Container(
-      color: const Color(0xFFF0F2F5),
+      color: bg,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: _iconGrey),
+          Icon(icon, size: 14, color: textColor),
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF555555),
+              color: textColor,
               letterSpacing: 0.3,
             ),
           ),
@@ -355,12 +402,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
     required String timeLabel,
     required VoidCallback onTap,
   }) {
+    final onSurface = Theme.of(context).colorScheme.onSurface;
     return InkWell(
       key: key,
       onTap: onTap,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
             CircleAvatar(
@@ -385,10 +432,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
                       Expanded(
                         child: Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 15,
-                            color: Color(0xFF1A1A1A),
+                            color: onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -398,8 +445,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
                         const SizedBox(width: 6),
                         Text(
                           timeLabel,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: onSurface.withOpacity(0.5),
+                          ),
                         ),
                       ],
                     ],
@@ -409,8 +458,10 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style:
-                        const TextStyle(fontSize: 13, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: onSurface.withOpacity(0.55),
+                    ),
                   ),
                 ],
               ),

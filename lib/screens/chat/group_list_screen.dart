@@ -26,7 +26,13 @@ class _GroupListScreenState extends State<GroupListScreen> {
     setState(() => _loading = true);
     try {
       final data = await ApiService.getMyGroups();
-      if (mounted) setState(() { _groups = data; _loading = false; });
+     
+      if (mounted) {
+        setState(() {
+          _groups = data;
+          _loading = false;
+        });
+      }
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -55,19 +61,28 @@ class _GroupListScreenState extends State<GroupListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.groups_outlined, size: 64,
-                color: AppColors.textSecondary.withOpacity(0.4)),
+            Icon(
+              Icons.groups_outlined,
+              size: 64,
+              color: AppColors.textSecondary.withOpacity(0.4),
+            ),
             const SizedBox(height: 16),
-            Text("No Groups Yet",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary)),
+            Text(
+              "No Groups Yet",
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 6),
-            Text("Create a group from any challan chat",
-                style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary.withOpacity(0.6))),
+            Text(
+              "Create a group from any challan chat",
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary.withOpacity(0.6),
+              ),
+            ),
           ],
         ),
       );
@@ -86,10 +101,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
           final groupDatabase = group['DatabaseName']?.toString();
           final memberCount = (group['MemberCount'] as num?)?.toInt() ?? 0;
           final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
-          final avatarLetter =
-              groupName.isNotEmpty ? groupName[0].toUpperCase() : 'G';
+          final avatarLetter = groupName.isNotEmpty
+              ? groupName[0].toUpperCase()
+              : 'G';
           final timeLabel = _formatTime(lastMsgTime);
-
+          final groupPropertyCode = group['PropertyCode']?.toString();
+          final groupCompanyName = group['DatabaseName']?.toString();
           return GestureDetector(
             onTap: () async {
               await Navigator.push(
@@ -97,9 +114,12 @@ class _GroupListScreenState extends State<GroupListScreen> {
                 MaterialPageRoute(
                   settings: const RouteSettings(name: 'GroupChatScreen'),
                   builder: (_) => GroupChatScreen(
-                      groupId: groupId,
-                      groupName: groupName,
-                      groupDatabase: groupDatabase),
+                    groupId: groupId,
+                    groupName: groupName,
+                    groupDatabase: groupDatabase,
+                    groupPropertyCode: groupPropertyCode,
+                    groupCompanyName: groupCompanyName,
+                  ),
                 ),
               );
               _loadGroups(); // refresh on return
@@ -138,9 +158,10 @@ class _GroupListScreenState extends State<GroupListScreen> {
                       child: Text(
                         avatarLetter,
                         style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20),
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -154,21 +175,26 @@ class _GroupListScreenState extends State<GroupListScreen> {
                         Text(
                           groupName,
                           style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                         const SizedBox(height: 3),
                         Row(
                           children: [
-                            const Icon(Icons.people_outline,
-                                size: 13, color: Colors.grey),
+                            const Icon(
+                              Icons.people_outline,
+                              size: 13,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               "$memberCount member${memberCount == 1 ? '' : 's'}",
                               style: TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary),
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -184,12 +210,15 @@ class _GroupListScreenState extends State<GroupListScreen> {
                         Text(
                           timeLabel,
                           style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.textSecondary.withOpacity(0.6)),
+                            fontSize: 11,
+                            color: AppColors.textSecondary.withOpacity(0.6),
+                          ),
                         ),
                       const SizedBox(height: 4),
-                      Icon(Icons.chevron_right_rounded,
-                          color: AppColors.textSecondary.withOpacity(0.4)),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: AppColors.textSecondary.withOpacity(0.4),
+                      ),
                     ],
                   ),
                 ],

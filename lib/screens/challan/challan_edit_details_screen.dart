@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
 import '../../services/activity_service.dart';
 import '../../l10n/app_localizations.dart';
+import '../chat/chat_list_screen.dart';
 import '../chat/challan_chat_dialog.dart';
 
 class ChallanEditDetailsScreen extends StatefulWidget {
@@ -1052,13 +1053,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   final TextEditingController _rejectRemarkController = TextEditingController();
   bool _isRadioSelected = false;
   final GlobalKey _checkboxRowKey = GlobalKey();
+  String _currentChallanMade = '';
+  String _challanPropertyCode = '';
+  String _challanDatabaseName = '';
 
   static const Color _primary = Color(0xFF0D3F8A);
   static const Color _secondary = Color(0xFF2C6CE0);
-  static const Color _bg = Color(0xFFF4F9FF);
-  static const Color _cardBg = Colors.white;
-  static const Color _textDark = Color(0xFF1E293B);
-  static const Color _textMid = Color(0xFF64748B);
   static const Color _rowBorder = Color(0xFFC7D2FE);
 
   @override
@@ -1162,6 +1162,62 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     }
   }
 
+  String get _currentChallanNo {
+    final fromData = _data?['challanno']?.toString().trim() ?? '';
+    return fromData.isNotEmpty && fromData.toLowerCase() != 'null'
+        ? fromData
+        : widget.challanNo;
+  }
+
+  String get _currentCustomerName {
+    final fromData = _data?['customername']?.toString().trim() ?? '';
+    return fromData.isNotEmpty && fromData.toLowerCase() != 'null'
+        ? fromData
+        : '';
+  }
+
+  Future<void> _openChallanChatLauncher() async {
+    final challanId = widget.sp462;
+    final challanNo = _currentChallanNo;
+    final challanMade = _currentChallanMade;
+
+    print("Receiver User ID: $challanMade");
+    print("Receiver Property Code: $_challanPropertyCode");
+    print("Receiver Database: $_challanDatabaseName");
+
+    if (challanMade.isEmpty || _challanPropertyCode.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Challan creator or property code not found."),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'ChallanChatDialog'),
+        builder: (_) => ChallanChatDialog(
+          challanId: challanId,
+
+          challanNo: challanNo.isNotEmpty ? challanNo : challanId,
+
+          customerName: challanMade,
+
+          receiverUserId: challanMade,
+          receiverName: challanMade,
+
+          receiverPropertyCode: _challanPropertyCode,
+
+          receiverDatabaseName: _challanDatabaseName,
+        ),
+      ),
+    );
+  }
+
   Future<void> _loadData() async {
     setState(() {
       _loading = true;
@@ -1177,8 +1233,14 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       final sections = _buildSectionsFromData(data, l10n);
       setState(() {
         _data = data;
-        _loading = false;
+        _currentChallanMade = data['challanmade']?.toString().trim() ?? '';
+        _challanPropertyCode =
+            data['propertycode']?.toString().trim().toLowerCase() ?? '';
 
+        _challanDatabaseName = data['databasename']?.toString().trim() ?? '';
+
+        print("Challan created by: $_currentChallanMade");
+        _loading = false;
         _initRejectFieldKeys(sections);
       });
     } catch (e) {
@@ -1549,8 +1611,15 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = theme.scaffoldBackgroundColor;
+    final cardBg = theme.colorScheme.surface;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: bg,
       body: Column(
         children: [
           _buildHeader(l10n),
@@ -1562,6 +1631,51 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                 : _buildContent(l10n),
           ),
         ],
+      ),
+      floatingActionButton: _buildChallanChatButton(),
+    );
+  }
+
+  Widget _buildChallanChatButton() {
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomPadding > 0 ? 72 : 58),
+      child: FloatingActionButton(
+        heroTag: 'challan_details_chat_${widget.sp462}',
+        tooltip: 'Open challan chat',
+        backgroundColor: const Color(0xFF0B63FF),
+        foregroundColor: Colors.white,
+        onPressed: _openChallanChatLauncher,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.chat_bubble_rounded, size: 30),
+            if (_unreadChatCount > 0)
+              Positioned(
+                right: -8,
+                top: -8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: Text(
+                    _unreadChatCount > 99 ? '99+' : '$_unreadChatCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1670,6 +1784,9 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Widget _buildLoader(AppLocalizations l10n) {
+    final textMid = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF8A9BB0)
+        : const Color(0xFF64748B);
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1684,7 +1801,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             _t('loadingChallanDetails'),
             style: TextStyle(
               fontSize: 14,
-              color: _textMid,
+              color: textMid,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -1694,6 +1811,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Widget _buildError(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -1719,14 +1840,14 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: _textDark,
+                color: textDark,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _error ?? '',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 12, color: _textMid),
+              style: TextStyle(fontSize: 12, color: textMid),
             ),
             const SizedBox(height: 28),
             ElevatedButton.icon(
@@ -1750,10 +1871,16 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Widget _buildControlsCard(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardBg = theme.colorScheme.surface;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+
     return Container(
       key: _checkboxRowKey,
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: _rowBorder, width: 1.2),
         boxShadow: [
@@ -1790,7 +1917,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                   border: Border.all(
                     color: _isRadioSelected
                         ? _primary
-                        : _textMid.withValues(alpha: 0.4),
+                        : textMid.withValues(alpha: 0.4),
                     width: 2,
                   ),
                 ),
@@ -1819,7 +1946,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: _textDark,
+                        color: textDark,
                       ),
                     ),
                     Text(
@@ -1827,7 +1954,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: _textMid,
+                        color: textMid,
                       ),
                     ),
                   ],
@@ -1844,6 +1971,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     if (_data == null) return const SizedBox.shrink();
 
     final sections = _buildSections();
+    final theme = Theme.of(context);
+    final cardBg = theme.colorScheme.surface;
 
     return Column(
       children: [
@@ -1854,7 +1983,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: _cardBg,
+                    color: cardBg,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: _rowBorder, width: 1.2),
                     boxShadow: [
@@ -1891,6 +2020,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Widget _buildRejectRemarkPreview(AppLocalizations l10n) {
+    final textDark = Theme.of(context).colorScheme.onSurface;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1924,10 +2054,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           const SizedBox(height: 6),
           Text(
             _rejectRemarkController.text,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _textDark,
+              color: textDark,
               height: 1.4,
             ),
           ),
@@ -1949,6 +2079,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         _reviewedHighlightedSections.contains(section.title);
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
+    final textDark = Theme.of(context).colorScheme.onSurface;
 
     final summaryMaxWidth = isSmallScreen ? 110.0 : 460.0;
 
@@ -2061,7 +2192,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                               ? isReviewed
                                     ? const Color(0xFF065F46)
                                     : const Color(0xFFB91C1C)
-                              : _textDark,
+                              : textDark,
                         ),
                       ),
                     ),
@@ -2077,10 +2208,10 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           softWrap: true,
                           maxLines: isSmallScreen ? 2 : 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: _textDark,
+                            color: textDark,
                           ),
                         ),
                       ),
@@ -2155,7 +2286,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -2528,10 +2659,6 @@ class _FieldData {
 
 class _SectionFieldRow extends StatelessWidget {
   static const Color _borderColor = Color(0xFFC7D2FE);
-  static const Color _evenRowColor = Colors.white;
-  static const Color _oddRowColor = Color(0xFFEAF1FF);
-  static const Color _textDark = Color(0xFF1E293B);
-  static const Color _textMid = Color(0xFF64748B);
   static const Color _primary = Color(0xFF1A56DB);
 
   final _FieldData field;
@@ -2552,13 +2679,23 @@ class _SectionFieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final evenRowColor = theme.colorScheme.surface;
+    final oddRowColor = isDark
+        ? const Color(0xFF1E2E42)
+        : const Color(0xFFEAF1FF);
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+    final borderColor = isDark ? const Color(0xFF2A3A4A) : _borderColor;
+
     return Container(
       decoration: BoxDecoration(
-        color: isEven ? _evenRowColor : _oddRowColor,
+        color: isEven ? evenRowColor : oddRowColor,
         border: Border(
           bottom: isLast
               ? BorderSide.none
-              : const BorderSide(color: _borderColor, width: 1),
+              : BorderSide(color: borderColor, width: 1),
         ),
       ),
       child: Row(
@@ -2578,18 +2715,16 @@ class _SectionFieldRow extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: _borderColor, width: 1),
-                ),
+              decoration: BoxDecoration(
+                border: Border(right: BorderSide(color: borderColor, width: 1)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
               child: Text(
                 field.label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: _textMid,
+                  color: textMid,
                 ),
               ),
             ),
@@ -2630,12 +2765,12 @@ class _SectionFieldRow extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [Color(0xFFFFE5E5), Color(0xFFFFF3E0)],
                           ),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Color(0xFFFF6B6B),
+                            color: const Color(0xFFFF6B6B),
                             width: 1.2,
                           ),
                         ),
@@ -2647,9 +2782,7 @@ class _SectionFieldRow extends StatelessWidget {
                               size: 14,
                               color: Color(0xFFDC2626),
                             ),
-
                             const SizedBox(width: 4),
-
                             Text(
                               field.value,
                               style: const TextStyle(
@@ -2665,10 +2798,10 @@ class _SectionFieldRow extends StatelessWidget {
                   : Text(
                       field.value,
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: _textDark,
+                        color: textDark,
                       ),
                     ),
             ),

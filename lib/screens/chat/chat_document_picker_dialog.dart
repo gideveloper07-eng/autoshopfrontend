@@ -68,6 +68,9 @@ class _ChatDocumentPickerDialogState extends State<ChatDocumentPickerDialog> {
 
     // Same company -> load documents
     // Same company -> load documents
+    print(
+      "Fetching documents for ${widget.receiverCompanyName} (${widget.receiverPropertyCode})",
+    );
     final response = await ApiService.getChatDocuments(
       receiverPropertyCode: widget.receiverPropertyCode,
       receiverCompanyName: widget.receiverCompanyName,

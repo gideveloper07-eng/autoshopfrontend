@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/theme_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  static const Color _primary = Color(0xFF1A56DB);
+  static const Color _primary   = Color(0xFF1A56DB);
   static const Color _secondary = Color(0xFF3B82F6);
-  static const Color _bg = Color(0xFFF0F4FF);
-  static const Color _cardBg = Colors.white;
-  static const Color _textDark = Color(0xFF1E293B);
-  static const Color _textMid = Color(0xFF64748B);
+  static const Color _bg        = Color(0xFFF0F4FF);
+  static const Color _cardBg    = Colors.white;
+  static const Color _textDark  = Color(0xFF1E293B);
+  static const Color _textMid   = Color(0xFF64748B);
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
+    final l10n             = AppLocalizations.of(context)!;
     final languageProvider = Provider.of<LanguageProvider>(context);
 
     return Scaffold(
@@ -30,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   _buildLanguageCard(context, l10n, languageProvider),
                   const SizedBox(height: 16),
-                  // Add more settings cards here in future
+                  _buildThemeCard(context),
                 ],
               ),
             ),
@@ -39,6 +40,8 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ── Header ─────────────────────────────────────────────────────────────────
 
   Widget _buildHeader(BuildContext context, AppLocalizations l10n) {
     return Container(
@@ -49,11 +52,7 @@ class SettingsScreen extends StatelessWidget {
           end: Alignment.bottomRight,
         ),
         boxShadow: [
-          BoxShadow(
-            color: Color(0x551A56DB),
-            blurRadius: 20,
-            offset: Offset(0, 6),
-          ),
+          BoxShadow(color: Color(0x551A56DB), blurRadius: 20, offset: Offset(0, 6)),
         ],
       ),
       child: SafeArea(
@@ -62,7 +61,6 @@ class SettingsScreen extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(8, 10, 16, 18),
           child: Row(
             children: [
-              // Back button
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -72,38 +70,28 @@ class SettingsScreen extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Colors.white.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 18,
-                    ),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 18),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
-              // Icon badge
               Container(
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.white.withOpacity(0.18),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.3),
-                    width: 1.5,
-                  ),
+                      color: Colors.white.withOpacity(0.3), width: 1.5),
                 ),
-                child: const Icon(
-                  Icons.settings_rounded,
-                  color: Colors.white,
-                  size: 22,
-                ),
+                child: const Icon(Icons.settings_rounded,
+                    color: Colors.white, size: 22),
               ),
               const SizedBox(width: 12),
-              // Title
               Expanded(
                 child: Text(
                   l10n.settings,
@@ -122,6 +110,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  // ── Language card ──────────────────────────────────────────────────────────
+
   Widget _buildLanguageCard(
     BuildContext context,
     AppLocalizations l10n,
@@ -134,10 +124,9 @@ class SettingsScreen extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         boxShadow: [
           BoxShadow(
-            color: _primary.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
+              color: _primary.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 4)),
         ],
       ),
       child: Material(
@@ -149,7 +138,6 @@ class SettingsScreen extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Language icon
                 Container(
                   width: 48,
                   height: 48,
@@ -161,44 +149,30 @@ class SettingsScreen extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.language_rounded,
-                    color: Colors.white,
-                    size: 24,
-                  ),
+                  child: const Icon(Icons.language_rounded,
+                      color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
-                // Language info
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l10n.language,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: _textDark,
-                        ),
-                      ),
+                      Text(l10n.language,
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: _textDark)),
                       const SizedBox(height: 4),
-                      Text(
-                        languageProvider.currentLanguageName,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: _textMid,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text(languageProvider.currentLanguageName,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: _textMid,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
-                // Arrow icon
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 18,
-                  color: _textMid,
-                ),
+                const Icon(Icons.arrow_forward_ios_rounded,
+                    size: 18, color: _textMid),
               ],
             ),
           ),
@@ -206,6 +180,412 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  // ── Theme card ─────────────────────────────────────────────────────────────
+
+  Widget _buildThemeCard(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, tp, _) {
+        final isAuto      = tp.isAuto;
+        final isDark      = tp.isDark;
+        final cardBg      = Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1E2E42)
+            : _cardBg;
+        final onSurface   = Theme.of(context).colorScheme.onSurface;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            boxShadow: [
+              BoxShadow(
+                  color: _primary.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                // ── Header row ───────────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: isDark
+                              ? [const Color(0xFF3B4A6B), const Color(0xFF1A2535)]
+                              : [const Color(0xFFFFC107), const Color(0xFFFF9800)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        isAuto
+                            ? Icons.auto_awesome_rounded
+                            : isDark
+                                ? Icons.nightlight_round
+                                : Icons.wb_sunny_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Theme',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: onSurface)),
+                          const SizedBox(height: 3),
+                          Text(
+                            isAuto
+                                ? 'Auto  •  ${tp.autoStatusLabel}'
+                                : isDark
+                                    ? 'Dark Mode'
+                                    : 'Light Mode',
+                            style: const TextStyle(
+                                fontSize: 13,
+                                color: _textMid,
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+
+                // ── Section label ────────────────────────────────────
+                Text(
+                  'THEME MODE',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: _textMid.withOpacity(0.65),
+                    letterSpacing: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 10),
+
+                // ══════════════════════════════════════════════════════
+                // OPTION 1 — MANUAL
+                // Active when isAuto = false.  Fades to 35% when auto is ON.
+                // ══════════════════════════════════════════════════════
+                AnimatedOpacity(
+                  opacity: isAuto ? 0.38 : 1.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: !isAuto
+                          ? _primary.withOpacity(0.06)
+                          : Colors.grey.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: !isAuto
+                            ? _primary.withOpacity(0.22)
+                            : Colors.grey.withOpacity(0.12),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // Icon
+                        Icon(
+                          isDark
+                              ? Icons.dark_mode_outlined
+                              : Icons.light_mode_outlined,
+                          size: 20,
+                          color: !isAuto ? _primary : _textMid,
+                        ),
+                        const SizedBox(width: 12),
+
+                        // Label
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Manual',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: !isAuto ? onSurface : _textMid,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                isAuto
+                                    ? 'Disabled while Auto is ON'
+                                    : isDark
+                                        ? 'Currently: Dark — tap to switch Light'
+                                        : 'Currently: Light — tap to switch Dark',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _textMid.withOpacity(0.75),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Toggle — disabled (null onTap) when auto is ON
+                        GestureDetector(
+                          onTap: isAuto ? null : () => tp.toggleTheme(),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            width: 52,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              color: !isAuto && isDark
+                                  ? const Color(0xFF1565C0)
+                                  : Colors.grey.shade300,
+                            ),
+                            child: Stack(
+                              children: [
+                                AnimatedPositioned(
+                                  duration: const Duration(milliseconds: 250),
+                                  curve: Curves.easeInOut,
+                                  left: isDark ? 26 : 2,
+                                  top: 2,
+                                  child: Container(
+                                    width: 24,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.15),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      isDark
+                                          ? Icons.dark_mode
+                                          : Icons.light_mode,
+                                      size: 13,
+                                      color: isDark
+                                          ? const Color(0xFF1565C0)
+                                          : const Color(0xFFFFA000),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // ══════════════════════════════════════════════════════
+                // OPTION 2 — AUTO (sunrise / sunset)
+                // Switch turns auto ON/OFF.  When ON, manual is faded.
+                // ══════════════════════════════════════════════════════
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isAuto
+                        ? _primary.withOpacity(0.06)
+                        : Colors.grey.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isAuto
+                          ? _primary.withOpacity(0.22)
+                          : Colors.grey.withOpacity(0.12),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          // Animated icon
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 400),
+                            child: Icon(
+                              isAuto
+                                  ? (isDark
+                                      ? Icons.nights_stay_rounded
+                                      : Icons.wb_sunny_rounded)
+                                  : Icons.auto_awesome_rounded,
+                              key: ValueKey(isAuto
+                                  ? (isDark ? 'moon' : 'sun')
+                                  : 'off'),
+                              size: 20,
+                              color: isAuto ? _primary : _textMid,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Label
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Auto (Sunrise / Sunset)',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isAuto ? onSurface : _textMid,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isAuto
+                                      ? 'Now: ${tp.autoStatusLabel}'
+                                      : 'Light at sunrise · Dark at sunset',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: _textMid.withOpacity(0.75),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // ON/OFF switch
+                          Switch(
+                            value: isAuto,
+                            activeColor: _primary,
+                            onChanged: (val) => tp.setScheduleMode(
+                              val
+                                  ? ThemeScheduleMode.auto
+                                  : ThemeScheduleMode.manual,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // ── Time pickers expand when auto is ON ──────────
+                      if (isAuto) ...[
+                        const SizedBox(height: 10),
+                        const Divider(height: 1),
+                        const SizedBox(height: 12),
+
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _TimePickerTile(
+                                icon: Icons.wb_sunny_rounded,
+                                iconColor: const Color(0xFFFF9800),
+                                label: 'Sunrise → Light',
+                                time: tp.sunriseTime,
+                                onTap: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: tp.sunriseTime,
+                                    helpText: 'Set Sunrise Time',
+                                  );
+                                  if (picked != null) tp.setSunriseTime(picked);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _TimePickerTile(
+                                icon: Icons.nights_stay_rounded,
+                                iconColor: const Color(0xFF3B4A6B),
+                                label: 'Sunset → Dark',
+                                time: tp.sunsetTime,
+                                onTap: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: tp.sunsetTime,
+                                    helpText: 'Set Sunset Time',
+                                  );
+                                  if (picked != null) tp.setSunsetTime(picked);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.info_outline,
+                                size: 13, color: _textMid),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                'Checks every minute. Tap a time to adjust.',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: _textMid.withOpacity(0.65)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // ── Banner: Auto is ON → manual is disabled ──────────
+                if (isAuto) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border:
+                          Border.all(color: Colors.amber.withOpacity(0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info_outline,
+                            size: 15, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Auto mode is ON — manual toggle is disabled. '
+                            'Turn off Auto to change theme manually.',
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: _textMid,
+                                height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Language dialog ────────────────────────────────────────────────────────
 
   void _showLanguageDialog(
     BuildContext context,
@@ -215,31 +595,27 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [_primary, _secondary]),
+                gradient: const LinearGradient(
+                    colors: [_primary, _secondary]),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.language_rounded,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.language_rounded,
+                  color: Colors.white, size: 20),
             ),
             const SizedBox(width: 12),
-            Text(
-              l10n.selectLanguage,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: _textDark,
-              ),
-            ),
+            Text(l10n.selectLanguage,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: _textDark)),
           ],
         ),
         contentPadding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
@@ -252,24 +628,23 @@ class SettingsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final entry = LanguageProvider.supportedLanguages.entries
                   .elementAt(index);
-              final code = entry.key;
-              final name = entry.value;
-              final isSelected = languageProvider.locale.languageCode == code;
+              final code       = entry.key;
+              final name       = entry.value;
+              final isSelected =
+                  languageProvider.locale.languageCode == code;
 
               return Material(
                 color: Colors.transparent,
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 4,
-                  ),
+                      horizontal: 24, vertical: 4),
                   leading: Container(
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? _primary.withValues(alpha: 0.1)
-                          : Colors.grey.withValues(alpha: 0.1),
+                          ? _primary.withOpacity(0.1)
+                          : Colors.grey.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
@@ -283,22 +658,16 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  title: Text(
-                    name,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: isSelected ? _primary : _textDark,
-                    ),
-                  ),
+                  title: Text(name,
+                      style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: isSelected ? _primary : _textDark)),
                   trailing: isSelected
-                      ? const Icon(
-                          Icons.check_circle_rounded,
-                          color: _primary,
-                          size: 24,
-                        )
+                      ? const Icon(Icons.check_circle_rounded,
+                          color: _primary, size: 24)
                       : null,
                   onTap: () async {
                     await languageProvider.changeLanguage(code);
@@ -306,22 +675,16 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.check_circle_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(l10n.languageChanged),
-                            ],
-                          ),
+                          content: Row(children: [
+                            const Icon(Icons.check_circle_rounded,
+                                color: Colors.white, size: 20),
+                            const SizedBox(width: 12),
+                            Text(l10n.languageChanged),
+                          ]),
                           backgroundColor: _primary,
                           behavior: SnackBarBehavior.floating,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                              borderRadius: BorderRadius.circular(12)),
                           margin: const EdgeInsets.all(16),
                           duration: const Duration(seconds: 2),
                         ),
@@ -337,3 +700,67 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 }
+
+// ── Time picker tile ──────────────────────────────────────────────────────────
+
+class _TimePickerTile extends StatelessWidget {
+  final IconData     icon;
+  final Color        iconColor;
+  final String       label;
+  final TimeOfDay    time;
+  final VoidCallback onTap;
+
+  const _TimePickerTile({
+    required this.icon,
+    required this.iconColor,
+    required this.label,
+    required this.time,
+    required this.onTap,
+  });
+
+  String _fmt(TimeOfDay t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: iconColor.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: iconColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: iconColor,
+                          fontWeight: FontWeight.w600)),
+                  Text(_fmt(time),
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B))),
+                ],
+              ),
+            ),
+            Icon(Icons.edit_outlined,
+                size: 14, color: iconColor.withOpacity(0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ignore_for_file: deprecated_member_use

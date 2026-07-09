@@ -415,6 +415,7 @@ class AppRouteObserver extends NavigatorObserver with ChangeNotifier {
     if (routeName == '/' ||
         routeName == '/login' ||
         routeName == '/dealership' ||
+        routeName == 'ChallanEditDetailsScreen' ||
         routeName == 'ChatListScreen' ||
         routeName == 'DirectChatScreen' ||
         routeName == 'GroupChatScreen' ||

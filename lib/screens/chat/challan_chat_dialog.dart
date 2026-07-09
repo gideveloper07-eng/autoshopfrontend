@@ -13,12 +13,19 @@ class ChallanChatDialog extends StatefulWidget {
   final String challanId;
   final String challanNo;
   final String? customerName;
-
+  final String? receiverUserId;
+  final String? receiverName;
+  final String? receiverPropertyCode;
+  final String? receiverDatabaseName;
   const ChallanChatDialog({
     super.key,
     required this.challanId,
     required this.challanNo,
     this.customerName,
+    this.receiverUserId,
+    this.receiverName,
+    this.receiverPropertyCode,
+    this.receiverDatabaseName,
   });
 
   @override
@@ -591,6 +598,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
             if (widget.customerName != null && widget.customerName!.isNotEmpty)
               _infoRow(Icons.person, "Customer", widget.customerName!),
             _infoRow(Icons.group, "Members", "${_members.length}"),
+
             _infoRow(Icons.message, "Messages", "${messages.length}"),
           ],
         ),
@@ -671,31 +679,105 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
   Future<void> sendMessage() async {
     final text = messageController.text.trim();
-    if (text.isEmpty) return;
-    setState(() => _sending = true);
-    messageController.clear();
-    final success = await ApiService.sendChatMessage(
-      challanId: widget.challanId,
-      messageText: text,
-      senderName: currentUserName,
-      challanNo: widget.challanNo,
-      messageType: selectedDocumentId == null ? "TEXT" : "DOCUMENT",
-      documentId: selectedDocumentId,
-    );
-    if (!mounted) return;
-    if (success) {
-      selectedDocumentId = null;
-      selectedDocumentType = null;
-      _userScrolledUp = false;
-      _newWhileScrolledUp = 0;
-      await loadMessages();
-      scrollToBottom();
-    } else {
-      messageController.text = text;
-    }
-    setState(() => _sending = false);
-  }
 
+    // Prevent empty message and multiple clicks
+    if ((text.isEmpty && selectedDocumentId == null) || _sending) {
+      return;
+    }
+
+    setState(() {
+      _sending = true;
+    });
+
+    // Save document values before API call
+    final documentId = selectedDocumentId;
+    final documentType = selectedDocumentType;
+
+    try {
+      final session = await ApiService.getUserSession();
+
+      final currentDatabase = session?['databaseName']?.toString().trim() ?? '';
+
+      // Do not clear before calling API
+      final success = await ApiService.sendChatMessage(
+        challanId: widget.challanId,
+
+        messageText: text.isNotEmpty ? text : (documentType ?? 'Document'),
+
+        senderName: currentUserName,
+
+        challanNo: widget.challanNo,
+
+        databaseName: currentDatabase,
+
+        // Challan group chat has no single receiver
+        receiverUserId: widget.receiverUserId?.trim().isNotEmpty == true
+            ? widget.receiverUserId!.trim()
+            : null,
+
+        receiverName: widget.receiverName?.trim().isNotEmpty == true
+            ? widget.receiverName!.trim()
+            : null,
+
+        receiverDbName: widget.receiverDatabaseName?.trim().isNotEmpty == true
+            ? widget.receiverDatabaseName!.trim()
+            : null,
+
+        receiverPropertyCode:
+            widget.receiverPropertyCode?.trim().isNotEmpty == true
+            ? widget.receiverPropertyCode!.trim()
+            : null,
+
+        messageType: documentId == null ? 'TEXT' : 'DOCUMENT',
+
+        documentId: documentId,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        // Clear only after message is successfully saved
+        messageController.clear();
+
+        setState(() {
+          selectedDocumentId = null;
+          selectedDocumentType = null;
+
+          _userScrolledUp = false;
+          _newWhileScrolledUp = 0;
+        });
+
+        await loadMessages();
+
+        if (mounted) {
+          scrollToBottom();
+        }
+      } else {
+        // Text remains available when API fails
+        messageController.text = text;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message could not be sent')),
+        );
+      }
+    } catch (error) {
+      print("SEND MESSAGE SCREEN ERROR: $error");
+
+      if (mounted) {
+        messageController.text = text;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to send message: $error')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+      }
+    }
+  }
   // ── Formatters ───────────────────────────────────────────────────
 
   String formatTime(String value) {
@@ -757,8 +839,11 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
               ),
               title: const Row(
                 children: [
-                  Icon(Icons.swap_horiz_rounded,
-                      color: Colors.orange, size: 26),
+                  Icon(
+                    Icons.swap_horiz_rounded,
+                    color: Colors.orange,
+                    size: 26,
+                  ),
                   SizedBox(width: 10),
                   Text(
                     'Switch Company',

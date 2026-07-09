@@ -1,3 +1,4 @@
+// ignore_for_file: deprecated_member_use
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -30,6 +31,8 @@ Color _avatarColorForGroup(String name) {
 class GroupChatScreen extends StatefulWidget {
   final String groupId;
   final String groupName;
+  final String? groupPropertyCode;
+  final String? groupCompanyName;
 
   /// The database where this group's data lives (employee's company DB).
   /// Passed through to send-message and create-task so they write to
@@ -42,6 +45,8 @@ class GroupChatScreen extends StatefulWidget {
     required this.groupId,
     required this.groupName,
     this.groupDatabase,
+    this.groupPropertyCode,
+    this.groupCompanyName,
   });
 
   @override
@@ -56,14 +61,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   String? _selectedTaskUserId;
   String _selectedPriority = 'Medium';
+  String? groupPropertyCode;
+  String? groupCompanyName;
 
   DateTime? _startDate;
   DateTime? _dueDate;
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
   final TextEditingController messageController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-  final FocusNode _inputFocusNode = FocusNode();
   String? selectedDocumentId;
   String? selectedDocumentType;
 
@@ -158,6 +163,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final data = await ApiService.getGroupMessages(widget.groupId);
     if (!mounted) return;
 
+    // Read group info from the first message
+    if (data.isNotEmpty) {
+      groupPropertyCode = data.first['pcode']?.toString();
+      groupCompanyName = data.first['dbname']?.toString();
+    }
     final oldCount = messages.length;
     final hasNew = data.length > oldCount;
     int newFromOthers = 0;
@@ -291,6 +301,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _deleteGroup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
@@ -317,8 +330,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     if (confirm != true) return;
 
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
     final ok = await ApiService.deleteGroup(
       groupId: widget.groupId,
       databaseName: widget.groupDatabase,
@@ -402,6 +413,62 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _startDate = null;
     _dueDate = null;
 
+    // ── Cross-company guard ────────────────────────────────────────────────
+    // Tasks can only be assigned within the same company.
+    // groupPropertyCode is read from the first message returned by the server
+    // (field 'pcode'). If it differs from the current session's companyCode,
+    // show the switch-company message instead of the assign dialog.
+    _checkCrossCompanyAndShowDialog();
+  }
+
+  Future<void> _checkCrossCompanyAndShowDialog() async {
+    final session = await ApiService.getUserSession();
+    final currentCode =
+        (session?['companyCode'] ?? '').toString().trim().toLowerCase();
+    final groupCode = (groupPropertyCode ?? '').trim().toLowerCase();
+
+    if (groupCode.isNotEmpty &&
+        currentCode.isNotEmpty &&
+        groupCode != currentCode) {
+      // Different company — show switch-company message
+      if (!mounted) return;
+      final companyLabel = (groupCompanyName?.isNotEmpty == true
+              ? groupCompanyName
+              : widget.groupName) ??
+          widget.groupName;
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.swap_horiz_rounded, color: Colors.orange, size: 26),
+              SizedBox(width: 10),
+              Text(
+                'Switch Company',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          content: Text(
+            'Tasks can only be assigned to employees of the same company.\n\n'
+            'Please switch to $companyLabel to assign a task in this group.',
+            style: const TextStyle(fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    // Same company (or property code not yet loaded) — show assign dialog
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) {
@@ -571,6 +638,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       return;
                     }
 
+                    final nav       = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
+
                     final ok = await ApiService.createTask(
                       groupId: widget.groupId,
                       taskTitle: _taskTitleCtrl.text.trim(),
@@ -591,17 +661,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     if (!mounted) return;
 
                     if (ok) {
-                      Navigator.pop(context);
-
+                      nav.pop();
                       await _loadMessages();
-
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text("Task assigned successfully"),
                         ),
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(content: Text("Failed to assign task")),
                       );
                     }
@@ -614,7 +682,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         );
       },
     );
-  }
+  } // end _checkCrossCompanyAndShowDialog
 
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
@@ -1276,29 +1344,35 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                                 await showDialog<
                                                   Map<String, dynamic>
                                                 >(
-                                                  context: this.context,
+                                                  context: context,
                                                   builder: (_) =>
                                                       ChatDocumentPickerDialog(
                                                         receiverPropertyCode:
+                                                            groupPropertyCode ??
                                                             "",
-                                                        receiverCompanyName: "",
+                                                        receiverCompanyName:
+                                                            groupPropertyCode ??
+                                                            widget.groupName,
                                                       ),
                                                 );
 
                                             if (selectedDoc != null) {
                                               setState(() {
-                                                selectedDocumentId =
+                                                _selectedDocumentId =
                                                     selectedDoc["DocumentId"]
                                                         ?.toString();
 
-                                                selectedDocumentType =
+                                                _selectedDocumentType =
                                                     selectedDoc["DocumentType"]
                                                         ?.toString();
 
-                                                messageController.text =
+                                                _selectedDocumentNo =
                                                     selectedDoc["DocumentNo"]
                                                         ?.toString() ??
                                                     "";
+
+                                                _msgCtrl.text =
+                                                    _selectedDocumentNo ?? "";
                                               });
                                             }
                                           },
