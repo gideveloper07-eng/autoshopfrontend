@@ -19,8 +19,6 @@ import '../../services/activity_service.dart';
 import 'package:intl/intl.dart';
 import '../chat/task_dashboard_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
-import '../../widgets/dashboard/dashboard_comparison_card.dart';
-import '../../widgets/dashboard/performance_trends_section.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -37,16 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   String utg = "";
   bool isLoading = true;
   int _todayBooking = 0;
-  int _yesterdayBooking = 0;
-  double _bookingGrowth = 0;
-
   int _todaySale = 0;
-  int _yesterdaySale = 0;
-  double _saleGrowth = 0;
-
-  List<double> _bookingTrend = [];
-  List<double> _saleTrend = [];
-
   List<dynamic> _accessibleDatabases = []; // â† for switch company button
   String _currentCompanyName = ""; // â† shown in header subtitle
   bool _webPermissionRequested = false;
@@ -111,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
-  /*Future<void> loadDashboardStats() async {
+  Future<void> loadDashboardStats() async {
     final stats = await ApiService.getDashboardStats();
     if (mounted) {
       setState(() {
@@ -119,36 +108,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _todaySale = stats['todaySale'] ?? 0;
       });
     }
-  }*/
-  Future<void> loadDashboardStats() async {
-    final stats = await ApiService.getDashboardStats();
-    print("Booking Trend: ${stats['bookingTrend']}");
-    print("Sale Trend: ${stats['saleTrend']}");
-    if (!mounted) return;
-
-    setState(() {
-      _todayBooking = stats["todayBooking"] ?? 0;
-
-      _yesterdayBooking = stats["yesterdayBooking"] ?? 0;
-
-      _bookingGrowth = (stats["bookingGrowth"] ?? 0).toDouble();
-
-      _todaySale = stats["todaySale"] ?? 0;
-
-      _yesterdaySale = stats["yesterdaySale"] ?? 0;
-
-      _saleGrowth = (stats["saleGrowth"] ?? 0).toDouble();
-
-      _bookingTrend = stats['bookingTrend'] != null
-          ? List<double>.from(
-              (stats['bookingTrend'] as List).map((e) => (e as num).toDouble()))
-          : [];
-
-      _saleTrend = stats['saleTrend'] != null
-          ? List<double>.from(
-              (stats['saleTrend'] as List).map((e) => (e as num).toDouble()))
-          : [];
-    });
   }
 
   // â”€â”€ Load accessible databases + current company name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -709,85 +668,52 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
                   // â”€â”€ TODAY STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: DashboardComparisonCard(
-                          compact: true,
-                          title: "Bookings",
+                        child: _statCard(
                           icon: Icons.bookmark_added_rounded,
-                          today: _todayBooking,
-                          yesterday: _yesterdayBooking,
-                          growth: _bookingGrowth,
-                          trend: _bookingTrend, // replace later with API
+                          label: "Today Booking",
+                          value: _todayBooking.toString(),
                           gradient: const [
                             Color(0xFF0A3D8F),
                             Color(0xFF1565C0),
                             Color(0xFF1E88E5),
                           ],
-                          onTodayTap: () {
+                          accentColor: const Color(0xFF82CFFF),
+
+                          onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => BranchwiseDetailsScreen(
+                                builder: (_) => const BranchwiseDetailsScreen(
                                   reportType: "booking",
-                                  period: "today",
                                   title: "Today's Booking",
-                                ),
-                              ),
-                            );
-                          },
-                          onYesterdayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BranchwiseDetailsScreen(
-                                  reportType: "booking",
-                                  period: "yesterday",
-                                  title: "Yesterday's Booking",
                                 ),
                               ),
                             );
                           },
                         ),
                       ),
-
                       const SizedBox(width: 12),
-
                       Expanded(
-                        child: DashboardComparisonCard(
-                          compact: true,
-                          title: "Sales",
+                        child: _statCard(
                           icon: Icons.sell_rounded,
-                          today: _todaySale,
-                          yesterday: _yesterdaySale,
-                          growth: _saleGrowth,
-                          trend: _saleTrend, // replace later with API
+                          label: "Today Sale",
+                          value: _todaySale.toString(),
                           gradient: const [
                             Color(0xFF1B5E20),
                             Color(0xFF2E7D32),
                             Color(0xFF43A047),
                           ],
-                          onTodayTap: () {
+                          accentColor: const Color(0xFF80E27E),
+
+                          onTap: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const BranchwiseDetailsScreen(
                                   reportType: "sale",
-                                  period: "today",
                                   title: "Today's Sale",
-                                ),
-                              ),
-                            );
-                          },
-                          onYesterdayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const BranchwiseDetailsScreen(
-                                  reportType: "sale",
-                                  period: "yesterday",
-                                  title: "Yesterday's Sale",
                                 ),
                               ),
                             );
@@ -796,19 +722,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 24),
-
-                  PerformanceTrendsSection(
-                  
-                    bookingGrowth: _bookingGrowth,
-                    bookingTrend: _bookingTrend,
-                  
-                    saleGrowth: _saleGrowth,
-                    saleTrend: _saleTrend,
-                  ),
-
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")

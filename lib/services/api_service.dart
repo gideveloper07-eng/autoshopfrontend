@@ -10,6 +10,7 @@ class ApiService {
   static const String baseUrl = "http://api.myautoshop365.com";
 
   static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
     webOptions: WebOptions(dbName: 'autoshop_db', publicKey: 'as_key_2024'),
   );
 
@@ -561,7 +562,7 @@ class ApiService {
   }
 
   /// Fetches today's booking and sale counts for the dashboard
-  static Future<Map<String, int>> getDashboardStats() async {
+  /* static Future<Map<String, int>> getDashboardStats() async {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty)
@@ -591,6 +592,37 @@ class ApiService {
     } catch (e) {
       print("DASHBOARD STATS ERROR: $e");
       return {'todayBooking': 0, 'todaySale': 0};
+    }
+  }*/
+
+  static Future<Map<String, dynamic>> getDashboardStats() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {};
+      }
+
+      final res = await http.get(
+        Uri.parse("$baseUrl/api/challan/dashboard-stats"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+
+        if (body["success"] == true) {
+          return Map<String, dynamic>.from(body["data"]);
+        }
+      }
+
+      return {};
+    } catch (e) {
+      print(e);
+      return {};
     }
   }
 
@@ -1655,6 +1687,58 @@ class ApiService {
     } catch (e) {
       print("SEND GROUP MESSAGE ERROR: $e");
       return false;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getDashboardBranchwise(
+    String reportType,
+    String period,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'branches': <dynamic>[]};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/dashboard-branchwise"
+              "?type=$reportType&period=$period",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("BRANCHWISE STATUS: ${response.statusCode}");
+
+      print("BRANCHWISE RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+
+            'branches': data['branches'] is List
+                ? data['branches']
+                : <dynamic>[],
+          };
+        }
+      }
+
+      return {'total': 0, 'branches': <dynamic>[]};
+    } catch (e) {
+      print("DASHBOARD BRANCHWISE ERROR: $e");
+
+      return {'total': 0, 'branches': <dynamic>[]};
     }
   }
 }

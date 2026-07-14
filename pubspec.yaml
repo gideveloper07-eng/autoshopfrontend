@@ -48,6 +48,9 @@ dependencies:
   speech_to_text: ^7.0.0
   shared_preferences: ^2.2.2
   url_launcher: ^6.3.0
+  shimmer: ^3.0.0
+  animated_flip_counter: ^0.3.4
+  fl_chart: ^1.0.0
   # screen_protector: Temporarily removed due to build compatibility issues
 
 dev_dependencies:

@@ -23,7 +23,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
-
+  String _selectedBranch = "All";
   @override
   void initState() {
     super.initState();
@@ -52,27 +52,43 @@ class _NewChatScreenState extends State<NewChatScreen> {
     return _avatarPalette[name.codeUnitAt(0) % _avatarPalette.length];
   }
 
-  List<Map<String, dynamic>> get _filteredUsers {
-    final query = _searchCtrl.text.trim().toLowerCase();
-    final validUsers = widget.allUsers
-        .where((u) => (u['id']?.toString() ?? '').isNotEmpty)
+  List<String> get _branches {
+    final branches = widget.allUsers
+        .map((e) => (e['branchName'] ?? '').toString())
+        .where((e) => e.isNotEmpty)
+        .toSet()
         .toList();
 
+    branches.sort();
+    branches.insert(0, "All");
+
+    return branches;
+  }
+
+  List<Map<String, dynamic>> get _filteredUsers {
+    final query = _searchCtrl.text.trim().toLowerCase();
+
+    final validUsers = widget.allUsers.where((u) {
+      final matchesBranch =
+          _selectedBranch == "All" ||
+          (u['branchName'] ?? '') == _selectedBranch;
+
+      return (u['id']?.toString() ?? '').isNotEmpty && matchesBranch;
+    }).toList();
+
     validUsers.sort((a, b) {
-      final nameA = (a['name']?.toString() ?? '').toLowerCase();
-      final nameB = (b['name']?.toString() ?? '').toLowerCase();
+      final nameA = (a['name'] ?? '').toString().toLowerCase();
+      final nameB = (b['name'] ?? '').toString().toLowerCase();
       return nameA.compareTo(nameB);
     });
 
     if (query.isEmpty) return validUsers;
 
     return validUsers.where((u) {
-      final name = (u['name']?.toString() ?? '').toLowerCase();
-      final id = (u['id']?.toString() ?? '').toLowerCase();
-      final email = (u['email']?.toString() ?? '').toLowerCase();
-      return name.contains(query) ||
-          id.contains(query) ||
-          email.contains(query);
+      final name = (u['name'] ?? '').toString().toLowerCase();
+      final email = (u['email'] ?? '').toString().toLowerCase();
+
+      return name.contains(query) || email.contains(query);
     }).toList();
   }
 
@@ -200,20 +216,48 @@ class _NewChatScreenState extends State<NewChatScreen> {
           ),
         ],
       ),
-      body: widget.allUsers.isEmpty && !_isSearching
-          ? const Center(child: CircularProgressIndicator())
-          : Builder(
-              builder: (context) {
-                final items = _buildItems(filteredUsers, filteredChallans);
-                return ListView.builder(
-                  // key forces a full rebuild when search mode toggles,
-                  // preventing the RenderSliverPadding / duplicate-key assertion.
-                  key: ValueKey(_isSearching),
-                  itemCount: items.length,
-                  itemBuilder: (context, index) => items[index],
-                );
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: DropdownButtonFormField<String>(
+              value: _selectedBranch,
+              decoration: const InputDecoration(
+                labelText: "Branch",
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: _branches
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedBranch = value!;
+                });
               },
             ),
+          ),
+
+          Expanded(
+            child: widget.allUsers.isEmpty && !_isSearching
+                ? const Center(child: CircularProgressIndicator())
+                : Builder(
+                    builder: (context) {
+                      final items = _buildItems(
+                        filteredUsers,
+                        filteredChallans,
+                      );
+
+                      return ListView.builder(
+                        key: ValueKey(_isSearching),
+                        itemCount: items.length,
+                        itemBuilder: (context, index) => items[index],
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -314,9 +358,12 @@ class _NewChatScreenState extends State<NewChatScreen> {
         final userId = user['id']?.toString() ?? '';
         final userName = user['name']?.toString() ?? userId;
         final companyName = user['companyName']?.toString() ?? '';
+        final branchName = user['branchName']?.toString() ?? '';
         final userEmail = user['email']?.toString() ?? '';
         final subtitle = companyName.isNotEmpty
-            ? companyName
+            ? (branchName.isNotEmpty
+                  ? "$companyName • $branchName"
+                  : companyName)
             : userEmail.isNotEmpty
             ? userEmail
             : 'No description/email';

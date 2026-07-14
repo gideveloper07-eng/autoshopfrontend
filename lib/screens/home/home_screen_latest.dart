@@ -20,7 +20,6 @@ import 'package:intl/intl.dart';
 import '../chat/task_dashboard_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
-import '../../widgets/dashboard/performance_trends_section.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -139,15 +138,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
       _saleGrowth = (stats["saleGrowth"] ?? 0).toDouble();
 
-      _bookingTrend = stats['bookingTrend'] != null
-          ? List<double>.from(
-              (stats['bookingTrend'] as List).map((e) => (e as num).toDouble()))
-          : [];
+      _bookingTrend = List<double>.from(stats['bookingTrend']);
 
-      _saleTrend = stats['saleTrend'] != null
-          ? List<double>.from(
-              (stats['saleTrend'] as List).map((e) => (e as num).toDouble()))
-          : [];
+      _saleTrend = List<double>.from(stats['saleTrend']);
     });
   }
 
@@ -797,18 +790,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
-
-                  PerformanceTrendsSection(
-                  
-                    bookingGrowth: _bookingGrowth,
-                    bookingTrend: _bookingTrend,
-                  
-                    saleGrowth: _saleGrowth,
-                    saleTrend: _saleTrend,
-                  ),
-
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")

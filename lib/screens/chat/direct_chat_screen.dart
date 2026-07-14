@@ -38,6 +38,10 @@ class DirectChatScreen extends StatefulWidget {
   /// Optional company name shown below the user name in the app bar.
   /// Pass this when the contact belongs to a different dealership.
   final String? companyName;
+
+  /// Optional branch name shown alongside company name in the app bar.
+  final String? branchName;
+
   final String? receiverPropertyCode;
 
   /// The database where this group's data is stored (employee's company DB).
@@ -50,6 +54,7 @@ class DirectChatScreen extends StatefulWidget {
     required this.userName,
     required this.targetUserId,
     this.companyName,
+    this.branchName,
     this.receiverPropertyCode,
     this.groupDatabase,
   });
@@ -836,7 +841,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       if (widget.companyName != null &&
                           widget.companyName!.isNotEmpty)
                         Text(
-                          widget.companyName!,
+                          (widget.branchName != null && widget.branchName!.isNotEmpty)
+                              ? '${widget.companyName!} • ${widget.branchName!}'
+                              : widget.companyName!,
                           style: TextStyle(
                             color: _appBarIcon,
                             fontSize: 11,

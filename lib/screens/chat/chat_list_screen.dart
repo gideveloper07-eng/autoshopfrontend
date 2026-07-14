@@ -275,6 +275,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     String targetUserId,
     String targetUserName, {
     String? companyName,
+    String? branchName,
     String? targetDatabase, // the DB where the target user belongs
     String? receiverPropertyCode,
   }) async {
@@ -305,6 +306,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           userName: targetUserName,
           targetUserId: targetUserId,
           companyName: companyName,
+          branchName: branchName,
           groupDatabase:
               existingChat?["DatabaseName"]?.toString() ?? targetDatabase,
           receiverPropertyCode: resolvedPropertyCode,
@@ -440,8 +442,20 @@ class _ChatListScreenState extends State<ChatListScreen>
 
       final companyName = (directChat["CompanyName"]?.toString() ?? "").trim();
 
+      // Look up branchName from _allUsers by matching loginId (uti = short login ID)
+      String branchName = '';
+      try {
+        final matched = _allUsers.firstWhere(
+          (u) =>
+              (u['loginId']?.toString() ?? '').toLowerCase() ==
+              userId.toLowerCase(),
+          orElse: () => {},
+        );
+        branchName = (matched['branchName']?.toString() ?? '').trim();
+      } catch (_) {}
+
       debugPrint(
-        "User: $userName | CompanyName: '$companyName' | "
+        "User: $userName | CompanyName: '$companyName' | BranchName: '$branchName' | "
         "PropertyCode: ${directChat["PropertyCode"]} | "
         "DatabaseName: ${directChat["DatabaseName"]}",
       );
@@ -450,6 +464,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         "id": userId,
         "name": userName,
         "companyName": companyName,
+        "branchName": branchName,
         "database": directChat["DatabaseName"] ?? "",
         "propertyCode": directChat["PropertyCode"] ?? "",
         "_dmGroup": {
@@ -593,6 +608,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userId = selectedItem['id']?.toString() ?? '';
     final userName = selectedItem['name']?.toString() ?? userId;
     final companyName = selectedItem['companyName']?.toString();
+    final branchName = selectedItem['branchName']?.toString();
     final targetDatabase = selectedItem['database']?.toString();
 
     // The id from _allUsers may be a UUID while _directChats stores the short
@@ -627,6 +643,7 @@ class _ChatListScreenState extends State<ChatListScreen>
       resolvedUserId,
       userName,
       companyName: companyName,
+      branchName: branchName,
       targetDatabase: resolvedDatabase,
       receiverPropertyCode: resolvedPropertyCode,
     );
@@ -680,10 +697,14 @@ class _ChatListScreenState extends State<ChatListScreen>
           final selected = company == _selectedCompany;
           final theme = Theme.of(context);
           final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark ? const Color(0xFFE8EDF5) : const Color(0xFF111B21);
+          final selectedBg = isDark
+              ? const Color(0xFFE8EDF5)
+              : const Color(0xFF111B21);
           final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
           final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark ? const Color(0xFF3A4A5A) : const Color(0xFFD1D7DB);
+          final unselectedBorder = isDark
+              ? const Color(0xFF3A4A5A)
+              : const Color(0xFFD1D7DB);
           final unselectedText = theme.colorScheme.onSurface;
 
           return InkWell(
@@ -729,10 +750,14 @@ class _ChatListScreenState extends State<ChatListScreen>
           final selected = company == _selectedGroupCompany;
           final theme = Theme.of(context);
           final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark ? const Color(0xFFE8EDF5) : const Color(0xFF111B21);
+          final selectedBg = isDark
+              ? const Color(0xFFE8EDF5)
+              : const Color(0xFF111B21);
           final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
           final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark ? const Color(0xFF3A4A5A) : const Color(0xFFD1D7DB);
+          final unselectedBorder = isDark
+              ? const Color(0xFF3A4A5A)
+              : const Color(0xFFD1D7DB);
           final unselectedText = theme.colorScheme.onSurface;
 
           return InkWell(
@@ -947,7 +972,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -979,7 +1006,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1013,7 +1042,9 @@ class _ChatListScreenState extends State<ChatListScreen>
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
@@ -1095,10 +1126,14 @@ class _ChatListScreenState extends State<ChatListScreen>
           final selected = company == _selectedAllCompany;
           final theme = Theme.of(context);
           final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark ? const Color(0xFFE8EDF5) : const Color(0xFF111B21);
+          final selectedBg = isDark
+              ? const Color(0xFFE8EDF5)
+              : const Color(0xFF111B21);
           final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
           final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark ? const Color(0xFF3A4A5A) : const Color(0xFFD1D7DB);
+          final unselectedBorder = isDark
+              ? const Color(0xFF3A4A5A)
+              : const Color(0xFFD1D7DB);
           final unselectedText = theme.colorScheme.onSurface;
 
           return InkWell(
@@ -1139,28 +1174,35 @@ class _ChatListScreenState extends State<ChatListScreen>
     // Add direct chats (filtered by company)
     List<Map<String, dynamic>> users = _chattedUsers;
     if (_selectedAllCompany != "ALL") {
-      users = users.where((u) =>
-        (u["companyName"] ?? "") == _selectedAllCompany ||
-        (u["database"] ?? "") == _selectedAllCompany
-      ).toList();
+      users = users
+          .where(
+            (u) =>
+                (u["companyName"] ?? "") == _selectedAllCompany ||
+                (u["database"] ?? "") == _selectedAllCompany,
+          )
+          .toList();
     }
     if (_isSearching) {
       final q = _searchCtrl.text.toLowerCase();
       users = users.where((u) {
         final name = (u["name"] ?? "").toString().toLowerCase();
-        final last = ((u["_dmGroup"] as Map?)?["LastMessage"] ?? "").toString().toLowerCase();
+        final last = ((u["_dmGroup"] as Map?)?["LastMessage"] ?? "")
+            .toString()
+            .toLowerCase();
         return name.contains(q) || last.contains(q);
       }).toList();
     }
     for (final user in users) {
       final dmGroup = user['_dmGroup'] as Map?;
       final lastTime = dmGroup?['LastMessageTime']?.toString() ?? '';
-      items.add(_UnifiedChatItem(
-        type: _ChatItemType.user,
-        user: user,
-        lastTime: lastTime,
-        isGroup: false,
-      ));
+      items.add(
+        _UnifiedChatItem(
+          type: _ChatItemType.user,
+          user: user,
+          lastTime: lastTime,
+          isGroup: false,
+        ),
+      );
     }
 
     // Add groups (filtered by company, excluding DM groups)
@@ -1175,18 +1217,22 @@ class _ChatListScreenState extends State<ChatListScreen>
     }
     if (_isSearching) {
       final q = _searchCtrl.text.toLowerCase();
-      grps = grps.where((g) =>
-        (g["GroupName"] ?? "").toString().toLowerCase().contains(q)
-      ).toList();
+      grps = grps
+          .where(
+            (g) => (g["GroupName"] ?? "").toString().toLowerCase().contains(q),
+          )
+          .toList();
     }
     for (final group in grps) {
       final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
-      items.add(_UnifiedChatItem(
-        type: _ChatItemType.user,
-        group: group,
-        lastTime: lastMsgTime,
-        isGroup: true,
-      ));
+      items.add(
+        _UnifiedChatItem(
+          type: _ChatItemType.user,
+          group: group,
+          lastTime: lastMsgTime,
+          isGroup: true,
+        ),
+      );
     }
 
     // Sort by last activity time descending (most recent first)
@@ -1214,7 +1260,11 @@ class _ChatListScreenState extends State<ChatListScreen>
                   SizedBox(height: 16),
                   Text(
                     "No conversations yet",
-                    style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   SizedBox(height: 6),
                   Text(
@@ -1398,7 +1448,9 @@ class _ChatListScreenState extends State<ChatListScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+            border: Border(
+              bottom: BorderSide(color: Theme.of(context).dividerColor),
+            ),
           ),
           child: Row(
             children: [
@@ -1537,7 +1589,9 @@ class _ChatListScreenState extends State<ChatListScreen>
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+            border: Border(
+              bottom: BorderSide(color: Theme.of(context).dividerColor),
+            ),
           ),
           child: Row(
             children: [
@@ -1658,7 +1712,14 @@ class _ChatListScreenState extends State<ChatListScreen>
     final userName = user['name']?.toString() ?? userId;
     final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final companyName = user['companyName']?.toString() ?? '';
-    debugPrint("Rendering user: $userName | companyName='$companyName'");
+    final branchName = user['branchName']?.toString() ?? '';
+    debugPrint("Rendering user: $userName | companyName='$companyName' | branchName='$branchName'");
+
+    // Build subtitle: "COMPANY • BRANCH" or just "COMPANY"
+    final subtitle = companyName.isNotEmpty
+        ? (branchName.isNotEmpty ? "$companyName • $branchName" : companyName)
+        : branchName;
+
     // Extract DM group metadata merged in _chattedUsers getter
     final dmGroup = user['_dmGroup'] as Map?;
     final lastMessage = dmGroup?['LastMessage']?.toString() ?? '';
@@ -1672,13 +1733,16 @@ class _ChatListScreenState extends State<ChatListScreen>
           userId,
           userName,
           companyName: companyName.isNotEmpty ? companyName : null,
+          branchName: branchName.isNotEmpty ? branchName : null,
           targetDatabase: user['database']?.toString(),
           receiverPropertyCode: user['propertyCode']?.toString(),
         ),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor)),
+            border: Border(
+              bottom: BorderSide(color: Theme.of(context).dividerColor),
+            ),
           ),
           child: Row(
             children: [
@@ -1703,7 +1767,7 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
               const SizedBox(width: 14),
 
-              // Name + company + last message
+              // Name + company • branch + last message
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1736,11 +1800,11 @@ class _ChatListScreenState extends State<ChatListScreen>
                         ],
                       ],
                     ),
-                    if (companyName.isNotEmpty)
+                    if (subtitle.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 1),
                         child: Text(
-                          companyName,
+                          subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -1902,55 +1966,62 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
-      title: Builder(builder: (context) {
-        final theme = Theme.of(context);
-        return Container(
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            border: Border(bottom: BorderSide(color: theme.dividerColor)),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Icon(
-                Icons.group_add_outlined,
-                color: theme.brightness == Brightness.dark
-                    ? const Color(0xFF8A9BB0)
-                    : const Color(0xFF54656F),
-                size: 20,
+      title: Builder(
+        builder: (context) {
+          final theme = Theme.of(context);
+          return Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface,
+              border: Border(bottom: BorderSide(color: theme.dividerColor)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  "Add Group Members",
-                  style: TextStyle(
-                    color: theme.colorScheme.onSurface,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.group_add_outlined,
+                  color: theme.brightness == Brightness.dark
+                      ? const Color(0xFF8A9BB0)
+                      : const Color(0xFF54656F),
+                  size: 20,
                 ),
-              ),
-              if (_selected.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.onSurface.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                const SizedBox(width: 10),
+                Expanded(
                   child: Text(
-                    "${_selected.length} selected",
+                    "Add Group Members",
                     style: TextStyle(
                       color: theme.colorScheme.onSurface,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-            ],
-          ),
-        );
-      }),
+                if (_selected.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.onSurface.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "${_selected.length} selected",
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
       content: SizedBox(
         width: 400,
         height: 420,
