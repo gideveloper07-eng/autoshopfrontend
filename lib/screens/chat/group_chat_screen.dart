@@ -34,6 +34,9 @@ class GroupChatScreen extends StatefulWidget {
   final String? groupPropertyCode;
   final String? groupCompanyName;
 
+  /// Optional branch name shown in the app bar subtitle.
+  final String? branchName;
+
   /// The database where this group's data lives (employee's company DB).
   /// Passed through to send-message and create-task so they write to
   /// the correct dealership DB even when the logged-in user belongs to
@@ -47,6 +50,7 @@ class GroupChatScreen extends StatefulWidget {
     this.groupDatabase,
     this.groupPropertyCode,
     this.groupCompanyName,
+    this.branchName,
   });
 
   @override
@@ -944,9 +948,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                   Text(
-                    _members.isEmpty
-                        ? "Group"
-                        : "${_members.length} member${_members.length == 1 ? '' : 's'}",
+                    () {
+                      final membersLabel = _members.isEmpty
+                          ? "Group"
+                          : "${_members.length} member${_members.length == 1 ? '' : 's'}";
+                      final branch = widget.branchName ?? '';
+                      return branch.isNotEmpty
+                          ? "$membersLabel • $branch"
+                          : membersLabel;
+                    }(),
                     style: TextStyle(color: _appBarIcon, fontSize: 12),
                   ),
                 ],

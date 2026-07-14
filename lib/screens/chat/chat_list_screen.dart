@@ -255,6 +255,21 @@ class _ChatListScreenState extends State<ChatListScreen>
     final groupId = group['GroupId']?.toString() ?? '';
     final groupName = group['GroupName']?.toString() ?? 'Group';
     final groupDatabase = group['DatabaseName']?.toString();
+
+    // Look up branchName from _allUsers by matching the group's database
+    String branchName = '';
+    if (groupDatabase != null && groupDatabase.isNotEmpty) {
+      try {
+        final matched = _allUsers.firstWhere(
+          (u) =>
+              (u['database']?.toString() ?? '').toLowerCase() ==
+              groupDatabase.toLowerCase(),
+          orElse: () => {},
+        );
+        branchName = (matched['branchName']?.toString() ?? '').trim();
+      } catch (_) {}
+    }
+
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -263,6 +278,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           groupId: groupId,
           groupName: groupName,
           groupDatabase: groupDatabase,
+          branchName: branchName.isNotEmpty ? branchName : null,
         ),
       ),
     );
@@ -1582,6 +1598,19 @@ class _ChatListScreenState extends State<ChatListScreen>
         : 'G';
     final timeLabel = _formatTime(lastMsgTime.isNotEmpty ? lastMsgTime : null);
 
+    // Look up branchName from _allUsers by matching the group's DatabaseName
+    String branchName = '';
+    final groupDatabase = (group['DatabaseName']?.toString() ?? '').toLowerCase();
+    if (groupDatabase.isNotEmpty) {
+      try {
+        final matched = _allUsers.firstWhere(
+          (u) => (u['database']?.toString() ?? '').toLowerCase() == groupDatabase,
+          orElse: () => {},
+        );
+        branchName = (matched['branchName']?.toString() ?? '').trim();
+      } catch (_) {}
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1672,6 +1701,20 @@ class _ChatListScreenState extends State<ChatListScreen>
                       ],
                     ),
                     const SizedBox(height: 3),
+                    if (branchName.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Text(
+                          branchName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Color(0xFF54656F),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     Row(
                       children: [
                         Expanded(
