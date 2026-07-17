@@ -765,13 +765,15 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           Expanded(
             child: loading
                 ? const Center(child: CircularProgressIndicator())
-                : Stack(
-                    children: [
-                      _buildMessageList(),
-                      if (_userScrolledUp && _newWhileScrolledUp > 0)
-                        _buildNewMessageBanner(),
-                    ],
-                  ),
+                : messages.isEmpty
+                    ? _buildEmptyState()
+                    : Stack(
+                        children: [
+                          _buildMessageList(),
+                          if (_userScrolledUp && _newWhileScrolledUp > 0)
+                            _buildNewMessageBanner(),
+                        ],
+                      ),
           ),
           if (!_isSearching) _buildInputBar(),
         ],
@@ -934,6 +936,41 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
               ),
             )
           : null,
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8F5E9),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Text('👋', style: TextStyle(fontSize: 40)),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No messages yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF54656F),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Say Hello to ${widget.userName} 👋',
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 

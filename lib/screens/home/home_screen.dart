@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -18,6 +18,7 @@ import '../../theme/app_colors.dart';
 import '../../services/activity_service.dart';
 import 'package:intl/intl.dart';
 import '../chat/task_dashboard_screen.dart';
+import '../chat/chat_requests_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
@@ -31,7 +32,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   Timer? _pendingChallanTimer;
   int unreadCount = 0;
   String utg = "";
@@ -52,6 +54,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _webPermissionRequested = false;
   bool _showWelcome =
       true; // hides after 5 s // â† request once on first web tap
+  // Chat request badge (non-admin only)
+  bool _isAdmin = false;
+  int _pendingRequestCount = 0;
+  late AnimationController _requestBlink;
+  late Animation<double> _requestBlinkAnim;
 
   // â”€â”€ Chat preview state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   List<Map<String, dynamic>> _previewChallans = [];
@@ -64,6 +71,17 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+
+    // ── Blink animation for chat request icon ──────────────────────────────
+    _requestBlink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: false);
+    _requestBlinkAnim = CurvedAnimation(
+      parent: _requestBlink,
+      curve: Curves.easeInOut,
+    );
+
     ActivityService.logActivity(
       activityType: "SCREEN",
       activityName: "HomeScreen",
@@ -80,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     Future.delayed(const Duration(milliseconds: 300), loadDashboardStats);
     Future.delayed(const Duration(milliseconds: 450), _loadChatPreview);
     Future.delayed(const Duration(milliseconds: 600), _loadCompanyInfo);
+    Future.delayed(const Duration(milliseconds: 500), _loadRequestInfo);
 
     // Defer Firebase operations to after initial paint
     Future.delayed(const Duration(milliseconds: 750), () {
@@ -307,9 +326,39 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
   }
 
+  // ── Chat request info (non-admin only) ──────────────────────────────────
+  Future<void> _loadRequestInfo() async {
+    final adminFlag = await ApiService.isAdmin();
+    if (!adminFlag) {
+      final requests = await ApiService.getChatRequests();
+      if (mounted) {
+        final hasPending = requests.isNotEmpty;
+        setState(() {
+          _isAdmin = false;
+          _pendingRequestCount = requests.length;
+        });
+        // Start blinking when there are pending requests, stop when none
+        if (hasPending) {
+          if (!_requestBlink.isAnimating) _requestBlink.repeat(reverse: false);
+        } else {
+          _requestBlink.stop();
+          _requestBlink.value = 1.0;
+        }
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isAdmin = true;
+          _pendingRequestCount = 0;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
     _pendingChallanTimer?.cancel();
+    _requestBlink.dispose();
     _removeAccountOverlay();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -597,6 +646,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ],
+                        // Chat request icon (non-admin only)
+                        if (!_isAdmin)
+                          _ChatRequestIconButton(
+                            pendingCount: _pendingRequestCount,
+                            animation: _requestBlinkAnim,
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ChatRequestsScreen(),
+                                ),
+                              );
+                              _loadRequestInfo();
+                            },
+                          ),
                         // Notification bell
                         Stack(
                           children: [
@@ -1590,6 +1654,168 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
 // â”€â”€ Simple holder for per-challan chat metadata shown on home screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+
+// -- Animated chat-request icon button for the home header -------------------
+/// Shows a pulsing ripple ring when there are pending requests (red),
+/// and a calm green glow when idle. The icon itself gently scales up/down.
+class _ChatRequestIconButton extends StatelessWidget {
+  const _ChatRequestIconButton({
+    required this.pendingCount,
+    required this.animation,
+    required this.onTap,
+  });
+
+  final int pendingCount;
+  final Animation<double> animation;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPending = pendingCount > 0;
+    final rippleColor =
+        hasPending ? const Color(0xFFFF5252) : const Color(0xFF43A047);
+    final badgeColor =
+        hasPending ? const Color(0xFFE53935) : const Color(0xFF43A047);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) {
+          final scale = hasPending ? 0.92 + (0.16 * animation.value) : 1.0;
+          final rippleRadius = hasPending ? 18.0 + (14.0 * animation.value) : 0.0;
+          final rippleOpacity = hasPending ? (1.0 - animation.value) * 0.55 : 0.0;
+
+          return SizedBox(
+            width: 44,
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                if (hasPending)
+                  Container(
+                    width: rippleRadius * 2,
+                    height: rippleRadius * 2,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: rippleColor.withOpacity(rippleOpacity),
+                    ),
+                  ),
+                Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: hasPending
+                          ? Color.lerp(
+                              Colors.white.withOpacity(0.15),
+                              const Color(0xFFE53935).withOpacity(0.35),
+                              animation.value,
+                            )
+                          : Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: hasPending
+                            ? Color.lerp(
+                                Colors.white.withOpacity(0.35),
+                                const Color(0xFFFF5252).withOpacity(0.8),
+                                animation.value,
+                              )!
+                            : Colors.white.withOpacity(0.35),
+                        width: 1.2,
+                      ),
+                      boxShadow: hasPending
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFFFF5252)
+                                    .withOpacity(0.4 * animation.value),
+                                blurRadius: 10,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFF43A047).withOpacity(0.35),
+                                blurRadius: 8,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                    ),
+                    child: const Icon(
+                      Icons.mark_chat_unread_outlined,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+                if (hasPending)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Opacity(
+                      opacity: 0.6 + (0.4 * animation.value),
+                      child: Container(
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
+                          boxShadow: [
+                            BoxShadow(
+                              color: badgeColor.withOpacity(0.5),
+                              blurRadius: 6,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            pendingCount > 9 ? '9+' : '$pendingCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (!hasPending)
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF43A047),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF43A047).withOpacity(0.6),
+                            blurRadius: 5,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
 class _HomeChatMeta {
   final String lastMessage;
   final String lastTime;

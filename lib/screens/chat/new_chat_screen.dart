@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../services/api_service.dart';
+
 class NewChatScreen extends StatefulWidget {
   final List<Map<String, dynamic>> allUsers;
 
@@ -24,6 +26,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   bool _isSearching = false;
   String _selectedBranch = "All";
+
   @override
   void initState() {
     super.initState();
@@ -184,6 +187,7 @@ class _NewChatScreenState extends State<NewChatScreen> {
                 ],
               ),
         actions: [
+          // ── Search toggle ─────────────────────────────────────────
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,
@@ -355,10 +359,16 @@ class _NewChatScreenState extends State<NewChatScreen> {
       );
     } else {
       for (final user in filteredUsers) {
+        print('User: $user');
         final userId = user['id']?.toString() ?? '';
         final userName = user['name']?.toString() ?? userId;
         final companyName = user['companyName']?.toString() ?? '';
         final branchName = user['branchName']?.toString() ?? '';
+        final chatAccess = user['chatAccess'] ?? 'REQUEST';
+
+        final requestStatus = user['requestStatus'];
+
+        final isContact = user['isContact'] == true;
         final userEmail = user['email']?.toString() ?? '';
         final subtitle = companyName.isNotEmpty
             ? (branchName.isNotEmpty
@@ -403,7 +413,27 @@ class _NewChatScreenState extends State<NewChatScreen> {
                     : FontWeight.normal,
               ),
             ),
-            onTap: () => Navigator.pop(context, user),
+            onTap: () async {
+              // If already a contact (accepted) OR same-branch AUTO → open chat
+              if (chatAccess == "AUTO" || isContact) {
+                Navigator.pop(context, user);
+                return;
+              }
+
+              if (requestStatus == "SENT") {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Request already sent")),
+                );
+                return;
+              }
+
+              if (requestStatus == "RECEIVED") {
+                await _showAcceptRejectDialog(user);
+                return;
+              }
+
+              await _showSendRequestDialog(user);
+            },
           ),
         );
       }
@@ -438,6 +468,90 @@ class _NewChatScreenState extends State<NewChatScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showSendRequestDialog(Map<String, dynamic> user) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Send Chat Request"),
+        content: Text("Send chat request to ${user["name"]}?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, false);
+            },
+            child: const Text("Cancel"),
+          ),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, true);
+            },
+            child: const Text("Send"),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true) return;
+
+    final result = await ApiService.sendChatRequest(toUserGuid: user["id"]);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result["message"])));
+
+    if (result["success"] == true) {
+      Navigator.pop(context, true);
+    }
+  }
+
+  Future<void> _showAcceptRejectDialog(Map<String, dynamic> user) async {
+    final action = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Chat Request"),
+        content: Text("${user["name"]} wants to connect with you."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, "REJECT");
+            },
+            child: const Text("Reject"),
+          ),
+
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context, "ACCEPT");
+            },
+            child: const Text("Accept"),
+          ),
+        ],
+      ),
+    );
+
+    if (action == null) return;
+
+    Map<String, dynamic> result;
+
+    if (action == "ACCEPT") {
+      result = await ApiService.acceptContactRequest(fromUserGuid: user["id"]);
+    } else {
+      result = await ApiService.rejectContactRequest(fromUserGuid: user["id"]);
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result["message"])));
+
+    if (result["success"] == true) {
+      Navigator.pop(context, true);
+    }
   }
 
   Widget _chatTile({

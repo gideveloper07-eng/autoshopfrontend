@@ -1690,6 +1690,164 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getChatRequests() async {
+    final token = await getToken();
+
+    final response = await http.get(
+      Uri.parse("$baseUrl/api/group/chat/requests"),
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+    );
+
+    final body = jsonDecode(response.body);
+
+    if (body["success"] == true) {
+      return body["data"];
+    }
+
+    return [];
+  }
+
+  static Future<Map<String, dynamic>> sendChatRequest({
+    required String toUserGuid,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) {
+        return {"success": false, "message": "No token"};
+      }
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/sendrequest"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"toUserGuid": toUserGuid}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> acceptContactRequest({
+    required String fromUserGuid,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) {
+        return {"success": false};
+      }
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/contact-request/accept"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"fromUserGuid": fromUserGuid}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  static Future<Map<String, dynamic>> rejectContactRequest({
+    required String fromUserGuid,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null) {
+        return {"success": false};
+      }
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/contact-request/reject"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"fromUserGuid": fromUserGuid}),
+      );
+
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  /// Accept a chat request by its [requestGuid].
+  /// Uses the correct backend route: POST /api/group/chat/request/accept
+  static Future<Map<String, dynamic>> acceptChatRequestByGuid({
+    required String requestGuid,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return {"success": false};
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/chat/request/accept"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"requestGuid": requestGuid}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  /// Reject a chat request by its [requestGuid].
+  /// Uses the correct backend route: POST /api/group/chat/request/reject
+  static Future<Map<String, dynamic>> rejectChatRequestByGuid({
+    required String requestGuid,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) return {"success": false};
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/group/chat/request/reject"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"requestGuid": requestGuid}),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
+
+  /// Returns all ACTIVE contacts for the current user.
+  /// Used to populate the chat list with accepted contacts even if no
+  /// messages have been sent yet.
+  static Future<List<dynamic>> getMyContacts() async {
+    try {
+      final token = await getToken();
+      if (token == null) return [];
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/my-contacts"),
+        headers: {"Authorization": "Bearer $token"},
+      );
+      final body = jsonDecode(response.body);
+      return List<dynamic>.from(body["data"] ?? []);
+    } catch (e) {
+      print("GET MY-CONTACTS ERROR: $e");
+      return [];
+    }
+  }
+
   static Future<Map<String, dynamic>> getDashboardBranchwise(
     String reportType,
     String period,

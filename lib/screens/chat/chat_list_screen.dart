@@ -55,6 +55,9 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Users ────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _allUsers = [];
 
+  // ── Accepted contacts (may have zero messages) ───────────────────
+  List<dynamic> _myContacts = [];
+
   bool isLoading = true;
   String? errorMessage;
 
@@ -135,6 +138,8 @@ class _ChatListScreenState extends State<ChatListScreen>
         ApiService.getMyGroups(), // Existi
         ApiService.getMergedUsers(),
         ApiService.getUserId(),
+        ApiService.getChatRequests(),
+        ApiService.getMyContacts(), // accepted contacts (no messages yet)
       ]);
 
       final challanList = results[0] as List<Map<String, dynamic>>;
@@ -147,7 +152,14 @@ class _ChatListScreenState extends State<ChatListScreen>
       final groupList = results[2] as List<dynamic>;
       final userList = results[3] as List<Map<String, dynamic>>;
       final myUserId = results[4] as String? ?? '';
+      final chatRequests = results[5] as List<dynamic>;
+      final myContacts = results[6] as List<dynamic>;
 
+      debugPrint("===== CHAT REQUESTS =====");
+      debugPrint(chatRequests.toString());
+      for (final request in chatRequests) {
+        debugPrint(request.toString());
+      }
       if (mounted) {
         print("hello");
         setState(() {
@@ -157,6 +169,7 @@ class _ChatListScreenState extends State<ChatListScreen>
           _groups = groupList;
           _allUsers = userList;
           _myId = myUserId;
+          _myContacts = myContacts;
           isLoading = false;
         });
       }
@@ -442,7 +455,8 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   List<Map<String, dynamic>> get _chattedUsers {
-    return _directChats.map<Map<String, dynamic>>((chat) {
+    // Build from actual chat history first
+    final fromChats = _directChats.map<Map<String, dynamic>>((chat) {
       final directChat = Map<String, dynamic>.from(chat as Map);
       final userId = _directChatUserId(directChat);
       final userName = _directChatUserName(directChat, userId);
@@ -490,6 +504,74 @@ class _ChatListScreenState extends State<ChatListScreen>
         },
       };
     }).toList();
+
+    // Collect IDs already present from chat history to avoid duplicates
+    final existingIds =
+        fromChats.map((u) => (u["id"] as String).toLowerCase()).toSet();
+
+    // Add accepted contacts that have no chat history yet
+    for (final contact in _myContacts) {
+      final contactLoginId =
+          (contact['loginId']?.toString() ?? '').toLowerCase();
+      final contactUserGuid =
+          (contact['userGuid']?.toString() ?? '').toLowerCase();
+
+      // Skip if already represented in chat history
+      if (existingIds.contains(contactLoginId) ||
+          existingIds.contains(contactUserGuid)) {
+        continue;
+      }
+
+      // Try to resolve full name + company from _allUsers
+      Map<String, dynamic> matched = {};
+      try {
+        matched = _allUsers.firstWhere(
+          (u) =>
+              (u['id']?.toString() ?? '').toLowerCase() ==
+                  contactUserGuid ||
+              (u['loginId']?.toString() ?? '').toLowerCase() ==
+                  contactLoginId,
+          orElse: () => {},
+        );
+      } catch (_) {}
+
+      final userName =
+          matched['name']?.toString() ??
+          contact['loginId']?.toString() ??
+          contactUserGuid;
+      final companyName = matched['companyName']?.toString() ?? '';
+      final branchName = matched['branchName']?.toString() ?? '';
+      final resolvedId =
+          matched['loginId']?.toString() ??
+          contact['loginId']?.toString() ??
+          contactUserGuid;
+      final database =
+          matched['database']?.toString() ??
+          contact['database']?.toString() ??
+          '';
+      final propertyCode =
+          matched['companyCode']?.toString() ??
+          contact['companyCode']?.toString() ??
+          '';
+
+      fromChats.add({
+        "id": resolvedId,
+        "name": userName,
+        "companyName": companyName,
+        "branchName": branchName,
+        "database": database,
+        "propertyCode": propertyCode,
+        "_dmGroup": {
+          "LastMessage": "",
+          "LastMessageTime": "",
+        },
+        "_isContactOnly": true, // flag: no messages yet
+      });
+
+      existingIds.add(resolvedId.toLowerCase());
+    }
+
+    return fromChats;
   }
 
   String _firstDirectChatValue(Map<String, dynamic> chat, List<String> keys) {
@@ -1341,12 +1423,36 @@ class _ChatListScreenState extends State<ChatListScreen>
       if (a.lastTime.isEmpty && b.lastTime.isEmpty) return 0;
       if (a.lastTime.isEmpty) return 1;
       if (b.lastTime.isEmpty) return -1;
-
-      return DateTime.parse(b.lastTime).compareTo(DateTime.parse(a.lastTime));
+      try {
+        return DateTime.parse(b.lastTime).compareTo(DateTime.parse(a.lastTime));
+      } catch (_) {
+        return 0;
+      }
     });
 
     if (items.isEmpty) {
-      return const Center(child: Text("No Direct Chats"));
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_outline, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              'No chats yet',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'Start a conversation from the contacts list',
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
     }
 
     return Column(
@@ -1600,11 +1706,13 @@ class _ChatListScreenState extends State<ChatListScreen>
 
     // Look up branchName from _allUsers by matching the group's DatabaseName
     String branchName = '';
-    final groupDatabase = (group['DatabaseName']?.toString() ?? '').toLowerCase();
+    final groupDatabase = (group['DatabaseName']?.toString() ?? '')
+        .toLowerCase();
     if (groupDatabase.isNotEmpty) {
       try {
         final matched = _allUsers.firstWhere(
-          (u) => (u['database']?.toString() ?? '').toLowerCase() == groupDatabase,
+          (u) =>
+              (u['database']?.toString() ?? '').toLowerCase() == groupDatabase,
           orElse: () => {},
         );
         branchName = (matched['branchName']?.toString() ?? '').trim();
@@ -1756,7 +1864,9 @@ class _ChatListScreenState extends State<ChatListScreen>
     final avatarLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
     final companyName = user['companyName']?.toString() ?? '';
     final branchName = user['branchName']?.toString() ?? '';
-    debugPrint("Rendering user: $userName | companyName='$companyName' | branchName='$branchName'");
+    debugPrint(
+      "Rendering user: $userName | companyName='$companyName' | branchName='$branchName'",
+    );
 
     // Build subtitle: "COMPANY • BRANCH" or just "COMPANY"
     final subtitle = companyName.isNotEmpty
@@ -1768,6 +1878,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     final lastMessage = dmGroup?['LastMessage']?.toString() ?? '';
     final lastMsgTime = dmGroup?['LastMessageTime']?.toString() ?? '';
     final timeLabel = _formatTime(lastMsgTime.isNotEmpty ? lastMsgTime : null);
+    final isContactOnly = user['_isContactOnly'] == true;
 
     return Material(
       color: Colors.transparent,
@@ -1866,6 +1977,16 @@ class _ChatListScreenState extends State<ChatListScreen>
                         style: const TextStyle(
                           fontSize: 13,
                           color: Colors.grey,
+                        ),
+                      ),
+                    ] else if (isContactOnly) ...[
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Say Hello 👋',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF54656F),
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                     ],
