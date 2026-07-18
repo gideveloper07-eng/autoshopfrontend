@@ -1848,6 +1848,33 @@ class ApiService {
     }
   }
 
+  static Future<List<dynamic>> getMyContactRequests() async {
+    try {
+      final token = await getToken();
+
+      final response = await http.get(
+        Uri.parse("$baseUrl/api/group/my-contact-requests"),
+
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json",
+        },
+      );
+
+      final body = jsonDecode(response.body);
+
+      if (body["success"] == true) {
+        return List<dynamic>.from(body["data"]);
+      }
+
+      return [];
+    } catch (e) {
+      print(e);
+
+      return [];
+    }
+  }
+
   static Future<Map<String, dynamic>> getDashboardBranchwise(
     String reportType,
     String period,

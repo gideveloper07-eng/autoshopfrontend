@@ -22,6 +22,7 @@ import '../chat/chat_requests_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
+import '../chat/my_contact_requests_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -160,12 +161,14 @@ class _HomeScreenState extends State<HomeScreen>
 
       _bookingTrend = stats['bookingTrend'] != null
           ? List<double>.from(
-              (stats['bookingTrend'] as List).map((e) => (e as num).toDouble()))
+              (stats['bookingTrend'] as List).map((e) => (e as num).toDouble()),
+            )
           : [];
 
       _saleTrend = stats['saleTrend'] != null
           ? List<double>.from(
-              (stats['saleTrend'] as List).map((e) => (e as num).toDouble()))
+              (stats['saleTrend'] as List).map((e) => (e as num).toDouble()),
+            )
           : [];
     });
   }
@@ -646,6 +649,20 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                         ],
+                        GestureDetector(
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const MyContactRequestsScreen(),
+                              ),
+                            );
+                          },
+                          child: _headerIconBtn(
+                            Icons.people_alt_outlined,
+                            margin: const EdgeInsets.only(right: 8),
+                          ),
+                        ),
                         // Chat request icon (non-admin only)
                         if (!_isAdmin)
                           _ChatRequestIconButton(
@@ -864,10 +881,9 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 24),
 
                   PerformanceTrendsSection(
-                  
                     bookingGrowth: _bookingGrowth,
                     bookingTrend: _bookingTrend,
-                  
+
                     saleGrowth: _saleGrowth,
                     saleTrend: _saleTrend,
                   ),
@@ -1654,7 +1670,6 @@ class _HomeScreenState extends State<HomeScreen>
 
 // â”€â”€ Simple holder for per-challan chat metadata shown on home screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-
 // -- Animated chat-request icon button for the home header -------------------
 /// Shows a pulsing ripple ring when there are pending requests (red),
 /// and a calm green glow when idle. The icon itself gently scales up/down.
@@ -1672,10 +1687,12 @@ class _ChatRequestIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final hasPending = pendingCount > 0;
-    final rippleColor =
-        hasPending ? const Color(0xFFFF5252) : const Color(0xFF43A047);
-    final badgeColor =
-        hasPending ? const Color(0xFFE53935) : const Color(0xFF43A047);
+    final rippleColor = hasPending
+        ? const Color(0xFFFF5252)
+        : const Color(0xFF43A047);
+    final badgeColor = hasPending
+        ? const Color(0xFFE53935)
+        : const Color(0xFF43A047);
 
     return GestureDetector(
       onTap: onTap,
@@ -1683,8 +1700,12 @@ class _ChatRequestIconButton extends StatelessWidget {
         animation: animation,
         builder: (context, _) {
           final scale = hasPending ? 0.92 + (0.16 * animation.value) : 1.0;
-          final rippleRadius = hasPending ? 18.0 + (14.0 * animation.value) : 0.0;
-          final rippleOpacity = hasPending ? (1.0 - animation.value) * 0.55 : 0.0;
+          final rippleRadius = hasPending
+              ? 18.0 + (14.0 * animation.value)
+              : 0.0;
+          final rippleOpacity = hasPending
+              ? (1.0 - animation.value) * 0.55
+              : 0.0;
 
           return SizedBox(
             width: 44,
@@ -1729,15 +1750,18 @@ class _ChatRequestIconButton extends StatelessWidget {
                       boxShadow: hasPending
                           ? [
                               BoxShadow(
-                                color: const Color(0xFFFF5252)
-                                    .withOpacity(0.4 * animation.value),
+                                color: const Color(
+                                  0xFFFF5252,
+                                ).withOpacity(0.4 * animation.value),
                                 blurRadius: 10,
                                 spreadRadius: 1,
                               ),
                             ]
                           : [
                               BoxShadow(
-                                color: const Color(0xFF43A047).withOpacity(0.35),
+                                color: const Color(
+                                  0xFF43A047,
+                                ).withOpacity(0.35),
                                 blurRadius: 8,
                                 spreadRadius: 0,
                               ),
@@ -1816,6 +1840,7 @@ class _ChatRequestIconButton extends StatelessWidget {
     );
   }
 }
+
 class _HomeChatMeta {
   final String lastMessage;
   final String lastTime;
