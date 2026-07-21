@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import 'challan_chat_dialog.dart';
 import 'direct_chat_screen.dart';
 import 'group_chat_screen.dart';
@@ -122,50 +123,65 @@ class _ChatListScreenState extends State<ChatListScreen>
   // ── Load ─────────────────────────────────────────────────────────
 
   Future<void> _loadAll({bool silent = false}) async {
-    if (!silent) {
+    // ── Step 1: Load from cache immediately ─────────────────────────────────
+    final cachedChallans = await CacheService.getListMap(CacheService.keyChallanList);
+    final cachedDirectChats = await CacheService.getList(CacheService.keyDirectChats);
+    final cachedGroups = await CacheService.getList(CacheService.keyGroups);
+    final cachedUsers = await CacheService.getListMap(CacheService.keyMergedUsers);
+    final cachedContacts = await CacheService.getList(CacheService.keyContacts);
+    final hasCached = cachedChallans != null || cachedDirectChats != null;
+
+    if (hasCached && mounted) {
+      setState(() {
+        if (cachedChallans != null) challans = cachedChallans;
+        if (cachedDirectChats != null) _directChats = cachedDirectChats;
+        if (cachedGroups != null) _groups = cachedGroups;
+        if (cachedUsers != null) _allUsers = cachedUsers;
+        if (cachedContacts != null) _myContacts = cachedContacts;
+        // Only show spinner if we truly have nothing cached
+        isLoading = false;
+      });
+    } else if (!silent) {
+      // No cache at all — show loading spinner
       setState(() {
         isLoading = true;
         errorMessage = null;
       });
     }
-    for (final chat in _directChats) {
-      debugPrint(chat.toString());
-    }
+
+    // ── Step 2: Fetch fresh data from backend in background ──────────────────
     try {
       final results = await Future.wait([
         ApiService.getChallanRetailIncentive(),
-        ApiService.getMyDirectChats(allChats: true), // NEW
-        ApiService.getMyGroups(), // Existi
+        ApiService.getMyDirectChats(allChats: true),
+        ApiService.getMyGroups(),
         ApiService.getMergedUsers(),
         ApiService.getUserId(),
         ApiService.getChatRequests(),
-        ApiService.getMyContacts(), // accepted contacts (no messages yet)
+        ApiService.getMyContacts(),
       ]);
 
       final challanList = results[0] as List<Map<String, dynamic>>;
       final directChats = results[1] as List<dynamic>;
-      debugPrint("===== DIRECT CHATS =====");
-      for (final chat in directChats) {
-        debugPrint(chat.toString());
-      }
-      debugPrint("========================");
       final groupList = results[2] as List<dynamic>;
       final userList = results[3] as List<Map<String, dynamic>>;
       final myUserId = results[4] as String? ?? '';
-      final chatRequests = results[5] as List<dynamic>;
       final myContacts = results[6] as List<dynamic>;
 
-      debugPrint("===== CHAT REQUESTS =====");
-      debugPrint(chatRequests.toString());
-      for (final request in chatRequests) {
-        debugPrint(request.toString());
-      }
+      // ── Step 3: Update cache ──────────────────────────────────────────────
+      await Future.wait([
+        CacheService.setListMap(CacheService.keyChallanList, challanList),
+        CacheService.setList(CacheService.keyDirectChats, directChats),
+        CacheService.setList(CacheService.keyGroups, groupList),
+        CacheService.setListMap(CacheService.keyMergedUsers, userList),
+        CacheService.setList(CacheService.keyContacts, myContacts),
+      ]);
+
+      // ── Step 4: Update UI if data changed ─────────────────────────────────
       if (mounted) {
-        print("hello");
         setState(() {
           challans = challanList;
           _directChats = directChats;
-          print(_directChats);
           _groups = groupList;
           _allUsers = userList;
           _myId = myUserId;
@@ -179,7 +195,8 @@ class _ChatListScreenState extends State<ChatListScreen>
     } catch (e) {
       if (mounted) {
         setState(() {
-          errorMessage = e.toString();
+          // Only show error if we couldn't show cached data either
+          if (!hasCached) errorMessage = e.toString();
           isLoading = false;
         });
       }

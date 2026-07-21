@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import '../../theme/app_colors.dart';
 import 'group_chat_screen.dart';
 
@@ -23,10 +24,23 @@ class _GroupListScreenState extends State<GroupListScreen> {
   }
 
   Future<void> _loadGroups() async {
-    setState(() => _loading = true);
+    // ── Step 1: Show cached groups immediately ────────────────────────────
+    final cached = await CacheService.getList(CacheService.keyGroups);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      setState(() {
+        _groups = cached;
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = true);
+    }
+
+    // ── Step 2: Fetch fresh from backend ──────────────────────────────────
     try {
       final data = await ApiService.getMyGroups();
-     
+      if (data.isNotEmpty) {
+        await CacheService.setList(CacheService.keyGroups, data);
+      }
       if (mounted) {
         setState(() {
           _groups = data;

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 //import '../../services/notification_service.dart';
@@ -141,11 +142,27 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }*/
   Future<void> loadDashboardStats() async {
+    // ── Step 1: Show cached stats immediately ─────────────────────────────
+    final cached = await CacheService.getMap(
+      CacheService.keyDashboardStats,
+      ttlMs: CacheService.ttlDashboard,
+    );
+    if (cached != null && mounted) {
+      _applyDashboardStats(cached);
+    }
+
+    // ── Step 2: Fetch fresh from backend ─────────────────────────────────
     final stats = await ApiService.getDashboardStats();
+    if (stats.isNotEmpty) {
+      await CacheService.setMap(CacheService.keyDashboardStats, stats);
+    }
     print("Booking Trend: ${stats['bookingTrend']}");
     print("Sale Trend: ${stats['saleTrend']}");
     if (!mounted) return;
+    _applyDashboardStats(stats);
+  }
 
+  void _applyDashboardStats(Map<String, dynamic> stats) {
     setState(() {
       _todayBooking = stats["todayBooking"] ?? 0;
 
@@ -206,8 +223,19 @@ class _HomeScreenState extends State<HomeScreen>
         builder: (_) => const DealershipSelectorScreen(fromHome: true),
       ),
     );
-    // When user returns (after picking a company), reload everything
+    // When user returns (after picking a company), clear chat cache and reload everything
     if (!mounted) return;
+    // Chat messages/groups/contacts are all company-specific — clear them
+    await CacheService.clearChatCache();
+    // Also clear company-specific dashboard and challan caches
+    await Future.wait([
+      CacheService.delete(CacheService.keyDashboardStats),
+      CacheService.delete(CacheService.keyChallanList),
+      CacheService.delete(CacheService.keyDirectChats),
+      CacheService.delete(CacheService.keyGroups),
+      CacheService.delete(CacheService.keyMergedUsers),
+      CacheService.delete(CacheService.keyContacts),
+    ]);
     _loadCompanyInfo();
     loadDashboardStats();
     _loadChatPreview();
@@ -217,7 +245,24 @@ class _HomeScreenState extends State<HomeScreen>
   // â”€â”€ Chat preview loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   Future<void> _loadChatPreview() async {
-    setState(() => _chatPreviewLoading = true);
+    // ── Step 1: Show cached preview immediately ──────────────────────────
+    final cachedChallans = await CacheService.getListMap(CacheService.keyChallanList);
+    final cachedGroups = await CacheService.getList(CacheService.keyGroups);
+    if ((cachedChallans != null || cachedGroups != null) && mounted) {
+      setState(() {
+        if (cachedChallans != null) {
+          _previewChallans = cachedChallans.take(3).toList();
+        }
+        if (cachedGroups != null) {
+          _previewGroups = cachedGroups.take(3).toList();
+        }
+        _chatPreviewLoading = false;
+      });
+    } else {
+      setState(() => _chatPreviewLoading = true);
+    }
+
+    // ── Step 2: Fetch fresh from backend ─────────────────────────────────
     try {
       final results = await Future.wait([
         ApiService.getChallanRetailIncentive(),
@@ -226,6 +271,12 @@ class _HomeScreenState extends State<HomeScreen>
 
       final challanList = results[0] as List<Map<String, dynamic>>;
       final groupList = results[1] as List<dynamic>;
+
+      // Update cache
+      await Future.wait([
+        CacheService.setListMap(CacheService.keyChallanList, challanList),
+        CacheService.setList(CacheService.keyGroups, groupList),
+      ]);
 
       if (!mounted) return;
       setState(() {
@@ -240,7 +291,17 @@ class _HomeScreenState extends State<HomeScreen>
       for (final c in _previewChallans) {
         final challanId = c['sp_462']?.toString() ?? '';
         if (challanId.isEmpty) continue;
-        final msgs = await ApiService.getChatMessages(challanId);
+        // Use cached messages if available to avoid extra network calls
+        final cached = await CacheService.getList(
+          CacheService.keyChatMessages(challanId),
+        );
+        final msgs = cached ?? await ApiService.getChatMessages(challanId);
+        if (msgs.isNotEmpty && cached == null) {
+          await CacheService.setList(
+            CacheService.keyChatMessages(challanId),
+            msgs,
+          );
+        }
         final unread = 0; //await ApiService.getUnreadChatCount(challanId);
         String lastMsg = '';
         String lastTime = '';
@@ -460,6 +521,8 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       await ApiService.clearSession();
+      // Clear all cached data on logout so the next user sees a clean state
+      await CacheService.clearAll();
 
       if (!mounted) return;
 

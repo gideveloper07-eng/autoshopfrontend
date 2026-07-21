@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import 'chat_document_picker_dialog.dart';
 
 // Avatar color palette
@@ -164,8 +165,32 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Data ───────────────────────────────────────────────────────
 
   Future<void> _loadMessages({bool isInitial = false}) async {
+    final cacheKey = CacheService.keyGroupMessages(widget.groupId);
+
+    // ── Step 1: Show cached messages immediately on first open ───────────────
+    if (isInitial) {
+      final cached = await CacheService.getList(cacheKey);
+      if (cached != null && cached.isNotEmpty && mounted) {
+        if (cached.isNotEmpty) {
+          groupPropertyCode = cached.first['pcode']?.toString();
+          groupCompanyName = cached.first['dbname']?.toString();
+        }
+        setState(() {
+          messages = cached;
+          loading = false;
+        });
+        _scrollToBottom(animated: false);
+      }
+    }
+
+    // ── Step 2: Fetch fresh data from backend ─────────────────────────────
     final data = await ApiService.getGroupMessages(widget.groupId);
     if (!mounted) return;
+
+    // ── Step 3: Update cache ───────────────────────────────────────────────
+    if (data.isNotEmpty) {
+      await CacheService.setList(cacheKey, data);
+    }
 
     // Read group info from the first message
     if (data.isNotEmpty) {
@@ -200,7 +225,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _loadMembers() async {
+    final cacheKey = CacheService.keyGroupMembers(widget.groupId);
+
+    // Show cached members immediately
+    final cached = await CacheService.getListMap(cacheKey);
+    if (cached != null && mounted) {
+      setState(() => _members = cached);
+    }
+
+    // Fetch fresh
     final data = await ApiService.getGroupMembers(widget.groupId);
+    if (data.isNotEmpty) {
+      await CacheService.setListMap(cacheKey, data);
+    }
     if (mounted) setState(() => _members = data);
   }
 

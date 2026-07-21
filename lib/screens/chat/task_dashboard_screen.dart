@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 
 class TaskDashboardScreen extends StatefulWidget {
   const TaskDashboardScreen({super.key});
@@ -37,20 +38,34 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
 
   // ── Load ──────────────────────────────────────────────────────────────────
 
-  Future<void> _loadTasks() async {
-    setState(() => _loading = true);
+  static const String _cacheKey = 'task_dashboard_all';
 
+  Future<void> _loadTasks() async {
+    // ── Step 1: Show cached tasks immediately ─────────────────────────────
+    final cached = await CacheService.getList(
+      _cacheKey,
+      ttlMs: CacheService.ttlMedium,
+    );
+    if (cached != null && cached.isNotEmpty && mounted) {
+      setState(() {
+        _tasks = cached;
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = true);
+    }
+
+    // ── Step 2: Fetch fresh from backend ──────────────────────────────────
     final results = await Future.wait([
-      ApiService.getTasks(),           // challan tasks (comm DB)
-      ApiService.getIndividualTasks(), // direct-chat tasks (comm DB)
-      ApiService.getGroupTasks(),      // group tasks (company DBs)
+      ApiService.getTasks(),
+      ApiService.getIndividualTasks(),
+      ApiService.getGroupTasks(),
     ]);
 
     final challanTasks    = results[0];
     final individualTasks = results[1];
     final groupTasks      = results[2];
 
-    // Tag source if not already set by backend
     for (final t in challanTasks) {
       t['TaskSource'] ??= t['GroupId'] != null ? 'Group'
           : t['ChallanId'] != null ? 'Challan'
@@ -63,7 +78,6 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       t['TaskSource'] ??= 'Group';
     }
 
-    // Merge — deduplicate by TaskId
     final seen = <String>{};
     final merged = <dynamic>[];
     for (final t in [...challanTasks, ...individualTasks, ...groupTasks]) {
@@ -76,6 +90,11 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       final db = DateTime.tryParse(b['CreatedDate']?.toString() ?? '') ?? DateTime(2000);
       return db.compareTo(da);
     });
+
+    // ── Step 3: Update cache ──────────────────────────────────────────────
+    if (merged.isNotEmpty) {
+      await CacheService.setList(_cacheKey, merged);
+    }
 
     if (!mounted) return;
     setState(() {

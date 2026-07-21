@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 
 class BranchwiseDetailsScreen extends StatefulWidget {
   final String reportType;
@@ -38,22 +39,44 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
   }
 
   Future<void> _loadBranchwiseData() async {
-    if (mounted) {
+    final cacheKey = CacheService.keyBranchwise(widget.reportType, widget.period);
+
+    // ── Step 1: Show cached data immediately ─────────────────────────────
+    final cached = await CacheService.getMap(
+      cacheKey,
+      ttlMs: CacheService.ttlDashboard,
+    );
+    if (cached != null && mounted) {
+      final rawBranches = cached['branches'];
+      final branches = rawBranches is List
+          ? rawBranches
+                .whereType<Map>()
+                .map((row) => Map<String, dynamic>.from(row))
+                .toList()
+          : <Map<String, dynamic>>[];
+      setState(() {
+        _total = (cached['total'] as num?)?.toInt() ?? 0;
+        _branchData = branches;
+        _isLoading = false;
+      });
+    } else if (mounted) {
       setState(() {
         _isLoading = true;
-
         _errorMessage = null;
       });
     }
 
+    // ── Step 2: Fetch fresh from backend ─────────────────────────────────
     try {
       final result = await ApiService.getDashboardBranchwise(
         widget.reportType,
         widget.period,
       );
 
-      final rawBranches = result['branches'];
+      // ── Step 3: Update cache ────────────────────────────────────────────
+      await CacheService.setMap(cacheKey, result);
 
+      final rawBranches = result['branches'];
       final branches = rawBranches is List
           ? rawBranches
                 .whereType<Map>()
@@ -62,22 +85,17 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
           : <Map<String, dynamic>>[];
 
       if (!mounted) return;
-
       setState(() {
         _total = (result['total'] as num?)?.toInt() ?? 0;
-
         _branchData = branches;
-
         _isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
-        _errorMessage =
-            "Unable to load "
-            "branchwise data.";
-
+        if (_branchData.isEmpty) {
+          _errorMessage = "Unable to load branchwise data.";
+        }
         _isLoading = false;
       });
     }

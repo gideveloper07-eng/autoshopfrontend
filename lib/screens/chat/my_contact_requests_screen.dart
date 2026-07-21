@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 
 class MyContactRequestsScreen extends StatefulWidget {
   const MyContactRequestsScreen({super.key});
@@ -24,15 +25,31 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
     loadRequests();
   }
 
+  static const String _cacheKey = 'my_contact_requests';
+
   Future<void> loadRequests() async {
-    setState(() {
-      loading = true;
-    });
+    // ── Step 1: Show cached data immediately ─────────────────────────────
+    final cached = await CacheService.getList(
+      _cacheKey,
+      ttlMs: CacheService.ttlMedium,
+    );
+    if (cached != null && mounted) {
+      setState(() {
+        requests = cached;
+        loading = false;
+      });
+    } else {
+      setState(() => loading = true);
+    }
 
-    requests = await ApiService.getMyContactRequests();
-
+    // ── Step 2: Fetch fresh from backend ──────────────────────────────────
+    final data = await ApiService.getMyContactRequests();
+    if (data.isNotEmpty) {
+      await CacheService.setList(_cacheKey, data);
+    }
     if (mounted) {
       setState(() {
+        requests = data;
         loading = false;
       });
     }
@@ -330,7 +347,9 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
     final accepted = requests
         .where((e) => (e["Status"] ?? "") == "ACCEPTED")
         .length;
-
+    final rejected = requests
+        .where((e) => (e["Status"] ?? "").toUpperCase() == "REJECTED")
+        .length;
     final total = requests.length;
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -517,6 +536,13 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
                                         const Color(0xff00C853),
                                         "Accepted",
                                         accepted,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      summaryCard(
+                                        Icons.cancel_rounded,
+                                        Colors.red,
+                                        "Rejected",
+                                        rejected,
                                       ),
                                       const SizedBox(width: 12),
                                       summaryCard(

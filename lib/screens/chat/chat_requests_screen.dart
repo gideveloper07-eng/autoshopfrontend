@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 
 /// A screen that lists all pending chat requests received by the current user.
 /// Shown when a non-admin taps the requests icon in [NewChatScreen].
@@ -56,9 +57,28 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen> {
     return request['FromUserGuid']?.toString() ?? 'Unknown';
   }
 
+  static const String _cacheKey = 'chat_requests';
+
   Future<void> _loadRequests() async {
-    setState(() => _loading = true);
+    // ── Step 1: Show cached requests immediately ──────────────────────────
+    final cached = await CacheService.getList(
+      _cacheKey,
+      ttlMs: CacheService.ttlShort,
+    );
+    if (cached != null && mounted) {
+      setState(() {
+        _requests = cached;
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = true);
+    }
+
+    // ── Step 2: Fetch fresh from backend ──────────────────────────────────
     final data = await ApiService.getChatRequests();
+    if (data.isNotEmpty) {
+      await CacheService.setList(_cacheKey, data);
+    }
     if (mounted) {
       setState(() {
         _requests = data;
@@ -148,6 +168,8 @@ class _ChatRequestsScreenState extends State<ChatRequestsScreen> {
     );
 
     if (result['success'] == true) {
+      // Invalidate cache so next open fetches fresh data
+      await CacheService.delete(_cacheKey);
       // Reload to reflect the change
       await _loadRequests();
     }

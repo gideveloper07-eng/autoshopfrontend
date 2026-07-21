@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import 'chat_document_picker_dialog.dart';
 import 'group_chat_screen.dart';
 
@@ -220,6 +221,27 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // ── Data ────────────────────────────────────────────────────────
 
   Future<void> _loadMessages({bool isInitial = false}) async {
+    // Build a stable cache key for this conversation
+    final cacheKey = widget.targetUserId.isNotEmpty
+        ? CacheService.keyDirectMessages(
+            widget.targetUserId,
+            widget.receiverPropertyCode ?? '',
+          )
+        : CacheService.keyGroupMessages(widget.groupId);
+
+    // ── Step 1: Show cached messages immediately on first open ───────────────
+    if (isInitial) {
+      final cached = await CacheService.getList(cacheKey);
+      if (cached != null && cached.isNotEmpty && mounted) {
+        setState(() {
+          messages = cached;
+          loading = false;
+        });
+        _scrollToBottom(animated: false);
+      }
+    }
+
+    // ── Step 2: Fetch fresh data from backend ─────────────────────────────
     print(
       "Loading messages for groupId=${widget.groupId}, targetUserId=${widget.targetUserId}",
     );
@@ -231,7 +253,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         : await ApiService.getGroupMessages(widget.groupId);
 
     print("Messages received = ${data.length}");
-    print(messages);
+
+    // ── Step 3: Update cache ───────────────────────────────────────────────
+    if (data.isNotEmpty) {
+      await CacheService.setList(cacheKey, data);
+    }
 
     if (!mounted) return;
     final oldCount = messages.length;

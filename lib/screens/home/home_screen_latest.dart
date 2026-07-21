@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 //import '../../services/notification_service.dart';
@@ -401,6 +402,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
 
       await ApiService.clearSession();
+      await CacheService.clearAll();
 
       if (!mounted) return;
 

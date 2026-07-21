@@ -8,6 +8,7 @@ import 'group_chat_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 
 class ChallanChatDialog extends StatefulWidget {
   final String challanId;
@@ -642,8 +643,29 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   }
 
   Future<void> loadMessages({bool isInitial = false}) async {
+    final cacheKey = CacheService.keyChatMessages(widget.challanId);
+
+    // ── Step 1: Show cached messages immediately on first open ───────────────
+    if (isInitial) {
+      final cached = await CacheService.getList(cacheKey);
+      if (cached != null && cached.isNotEmpty && mounted) {
+        setState(() {
+          messages = cached;
+          loading = false;
+        });
+        scrollToBottom(animated: false);
+      }
+    }
+
+    // ── Step 2: Fetch fresh data from backend ─────────────────────────────
     final data = await ApiService.getChatMessages(widget.challanId);
     if (!mounted) return;
+
+    // ── Step 3: Update cache ───────────────────────────────────────────────
+    if (data.isNotEmpty) {
+      await CacheService.setList(cacheKey, data);
+    }
+
     final oldCount = messages.length;
     final newCount = data.length;
     final hasNew = newCount > oldCount;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../services/cache_service.dart';
 import '../../l10n/app_localizations.dart';
 import 'challan_edit_details_screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -193,34 +194,52 @@ class _ChallanScreenState extends State<ChallanScreen>
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    // ── Step 1: Show cached challan list immediately ──────────────────────
+    final cached = await CacheService.getListMap(
+      CacheService.keyChallanList,
+      ttlMs: CacheService.ttlMedium,
+    );
+    if (cached != null && cached.isNotEmpty && mounted) {
+      setState(() {
+        _rows = List<Map<String, dynamic>>.from(cached);
+        _filteredRows = List<Map<String, dynamic>>.from(cached);
+        _loading = false;
+      });
+      _animController.forward();
+    } else {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+      _animController.reset();
+    }
 
-    _animController.reset();
-
+    // ── Step 2: Fetch fresh data from backend ─────────────────────────────
     try {
-      // Pass dateType parameter based on current filter
       final data = await ApiService.getChallanRetailIncentive(
         dateType: _dateFilter,
       );
 
+      // ── Step 3: Update cache ────────────────────────────────────────────
+      if (data.isNotEmpty) {
+        await CacheService.setListMap(CacheService.keyChallanList, data);
+      }
+
+      if (!mounted) return;
       setState(() {
         _rows = List<Map<String, dynamic>>.from(data);
-
-        // IMPORTANT
         _filteredRows = List<Map<String, dynamic>>.from(data);
-
         _loading = false;
       });
 
       _animController.forward();
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          if (_rows.isEmpty) _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
