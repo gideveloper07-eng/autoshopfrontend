@@ -221,12 +221,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   // ── Data ────────────────────────────────────────────────────────
 
   Future<void> _loadMessages({bool isInitial = false}) async {
+    // Trim to handle any trailing spaces stored in the database
+    final targetId = widget.targetUserId.trim();
+    final propCode = (widget.receiverPropertyCode ?? '').trim();
+
     // Build a stable cache key for this conversation
-    final cacheKey = widget.targetUserId.isNotEmpty
-        ? CacheService.keyDirectMessages(
-            widget.targetUserId,
-            widget.receiverPropertyCode ?? '',
-          )
+    final cacheKey = targetId.isNotEmpty
+        ? CacheService.keyDirectMessages(targetId, propCode)
         : CacheService.keyGroupMessages(widget.groupId);
 
     // ── Step 1: Show cached messages immediately on first open ───────────────
@@ -242,14 +243,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     }
 
     // ── Step 2: Fetch fresh data from backend ─────────────────────────────
-    print(
-      "Loading messages for groupId=${widget.groupId}, targetUserId=${widget.targetUserId}",
-    );
-    final data = widget.targetUserId.isNotEmpty
-        ? await ApiService.getDirectChatMessages(
-            widget.targetUserId,
-            widget.receiverPropertyCode ?? "",
-          )
+    print("Loading messages for groupId=${widget.groupId}, targetUserId=$targetId");
+    final data = targetId.isNotEmpty
+        ? await ApiService.getDirectChatMessages(targetId, propCode)
         : await ApiService.getGroupMessages(widget.groupId);
 
     print("Messages received = ${data.length}");
@@ -299,14 +295,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     setState(() => _sending = true);
     _msgCtrl.clear();
 
-    String receiverUserId = widget.targetUserId;
+    String receiverUserId = widget.targetUserId.trim();
     String receiverName = widget.userName;
     String receiverDatabase = widget.groupDatabase ?? "";
 
     print("MY ID = $_myId");
 
     for (final m in _members) {
-      final uid = m["UserId"]?.toString() ?? "";
+      final uid = (m["UserId"]?.toString() ?? "").trim();
 
       print("Checking member: $uid");
 

@@ -322,7 +322,7 @@ class _ChatListScreenState extends State<ChatListScreen>
     String targetUserName, {
     String? companyName,
     String? branchName,
-    String? targetDatabase, // the DB where the target user belongs
+    String? targetDatabase,
     String? receiverPropertyCode,
   }) async {
     if (targetUserId.isEmpty) return;
@@ -330,7 +330,9 @@ class _ChatListScreenState extends State<ChatListScreen>
     Map<String, dynamic>? existingChat;
     try {
       existingChat = _directChats.cast<Map<String, dynamic>>().firstWhere(
-        (g) => (g["UserId"]?.toString() ?? "") == targetUserId,
+        (g) =>
+            (g["UserId"]?.toString() ?? "").toLowerCase() ==
+            targetUserId.toLowerCase(),
       );
     } catch (_) {
       existingChat = null;
@@ -726,27 +728,40 @@ class _ChatListScreenState extends State<ChatListScreen>
     final branchName = selectedItem['branchName']?.toString();
     final targetDatabase = selectedItem['database']?.toString();
 
-    // The id from _allUsers may be a UUID while _directChats stores the short
-    // login UserId. Try to find the matching existing chat by UserName so we
-    // can pass the correct UserId and PropertyCode to DirectChatScreen.
+    // ── Resolve the correct short login ID ────────────────────────────────
+    // _allUsers has:  id = UUID,  loginId = short login (e.g. "kishor")
+    // _directChats has: UserId = short login
+    // The API expects the short login ID, not the UUID.
+
+    // Step 1: look up the loginId from _allUsers for this UUID
+    String loginId = '';
+    try {
+      final matched = _allUsers.firstWhere(
+        (u) => (u['id']?.toString() ?? '').toLowerCase() == userId.toLowerCase(),
+        orElse: () => {},
+      );
+      loginId = matched['loginId']?.toString() ?? '';
+    } catch (_) {}
+
+    // Step 2: find the existing direct chat using loginId OR UUID OR name
     Map<String, dynamic>? matchedDirectChat;
     try {
       matchedDirectChat = _directChats.cast<Map<String, dynamic>>().firstWhere(
-        (g) =>
-            (g["UserId"]?.toString() ?? '').toLowerCase() ==
-                userId.toLowerCase() ||
-            (g["UserName"]?.toString() ?? '').toLowerCase() ==
-                userName.toLowerCase(),
+        (g) {
+          final chatUserId = (g["UserId"]?.toString() ?? '').toLowerCase();
+          final chatUserName = (g["UserName"]?.toString() ?? '').toLowerCase();
+          return chatUserId == userId.toLowerCase() ||
+              (loginId.isNotEmpty && chatUserId == loginId.toLowerCase()) ||
+              chatUserName == userName.toLowerCase();
+        },
       );
     } catch (_) {
       matchedDirectChat = null;
     }
 
-    // Prefer the short userId and propertyCode from the existing direct chat.
-    // Fall back to the propertyCode / companyCode embedded in the user map
-    // (populated by getMergedUsers) so cross-company detection always works,
-    // even when there is no existing chat history yet.
-    final resolvedUserId = matchedDirectChat?["UserId"]?.toString() ?? userId;
+    // Step 3: prefer short loginId > existing chat UserId > original UUID
+    final resolvedUserId = matchedDirectChat?["UserId"]?.toString()
+        ?? (loginId.isNotEmpty ? loginId : userId);
     final resolvedPropertyCode =
         matchedDirectChat?["PropertyCode"]?.toString() ??
         selectedItem['propertyCode']?.toString() ??

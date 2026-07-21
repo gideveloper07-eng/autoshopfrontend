@@ -824,13 +824,17 @@ class ApiService {
     try {
       final token = await getToken();
 
-      if (token == null || receiverId.isEmpty || receiverPropertyCode.isEmpty) {
+      // Trim both IDs to strip any trailing/leading whitespace from DB values
+      final cleanReceiverId = receiverId.trim();
+      final cleanPropertyCode = receiverPropertyCode.trim();
+
+      if (token == null || cleanReceiverId.isEmpty || cleanPropertyCode.isEmpty) {
         return [];
       }
 
       final response = await http.get(
         Uri.parse(
-          "$baseUrl/api/chat/direct-messages/$receiverId/$receiverPropertyCode",
+          "$baseUrl/api/chat/direct-messages/$cleanReceiverId/$cleanPropertyCode",
         ),
         headers: {"Authorization": "Bearer $token"},
       );
@@ -883,11 +887,11 @@ class ApiService {
         // Sender/current database
         "databaseName": databaseName,
 
-        // Receiver information
-        "receiverUserId": receiverUserId,
-        "receiverName": receiverName,
+        // Receiver information — trim to remove any trailing spaces from DB values
+        "receiverUserId": receiverUserId?.trim(),
+        "receiverName": receiverName?.trim(),
         "receiverDatabase": receiverDbName,
-        "receiverPropertyCode": receiverPropertyCode,
+        "receiverPropertyCode": receiverPropertyCode?.trim(),
 
         "messageType": messageType ?? "TEXT",
         "documentId": documentId,
@@ -969,9 +973,14 @@ class ApiService {
       final token = await getToken();
       if (token == null) return 0;
 
+      final cleanReceiverId = receiverId.trim();
+      final cleanPropertyCode = receiverPropertyCode.trim();
+
+      if (cleanReceiverId.isEmpty || cleanPropertyCode.isEmpty) return 0;
+
       final response = await http.get(
         Uri.parse(
-          "$baseUrl/api/chat/unread-count/$receiverId/$receiverPropertyCode",
+          "$baseUrl/api/chat/unread-count/$cleanReceiverId/$cleanPropertyCode",
         ),
         headers: {
           "Content-Type": "application/json",
