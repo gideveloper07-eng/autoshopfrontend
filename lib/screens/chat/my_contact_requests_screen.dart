@@ -125,6 +125,8 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
   }
 
   Widget glassCard(Widget child) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
       child: BackdropFilter(
@@ -136,14 +138,19 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(.55),
-                Colors.white.withOpacity(.22),
-              ],
+              colors: isDark
+                  ? [
+                      Colors.white.withOpacity(.15),
+                      Colors.white.withOpacity(.08),
+                    ]
+                  : [
+                      Colors.white.withOpacity(.55),
+                      Colors.white.withOpacity(.22),
+                    ],
             ),
 
             border: Border.all(
-              color: Colors.white.withOpacity(.55),
+              color: isDark ? Colors.white.withOpacity(.25) : Colors.white.withOpacity(.55),
               width: 1.2,
             ),
 
@@ -200,17 +207,19 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
   }
 
   Widget infoTile(IconData icon, Color color, String text) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Row(
       children: [
         Container(
           width: 38,
           height: 38,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(.50),
+            color: isDark ? Colors.white.withOpacity(.20) : Colors.white.withOpacity(.50),
 
             borderRadius: BorderRadius.circular(12),
 
-            border: Border.all(color: Colors.white.withOpacity(.40)),
+            border: Border.all(color: isDark ? Colors.white.withOpacity(.30) : Colors.white.withOpacity(.40)),
 
             boxShadow: [
               BoxShadow(
@@ -227,7 +236,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
           child: Text(
             text,
             style: TextStyle(
-              color: Colors.grey.shade800,
+              color: theme.colorScheme.onSurface,
               fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
@@ -238,6 +247,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
   }
 
   Widget summaryCard(IconData icon, Color color, String title, int count) {
+    final theme = Theme.of(context);
     return Expanded(
       child: glassCard(
         Padding(
@@ -251,7 +261,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
               Text(
                 title,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: theme.colorScheme.onSurface.withOpacity(0.7),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -276,6 +286,8 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
   Widget buildRequestCard(dynamic item) {
     final name = item["ToLoginid"] ?? "";
     final status = item["Status"] ?? "PENDING";
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -296,10 +308,11 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
                       children: [
                         Text(
                           name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                             letterSpacing: .2,
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -312,7 +325,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
 
               const SizedBox(height: 14),
 
-              Divider(color: Colors.white.withOpacity(.45), thickness: 1),
+              Divider(color: isDark ? Colors.white.withOpacity(.25) : Colors.white.withOpacity(.45), thickness: 1),
 
               const SizedBox(height: 14),
 
@@ -340,6 +353,8 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final pending = requests
         .where((e) => (e["Status"] ?? "") == "PENDING")
         .length;
@@ -353,16 +368,16 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
     final total = requests.length;
     return Scaffold(
       extendBodyBehindAppBar: true,
-      backgroundColor: const Color(0xffEEF4FF),
+      backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
         elevation: 0,
         centerTitle: true,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        title: const Text(
+        title: Text(
           "My Chat Requests",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+          style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
         ),
       ),
 
@@ -373,7 +388,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: Colors.white.withOpacity(.25),
+                  color: isDark ? Colors.black.withOpacity(.25) : Colors.white.withOpacity(.25),
                   blurRadius: 14,
                   offset: const Offset(0, 5),
                 ),
@@ -381,11 +396,17 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
-                  Color(0xffEEF4FF),
-                  Color(0xffF7F9FF),
-                  Color(0xffFFFFFF),
-                ],
+                colors: isDark
+                    ? [
+                        const Color(0xff0F1923),
+                        const Color(0xff1A2535),
+                        const Color(0xff0F1923),
+                      ]
+                    : [
+                        const Color(0xffEEF4FF),
+                        const Color(0xffF7F9FF),
+                        const Color(0xffFFFFFF),
+                      ],
               ),
             ),
           ),
@@ -437,9 +458,9 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
                 child: Container(
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(.20),
+                    color: isDark ? Colors.black.withOpacity(.20) : Colors.white.withOpacity(.20),
                     border: Border(
-                      bottom: BorderSide(color: Colors.white.withOpacity(.25)),
+                      bottom: BorderSide(color: isDark ? Colors.white.withOpacity(.15) : Colors.white.withOpacity(.25)),
                     ),
                   ),
                 ),
@@ -461,18 +482,18 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
                         Icon(
                           Icons.people_alt_rounded,
                           size: 90,
-                          color: Colors.white.withOpacity(.85),
+                          color: isDark ? Colors.white.withOpacity(.60) : Colors.white.withOpacity(.85),
                         ),
 
                         const SizedBox(height: 25),
 
-                        const Center(
+                        Center(
                           child: Text(
                             "No Contact Requests",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                         ),
@@ -484,7 +505,7 @@ class _MyContactRequestsScreenState extends State<MyContactRequestsScreen> {
                             "New chat requests will appear here.",
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              color: Colors.grey.shade700,
+                              color: theme.colorScheme.onSurface.withOpacity(0.7),
                               fontSize: 15,
                             ),
                           ),

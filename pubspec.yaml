@@ -51,6 +51,13 @@ dependencies:
   shimmer: ^3.0.0
   animated_flip_counter: ^0.3.4
   fl_chart: ^1.0.0
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  sqflite_sqlcipher: ^3.4.0
+  path_provider: ^2.1.5
+  path: ^1.9.1
+  uuid: ^4.5.1
+  connectivity_plus: ^7.0.0
   # screen_protector: Temporarily removed due to build compatibility issues
 
 dev_dependencies:

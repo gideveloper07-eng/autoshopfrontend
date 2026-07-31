@@ -1407,7 +1407,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
       _SectionDef(
         title: discount,
         summary: _summary(
-          '${_t('subtotalLabel')}: ${_formatValue(d['subtotal'])}',
+          'Less of Encashment schema amount: ${_formatValue(d['lessofallencashmentschemne'])}',
         ),
         icon: Icons.discount_rounded,
         iconColor: const Color(0xFFEC4899),
@@ -2020,33 +2020,45 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }
 
   Widget _buildRejectRemarkPreview(AppLocalizations l10n) {
-    final textDark = Theme.of(context).colorScheme.onSurface;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textDark = theme.colorScheme.onSurface;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF5F5),
+        color: isDark
+            ? const Color(0xFF3D1A1A)
+            : const Color(0xFFFFF5F5),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        border: Border.all(
+          color: isDark
+              ? const Color(0xFFEF5350)
+              : const Color(0xFFFECACA),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.edit_note_rounded,
                 size: 16,
-                color: Color(0xFFEF4444),
+                color: isDark
+                    ? const Color(0xFFFF8A80)
+                    : const Color(0xFFEF4444),
               ),
               const SizedBox(width: 6),
               Text(
                 '${_t('rejectRemarkTitle')} (${_checkedRejectFields.length} field${_checkedRejectFields.length == 1 ? '' : 's'})',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFFEF4444),
+                  color: isDark
+                      ? const Color(0xFFFF8A80)
+                      : const Color(0xFFEF4444),
                 ),
               ),
             ],
@@ -2057,7 +2069,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: textDark,
+              color: isDark ? Colors.white : textDark,
               height: 1.4,
             ),
           ),
@@ -2072,6 +2084,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
   }) {
     final l10n = AppLocalizations.of(context)!;
     final isExpanded = _expandedSections.contains(section.title);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     final hasCriticalField = section.fields.any((f) => f.critical);
     final isReviewed =
@@ -2079,7 +2093,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
         _reviewedHighlightedSections.contains(section.title);
     final screenWidth = MediaQuery.of(context).size.width;
     final isSmallScreen = screenWidth < 600;
-    final textDark = Theme.of(context).colorScheme.onSurface;
+    final textDark = theme.colorScheme.onSurface;
+    final summaryColor = isDark ? Colors.white : textDark;
 
     final summaryMaxWidth = isSmallScreen ? 110.0 : 460.0;
 
@@ -2089,12 +2104,14 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
           decoration: BoxDecoration(
             color: hasCriticalField
                 ? isReviewed
-                      ? const Color(
-                          0xFFECFDF5,
-                        ) // Light green background when reviewed
-                      : const Color(
-                          0xFFFFEBEE,
-                        ) // Light red background when not yet reviewed
+                      ? isDark
+                          ? const Color(0xFF1E3A2F) // Dark green background when reviewed
+                          : const Color(0xFFECFDF5)
+                        // Light green background when reviewed
+                      : isDark
+                          ? const Color(0xFF3D1A1A) // Dark red background when not reviewed
+                          : const Color(0xFFFFEBEE)
+                // Light red background when not reviewed
                 : Colors.transparent,
           ),
           child: Theme(
@@ -2114,10 +2131,13 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                       decoration: BoxDecoration(
                         color: hasCriticalField
                             ? isReviewed
-                                  ? const Color(
-                                      0xFFD1FAE5,
-                                    ) // Light green icon bg
-                                  : const Color(0xFFFFE5E5) // Light red icon bg
+                                  ? isDark
+                                      ? const Color(0xFF2D4A3E) // Dark green icon bg
+                                      : const Color(0xFFD1FAE5)
+                                    // Light green icon bg
+                                  : isDark
+                                      ? const Color(0xFF4A2A2A) // Dark red icon bg
+                                      : const Color(0xFFFFE5E5) // Light red icon bg
                             : section.iconColor.withValues(alpha: 0.1),
 
                         borderRadius: BorderRadius.circular(8),
@@ -2190,8 +2210,12 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           fontWeight: FontWeight.w700,
                           color: hasCriticalField
                               ? isReviewed
-                                    ? const Color(0xFF065F46)
-                                    : const Color(0xFFB91C1C)
+                                    ? isDark
+                                        ? const Color(0xFF6EE7B7) // Light green text in dark
+                                        : const Color(0xFF065F46)
+                                    : isDark
+                                        ? const Color(0xFFFC8181) // Light red text in dark
+                                        : const Color(0xFFB91C1C)
                               : textDark,
                         ),
                       ),
@@ -2211,7 +2235,7 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: textDark,
+                            color: summaryColor,
                           ),
                         ),
                       ),
@@ -2687,6 +2711,7 @@ class _SectionFieldRow extends StatelessWidget {
         : const Color(0xFFEAF1FF);
     final textDark = theme.colorScheme.onSurface;
     final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+    final valueColor = isDark ? Colors.white : textDark;
     final borderColor = isDark ? const Color(0xFF2A3A4A) : _borderColor;
 
     return Container(
@@ -2742,15 +2767,21 @@ class _SectionFieldRow extends StatelessWidget {
                           vertical: 3,
                         ),
                         decoration: BoxDecoration(
-                          color: _primary.withValues(alpha: 0.08),
+                          color: isDark
+                              ? _primary.withValues(alpha: 0.2)
+                              : _primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                          border: Border.all(
+                            color: isDark
+                                ? const Color(0xFF3B82F6).withValues(alpha: 0.5)
+                                : const Color(0xFFBFDBFE),
+                          ),
                         ),
                         child: Text(
                           field.value,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: _primary,
+                            color: isDark ? Colors.white : _primary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -2765,30 +2796,40 @@ class _SectionFieldRow extends StatelessWidget {
                           vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFE5E5), Color(0xFFFFF3E0)],
-                          ),
+                          gradient: isDark
+                              ? const LinearGradient(
+                                  colors: [Color(0xFF4A1A1A), Color(0xFF3D2A1A)],
+                                )
+                              : const LinearGradient(
+                                  colors: [Color(0xFFFFE5E5), Color(0xFFFFF3E0)],
+                                ),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: const Color(0xFFFF6B6B),
+                            color: isDark
+                                ? const Color(0xFFEF5350)
+                                : const Color(0xFFFF6B6B),
                             width: 1.2,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.warning_amber_rounded,
                               size: 14,
-                              color: Color(0xFFDC2626),
+                              color: isDark
+                                  ? const Color(0xFFFF8A80)
+                                  : const Color(0xFFDC2626),
                             ),
                             const SizedBox(width: 4),
                             Text(
                               field.value,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                color: Color(0xFFB91C1C),
+                                color: isDark
+                                    ? const Color(0xFFFF8A80)
+                                    : const Color(0xFFB91C1C),
                               ),
                             ),
                           ],
@@ -2801,7 +2842,7 @@ class _SectionFieldRow extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: textDark,
+                        color: valueColor,
                       ),
                     ),
             ),
@@ -2877,16 +2918,25 @@ class _RejectDialogState extends State<_RejectDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
+    
     return AlertDialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
-          const Icon(Icons.warning_rounded, color: Color(0xFFEF4444)),
+          Icon(Icons.warning_rounded, color: const Color(0xFFEF4444)),
           const SizedBox(width: 12),
           Text(
             widget.rejectChallanText,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textDark,
+            ),
           ),
         ],
       ),
@@ -2898,20 +2948,24 @@ class _RejectDialogState extends State<_RejectDialog> {
           children: [
             Text(
               widget.checkedFieldInfoText,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+              style: TextStyle(fontSize: 14, color: textMid),
             ),
             const SizedBox(height: 18),
             TextField(
               controller: widget.remarkController,
               maxLines: 6,
               onChanged: (_) => setState(() {}),
+              style: TextStyle(color: textDark),
               decoration: InputDecoration(
                 hintText: widget.rejectRemarkHintText,
+                hintStyle: TextStyle(color: textMid),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFF),
+                fillColor: isDark
+                    ? const Color(0xFF1E2E42)
+                    : const Color(0xFFF8FAFF),
               ),
             ),
           ],

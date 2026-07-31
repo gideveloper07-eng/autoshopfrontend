@@ -27,11 +27,12 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 350),
       curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
           BoxShadow(
@@ -74,7 +75,7 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
 
                     const SizedBox(width: 16),
 
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -83,14 +84,15 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
 
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
 
                           Text(
                             "Booking & Sales Analytics",
-                            style: TextStyle(color: Colors.grey, fontSize: 13),
+                            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6), fontSize: 13),
                           ),
                         ],
                       ),
@@ -126,7 +128,7 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
             if (_expanded) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Container(height: 1, color: Colors.grey.shade200),
+                child: Container(height: 1, color: theme.dividerColor),
               ),
 
               const SizedBox(height: 18),

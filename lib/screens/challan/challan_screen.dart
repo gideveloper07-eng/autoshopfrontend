@@ -413,18 +413,22 @@ class _ChallanScreenState extends State<ChallanScreen>
   }
 
   Widget _buildHeader(AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF82C9FF)],
+          colors: isDark
+              ? [const Color(0xFF0A2A5C), const Color(0xFF1A4A8C), const Color(0xFF2A6AAC)]
+              : [const Color(0xFF0D3F8A), const Color(0xFF2C6CE0), const Color(0xFF82C9FF)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: Color(0x332C6CE0),
+            color: isDark ? const Color(0x331A4A8C) : const Color(0x332C6CE0),
             blurRadius: 20,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1029,17 +1033,21 @@ class _DataRow extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF1A56DB,
-                            ).withValues(alpha: 0.08),
+                            color: isDark
+                                ? const Color(0xFF1A56DB).withValues(alpha: 0.15)
+                                : const Color(0xFF1A56DB).withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: const Color(0xFFBFDBFE)),
+                            border: Border.all(
+                              color: isDark
+                                  ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
+                                  : const Color(0xFFBFDBFE),
+                            ),
                           ),
                           child: Text(
                             value,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF1A56DB),
+                              color: isDark ? Colors.white : const Color(0xFF1A56DB),
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -1055,7 +1063,7 @@ class _DataRow extends StatelessWidget {
                                 ? FontWeight.w600
                                 : FontWeight.w700,
                             color: (col.key == 'date' || col.key == 'exdate')
-                                ? subTextColor
+                                ? (isDark ? Colors.white : subTextColor)
                                 : textColor,
                           ),
                         ),

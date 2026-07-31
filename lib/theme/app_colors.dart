@@ -27,6 +27,18 @@ class AppColors {
     colors: [Color(0xFF1F6AE2), Color(0xFF4DB7FF)],
   );
 
+  static const LinearGradient vibrantGradientDark = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF0A2A5C), Color(0xFF1A4A8C)],
+  );
+
+  static LinearGradient vibrantGradientAdaptive(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? vibrantGradientDark
+        : vibrantGradient;
+  }
+
   /// Returns the appropriate colour based on current brightness.
   static Color adaptive(BuildContext context, Color light, Color dark) {
     return Theme.of(context).brightness == Brightness.dark ? dark : light;

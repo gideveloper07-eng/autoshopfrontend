@@ -9,14 +9,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 // import 'package:screen_protector/screen_protector.dart'; // Temporarily disabled
-
+import 'cache/hive_service.dart';
 import 'providers/language_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
+import 'package:college_app/database/chat_database.dart';
+import 'package:college_app/chat/services/connectivity_service.dart';
 
 // ── Global navigator key — lets us navigate from outside widget tree ──────────
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -38,14 +41,16 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 /// Shows a local notification for a chat message.
 Future<void> _showLocalChatNotification(RemoteMessage message) async {
   // With data-only FCM messages, title/body come from data map, not notification block
-  final title = message.notification?.title
-      ?? message.data['title']
-      ?? message.data['senderName']
-      ?? 'New message';
-  final body = message.notification?.body
-      ?? message.data['body']
-      ?? message.data['messageText']
-      ?? '';
+  final title =
+      message.notification?.title ??
+      message.data['title'] ??
+      message.data['senderName'] ??
+      'New message';
+  final body =
+      message.notification?.body ??
+      message.data['body'] ??
+      message.data['messageText'] ??
+      '';
   final challanId = message.data['challanId'] ?? '';
   final challanNo = message.data['challanNo'] ?? '';
 
@@ -64,7 +69,9 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
     iOS: DarwinNotificationDetails(sound: 'default'),
   );
 
-  final notifId = challanId.isNotEmpty ? challanId.hashCode.abs() % 100000 : 9999;
+  final notifId = challanId.isNotEmpty
+      ? challanId.hashCode.abs() % 100000
+      : 9999;
   // Store both IDs in payload so tap handler can open correct chat with correct title
   final payload = '$challanId|$challanNo';
 
@@ -100,6 +107,16 @@ void main() {
   runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
+
+      if (!kIsWeb) {
+        await ChatDatabase.instance.database;
+      }
+
+      await ConnectivityService.instance.initialize();
+
+      await Hive.initFlutter();
+
+      await HiveService.init();
 
       // ── Install error handler IMMEDIATELY after binding init ────────────
       // This must be the very first thing so it catches viewport errors that
@@ -144,11 +161,15 @@ void main() {
       }
 
       // ── REGISTER BACKGROUND MESSAGE HANDLER ──────────────────────────────
-      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
 
       // ── INIT LOCAL NOTIFICATIONS ──────────────────────────────────────────
       if (!kIsWeb) {
-        const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+        const androidInit = AndroidInitializationSettings(
+          '@mipmap/ic_launcher',
+        );
         const iosInit = DarwinInitializationSettings(
           requestAlertPermission: true,
           requestBadgePermission: true,
@@ -167,7 +188,8 @@ void main() {
 
         await flutterLocalNotificationsPlugin
             .resolvePlatformSpecificImplementation<
-                AndroidFlutterLocalNotificationsPlugin>()
+              AndroidFlutterLocalNotificationsPlugin
+            >()
             ?.createNotificationChannel(
               const AndroidNotificationChannel(
                 'chat_messages',
@@ -207,6 +229,7 @@ bool _isKnownEngineNoise(String msg) {
       msg.contains('physicalSize') ||
       msg.contains('Zone mismatch');
 }
+
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -230,7 +253,9 @@ class _MyAppState extends State<MyApp> {
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         final challanId = message.data['challanId'] ?? '';
         final challanNo = message.data['challanNo'] ?? '';
-        print("NOTIFICATION TAPPED (background): challanId=$challanId challanNo=$challanNo");
+        print(
+          "NOTIFICATION TAPPED (background): challanId=$challanId challanNo=$challanNo",
+        );
         _openChatFromNotification(challanId, challanNo: challanNo);
       });
 
@@ -239,7 +264,9 @@ class _MyAppState extends State<MyApp> {
         if (message != null) {
           final challanId = message.data['challanId'] ?? '';
           final challanNo = message.data['challanNo'] ?? '';
-          print("NOTIFICATION TAPPED (terminated): challanId=$challanId challanNo=$challanNo");
+          print(
+            "NOTIFICATION TAPPED (terminated): challanId=$challanId challanNo=$challanNo",
+          );
           Future.delayed(const Duration(milliseconds: 500), () {
             _openChatFromNotification(challanId, challanNo: challanNo);
           });
@@ -488,8 +515,8 @@ class ChatBubbleOverlay extends StatelessWidget {
             }
 
             final isCompact = MediaQuery.sizeOf(context).width < 600;
-            final isChallanDetails = routeObserver.currentRouteName ==
-                'ChallanEditDetailsScreen';
+            final isChallanDetails =
+                routeObserver.currentRouteName == 'ChallanEditDetailsScreen';
             final bubbleSize = isCompact ? 56.0 : 64.0;
             final bottomOffset = isChallanDetails ? 92.0 : 18.0;
 

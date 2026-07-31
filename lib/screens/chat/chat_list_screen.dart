@@ -124,10 +124,16 @@ class _ChatListScreenState extends State<ChatListScreen>
 
   Future<void> _loadAll({bool silent = false}) async {
     // ── Step 1: Load from cache immediately ─────────────────────────────────
-    final cachedChallans = await CacheService.getListMap(CacheService.keyChallanList);
-    final cachedDirectChats = await CacheService.getList(CacheService.keyDirectChats);
+    final cachedChallans = await CacheService.getListMap(
+      CacheService.keyChallanList,
+    );
+    final cachedDirectChats = await CacheService.getList(
+      CacheService.keyDirectChats,
+    );
     final cachedGroups = await CacheService.getList(CacheService.keyGroups);
-    final cachedUsers = await CacheService.getListMap(CacheService.keyMergedUsers);
+    final cachedUsers = await CacheService.getListMap(
+      CacheService.keyMergedUsers,
+    );
     final cachedContacts = await CacheService.getList(CacheService.keyContacts);
     final hasCached = cachedChallans != null || cachedDirectChats != null;
 
@@ -368,6 +374,7 @@ class _ChatListScreenState extends State<ChatListScreen>
   /// New Group flow — Step 1 pick members, Step 2 name
   void _showNewGroupFlow() async {
     final allUsers = await ApiService.getCompanyUsers();
+    //final allUsers = await ApiService.getMergedUsers();
     if (!mounted) return;
 
     // Returns List<Map<String,dynamic>> with full user objects (including 'database')
@@ -525,15 +532,16 @@ class _ChatListScreenState extends State<ChatListScreen>
     }).toList();
 
     // Collect IDs already present from chat history to avoid duplicates
-    final existingIds =
-        fromChats.map((u) => (u["id"] as String).toLowerCase()).toSet();
+    final existingIds = fromChats
+        .map((u) => (u["id"] as String).toLowerCase())
+        .toSet();
 
     // Add accepted contacts that have no chat history yet
     for (final contact in _myContacts) {
-      final contactLoginId =
-          (contact['loginId']?.toString() ?? '').toLowerCase();
-      final contactUserGuid =
-          (contact['userGuid']?.toString() ?? '').toLowerCase();
+      final contactLoginId = (contact['loginId']?.toString() ?? '')
+          .toLowerCase();
+      final contactUserGuid = (contact['userGuid']?.toString() ?? '')
+          .toLowerCase();
 
       // Skip if already represented in chat history
       if (existingIds.contains(contactLoginId) ||
@@ -546,10 +554,8 @@ class _ChatListScreenState extends State<ChatListScreen>
       try {
         matched = _allUsers.firstWhere(
           (u) =>
-              (u['id']?.toString() ?? '').toLowerCase() ==
-                  contactUserGuid ||
-              (u['loginId']?.toString() ?? '').toLowerCase() ==
-                  contactLoginId,
+              (u['id']?.toString() ?? '').toLowerCase() == contactUserGuid ||
+              (u['loginId']?.toString() ?? '').toLowerCase() == contactLoginId,
           orElse: () => {},
         );
       } catch (_) {}
@@ -580,10 +586,7 @@ class _ChatListScreenState extends State<ChatListScreen>
         "branchName": branchName,
         "database": database,
         "propertyCode": propertyCode,
-        "_dmGroup": {
-          "LastMessage": "",
-          "LastMessageTime": "",
-        },
+        "_dmGroup": {"LastMessage": "", "LastMessageTime": ""},
         "_isContactOnly": true, // flag: no messages yet
       });
 
@@ -737,7 +740,8 @@ class _ChatListScreenState extends State<ChatListScreen>
     String loginId = '';
     try {
       final matched = _allUsers.firstWhere(
-        (u) => (u['id']?.toString() ?? '').toLowerCase() == userId.toLowerCase(),
+        (u) =>
+            (u['id']?.toString() ?? '').toLowerCase() == userId.toLowerCase(),
         orElse: () => {},
       );
       loginId = matched['loginId']?.toString() ?? '';
@@ -746,22 +750,23 @@ class _ChatListScreenState extends State<ChatListScreen>
     // Step 2: find the existing direct chat using loginId OR UUID OR name
     Map<String, dynamic>? matchedDirectChat;
     try {
-      matchedDirectChat = _directChats.cast<Map<String, dynamic>>().firstWhere(
-        (g) {
-          final chatUserId = (g["UserId"]?.toString() ?? '').toLowerCase();
-          final chatUserName = (g["UserName"]?.toString() ?? '').toLowerCase();
-          return chatUserId == userId.toLowerCase() ||
-              (loginId.isNotEmpty && chatUserId == loginId.toLowerCase()) ||
-              chatUserName == userName.toLowerCase();
-        },
-      );
+      matchedDirectChat = _directChats.cast<Map<String, dynamic>>().firstWhere((
+        g,
+      ) {
+        final chatUserId = (g["UserId"]?.toString() ?? '').toLowerCase();
+        final chatUserName = (g["UserName"]?.toString() ?? '').toLowerCase();
+        return chatUserId == userId.toLowerCase() ||
+            (loginId.isNotEmpty && chatUserId == loginId.toLowerCase()) ||
+            chatUserName == userName.toLowerCase();
+      });
     } catch (_) {
       matchedDirectChat = null;
     }
 
     // Step 3: prefer short loginId > existing chat UserId > original UUID
-    final resolvedUserId = matchedDirectChat?["UserId"]?.toString()
-        ?? (loginId.isNotEmpty ? loginId : userId);
+    final resolvedUserId =
+        matchedDirectChat?["UserId"]?.toString() ??
+        (loginId.isNotEmpty ? loginId : userId);
     final resolvedPropertyCode =
         matchedDirectChat?["PropertyCode"]?.toString() ??
         selectedItem['propertyCode']?.toString() ??
@@ -814,110 +819,133 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   Widget _buildCompanyFilters() {
-    return Container(
-      height: 62,
-      color: Theme.of(context).colorScheme.surface,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        itemCount: _companies.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) {
-          final company = _companies[index];
-          final selected = company == _selectedCompany;
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark
-              ? const Color(0xFFE8EDF5)
-              : const Color(0xFF111B21);
-          final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
-          final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark
-              ? const Color(0xFF3A4A5A)
-              : const Color(0xFFD1D7DB);
-          final unselectedText = theme.colorScheme.onSurface;
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap: () => setState(() => _selectedCompany = company),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected ? selectedBg : unselectedBg,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: selected ? selectedBg : unselectedBorder,
-                  width: 1.2,
-                ),
-              ),
-              child: Text(
-                company.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: selected ? selectedText : unselectedText,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 400;
+        return Container(
+          height: isSmallScreen ? 52 : 62,
+          color: Theme.of(context).colorScheme.surface,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 8 : 14,
+              vertical: isSmallScreen ? 8 : 10,
             ),
-          );
-        },
-      ),
+            itemCount: _companies.length,
+            separatorBuilder: (_, __) => SizedBox(width: isSmallScreen ? 4 : 8),
+            itemBuilder: (_, index) {
+              final company = _companies[index];
+              final selected = company == _selectedCompany;
+              final theme = Theme.of(context);
+              final isDark = theme.brightness == Brightness.dark;
+              final selectedBg = isDark
+                  ? const Color(0xFFE8EDF5)
+                  : const Color(0xFF111B21);
+              final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
+              final unselectedBg = theme.colorScheme.surface;
+              final unselectedBorder = isDark
+                  ? const Color(0xFF3A4A5A)
+                  : const Color(0xFFD1D7DB);
+              final unselectedText = theme.colorScheme.onSurface;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => setState(() => _selectedCompany = company),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 12 : 20,
+                    vertical: isSmallScreen ? 6 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? selectedBg : unselectedBg,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: selected ? selectedBg : unselectedBorder,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Text(
+                    company.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isSmallScreen ? 11 : 13,
+                      color: selected ? selectedText : unselectedText,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
   Widget _buildGroupCompanyFilters() {
-    return Container(
-      height: 62,
-      color: Theme.of(context).colorScheme.surface,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        itemCount: _groupCompanies.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) {
-          final company = _groupCompanies[index];
-          final selected = company == _selectedGroupCompany;
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark
-              ? const Color(0xFFE8EDF5)
-              : const Color(0xFF111B21);
-          final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
-          final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark
-              ? const Color(0xFF3A4A5A)
-              : const Color(0xFFD1D7DB);
-          final unselectedText = theme.colorScheme.onSurface;
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap: () {
-              setState(() {
-                _selectedGroupCompany = company;
-              });
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected ? selectedBg : unselectedBg,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: selected ? selectedBg : unselectedBorder,
-                ),
-              ),
-              child: Text(
-                company.toUpperCase(),
-                style: TextStyle(
-                  color: selected ? selectedText : unselectedText,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 400;
+        return Container(
+          height: isSmallScreen ? 52 : 62,
+          color: Theme.of(context).colorScheme.surface,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 8 : 14,
+              vertical: isSmallScreen ? 8 : 10,
             ),
-          );
-        },
-      ),
+            itemCount: _groupCompanies.length,
+            separatorBuilder: (_, __) => SizedBox(width: isSmallScreen ? 4 : 8),
+            itemBuilder: (_, index) {
+              final company = _groupCompanies[index];
+              final selected = company == _selectedGroupCompany;
+              final theme = Theme.of(context);
+              final isDark = theme.brightness == Brightness.dark;
+              final selectedBg = isDark
+                  ? const Color(0xFFE8EDF5)
+                  : const Color(0xFF111B21);
+              final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
+              final unselectedBg = theme.colorScheme.surface;
+              final unselectedBorder = isDark
+                  ? const Color(0xFF3A4A5A)
+                  : const Color(0xFFD1D7DB);
+              final unselectedText = theme.colorScheme.onSurface;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  setState(() {
+                    _selectedGroupCompany = company;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 12 : 20,
+                    vertical: isSmallScreen ? 6 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? selectedBg : unselectedBg,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: selected ? selectedBg : unselectedBorder,
+                    ),
+                  ),
+                  child: Text(
+                    company.toUpperCase(),
+                    style: TextStyle(
+                      color: selected ? selectedText : unselectedText,
+                      fontWeight: FontWeight.w600,
+                      fontSize: isSmallScreen ? 11 : 13,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1070,127 +1098,135 @@ class _ChatListScreenState extends State<ChatListScreen>
           ),
       ],
       // ── Tab bar ──────────────────────────────────────────────────
-      bottom: TabBar(
-        controller: _tabController,
-        indicatorColor: theme.colorScheme.primary,
-        indicatorWeight: 3,
-        labelColor: appBarText,
-        unselectedLabelColor: appBarIcon,
-        labelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-          letterSpacing: 0.3,
+      bottom: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 400;
+            return TabBar(
+              controller: _tabController,
+              indicatorColor: theme.colorScheme.primary,
+              indicatorWeight: 3,
+              labelColor: appBarText,
+              unselectedLabelColor: appBarIcon,
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 10 : 14,
+                letterSpacing: 0.3,
+              ),
+              unselectedLabelStyle: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: isSmallScreen ? 10 : 14,
+              ),
+              tabs: [
+                // ── ALL tab ──────────────────────────────────────────────
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isSmallScreen) Icon(Icons.forum_outlined, size: 18),
+                      if (!isSmallScreen) const SizedBox(width: 6),
+                      const Text("All"),
+                      if (!isSmallScreen && (_chattedUsers.isNotEmpty || _filteredGroups.isNotEmpty)) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${_chattedUsers.length + _filteredGroups.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // ── CHATS tab ─────────────────────────────────────────────
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isSmallScreen) Icon(Icons.person_outline, size: 18),
+                      if (!isSmallScreen) const SizedBox(width: 6),
+                      const Text("Chats"),
+                      if (!isSmallScreen && _chattedUsers.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            (_chattedUsers.length) > 99
+                                ? '99+'
+                                : '${_chattedUsers.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // ── GROUPS tab ────────────────────────────────────────────
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (!isSmallScreen) Icon(Icons.groups_outlined, size: 18),
+                      if (!isSmallScreen) const SizedBox(width: 6),
+                      const Text("Groups"),
+                      if (!isSmallScreen && _filteredGroups.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            '${_filteredGroups.length}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 14,
-        ),
-        tabs: [
-          // ── ALL tab ──────────────────────────────────────────────
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.forum_outlined, size: 18),
-                const SizedBox(width: 6),
-                const Text("All"),
-                if (_chattedUsers.isNotEmpty || _filteredGroups.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_chattedUsers.length + _filteredGroups.length}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // ── CHATS tab ─────────────────────────────────────────────
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.person_outline, size: 18),
-                const SizedBox(width: 6),
-                const Text("Chats"),
-                if (_chattedUsers.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      (_chattedUsers.length) > 99
-                          ? '99+'
-                          : '${_chattedUsers.length}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          // ── GROUPS tab ────────────────────────────────────────────
-          Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.groups_outlined, size: 18),
-                const SizedBox(width: 6),
-                const Text("Groups"),
-                if (_filteredGroups.isNotEmpty) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '${_filteredGroups.length}',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -1243,55 +1279,66 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   Widget _buildAllCompanyFilters() {
-    return Container(
-      height: 62,
-      color: Theme.of(context).colorScheme.surface,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        itemCount: _allCompanies.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, index) {
-          final company = _allCompanies[index];
-          final selected = company == _selectedAllCompany;
-          final theme = Theme.of(context);
-          final isDark = theme.brightness == Brightness.dark;
-          final selectedBg = isDark
-              ? const Color(0xFFE8EDF5)
-              : const Color(0xFF111B21);
-          final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
-          final unselectedBg = theme.colorScheme.surface;
-          final unselectedBorder = isDark
-              ? const Color(0xFF3A4A5A)
-              : const Color(0xFFD1D7DB);
-          final unselectedText = theme.colorScheme.onSurface;
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap: () => setState(() => _selectedAllCompany = company),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected ? selectedBg : unselectedBg,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: selected ? selectedBg : unselectedBorder,
-                  width: 1.2,
-                ),
-              ),
-              child: Text(
-                company.toUpperCase(),
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                  color: selected ? selectedText : unselectedText,
-                ),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isSmallScreen = constraints.maxWidth < 400;
+        return Container(
+          height: isSmallScreen ? 52 : 62,
+          color: Theme.of(context).colorScheme.surface,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 8 : 14,
+              vertical: isSmallScreen ? 8 : 10,
             ),
-          );
-        },
-      ),
+            itemCount: _allCompanies.length,
+            separatorBuilder: (_, __) => SizedBox(width: isSmallScreen ? 4 : 8),
+            itemBuilder: (_, index) {
+              final company = _allCompanies[index];
+              final selected = company == _selectedAllCompany;
+              final theme = Theme.of(context);
+              final isDark = theme.brightness == Brightness.dark;
+              final selectedBg = isDark
+                  ? const Color(0xFFE8EDF5)
+                  : const Color(0xFF111B21);
+              final selectedText = isDark ? const Color(0xFF111B21) : Colors.white;
+              final unselectedBg = theme.colorScheme.surface;
+              final unselectedBorder = isDark
+                  ? const Color(0xFF3A4A5A)
+                  : const Color(0xFFD1D7DB);
+              final unselectedText = theme.colorScheme.onSurface;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => setState(() => _selectedAllCompany = company),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 12 : 20,
+                    vertical: isSmallScreen ? 6 : 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: selected ? selectedBg : unselectedBg,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: selected ? selectedBg : unselectedBorder,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Text(
+                    company.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: isSmallScreen ? 11 : 13,
+                      color: selected ? selectedText : unselectedText,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -2254,6 +2301,9 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                         final user = filtered[i];
                         final userId = user['id']?.toString() ?? '';
                         final userName = user['name']?.toString() ?? userId;
+                        final companyName =
+                            user['companyName']?.toString() ?? '';
+                        final branchName = user['branchName']?.toString() ?? '';
                         final isSelected = _selected.contains(userId);
 
                         return CheckboxListTile(
@@ -2301,6 +2351,16 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                             style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            [
+                              if (companyName.isNotEmpty) companyName,
+                              if (branchName.isNotEmpty) branchName,
+                            ].join(" • "),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
                             ),
                           ),
                         );

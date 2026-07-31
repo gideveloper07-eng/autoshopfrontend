@@ -11,7 +11,7 @@ import '../../database/models/chat_message.dart';
 import '../../database/models/chat_receiver.dart';
 import '../../chat/repository/chat_repository.dart';
 import '../../chat/utils/conversation_helper.dart';
-import '../../theme/app_colors.dart';
+
 
 // ── Avatar color helper ─────────────────────────────────────────────────────
 const List<Color> _kAvatarColors = [
@@ -65,14 +65,14 @@ class DirectChatScreen extends StatefulWidget {
 
   @override
   State<DirectChatScreen> createState() => _DirectChatScreenState();
+
 }
 
 class _DirectChatScreenState extends State<DirectChatScreen> {
   final TextEditingController _msgCtrl = TextEditingController();
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
-  Timer? _syncTimer;
-  StreamSubscription<String>? _chatSubscription;
+ StreamSubscription<String>? _chatSubscription;
 
   //List<dynamic> messages = [];
   List<ChatMessage> messages = [];
@@ -90,35 +90,28 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   String? _selectedDocumentId;
   String? _selectedDocumentType;
 
-  // ── Theme colors ───────────────────────────────────────────────
-  Color get _appBarBg => Theme.of(context).colorScheme.surface;
-  Color get _appBarText => Theme.of(context).colorScheme.onSurface;
-  Color get _appBarIcon =>
-      Theme.of(context).colorScheme.onSurface.withOpacity(0.7);
-  Color get _sendButtonBg => AppColors.primary;
-
   /// Returns the receiver's PropertyCode.
   /// Uses [widget.receiverPropertyCode] if set, otherwise extracts it from
   /// loaded messages by finding the other participant's SenderPropertyCode.
-  String get _receiverPropertyCode {
-    final fromWidget = widget.receiverPropertyCode ?? '';
-    if (fromWidget.isNotEmpty) return fromWidget;
+String get _receiverPropertyCode {
+  final fromWidget = widget.receiverPropertyCode ?? '';
+  if (fromWidget.isNotEmpty) return fromWidget;
 
-    for (final msg in messages) {
-      if (msg.senderUserId != _myId &&
-          (msg.senderPropertyCode?.isNotEmpty ?? false)) {
-        return msg.senderPropertyCode!;
-      }
+  for (final msg in messages) {
+    if (msg.senderUserId != _myId &&
+        (msg.senderPropertyCode?.isNotEmpty ?? false)) {
+      return msg.senderPropertyCode!;
     }
-
-    return '';
   }
+
+  return '';
+}
 
   /// Returns the receiver's company name for display in messages.
   /// Uses [widget.companyName] if set, otherwise infers from messages.
-  String get _receiverCompanyName {
-    return widget.companyName ?? "";
-  }
+String get _receiverCompanyName {
+  return widget.companyName ?? "";
+}
 
   // ── Task assign ─────────────────────────────────────────────────
   final TextEditingController _taskTitleCtrl = TextEditingController();
@@ -135,59 +128,45 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   int _currentMatch = 0;
   final Map<int, GlobalKey> _itemKeys = {};
 
-  ChatReceiver _resolveReceiver() {
-    String receiverUserId = widget.targetUserId.trim();
-    String receiverName = widget.userName;
-    String receiverDatabase = widget.groupDatabase ?? '';
+  
 
-    for (final m in _members) {
-      final uid = (m["UserId"]?.toString() ?? "").trim();
+ChatReceiver _resolveReceiver() {
+  String receiverUserId = widget.targetUserId.trim();
+  String receiverName = widget.userName;
+  String receiverDatabase = widget.groupDatabase ?? '';
 
-      if (uid != _myId && uid.isNotEmpty) {
-        receiverUserId = uid;
-        receiverName = m["UserName"]?.toString() ?? "";
-        receiverDatabase = m["DatabaseName"]?.toString() ?? "";
-        break;
-      }
+  for (final m in _members) {
+    final uid = (m["UserId"]?.toString() ?? "").trim();
+
+    if (uid != _myId && uid.isNotEmpty) {
+      receiverUserId = uid;
+      receiverName = m["UserName"]?.toString() ?? "";
+      receiverDatabase = m["DatabaseName"]?.toString() ?? "";
+      break;
     }
-
-    return ChatReceiver(
-      userId: receiverUserId,
-      name: receiverName,
-      database: receiverDatabase,
-      propertyCode: widget.receiverPropertyCode ?? '',
-    );
   }
 
+  return ChatReceiver(
+    userId: receiverUserId,
+    name: receiverName,
+    database: receiverDatabase,
+    propertyCode: widget.receiverPropertyCode ?? '',
+  );
+}
   @override
-  void initState() {
-    super.initState();
+void initState() {
+  super.initState();
 
-    _scrollCtrl.addListener(_onScroll);
-    _searchCtrl.addListener(_onSearchChanged);
+  _scrollCtrl.addListener(_onScroll);
+  _searchCtrl.addListener(_onSearchChanged);
 
-    _chatSubscription = ChatRepository.instance.conversationUpdates.listen(
-      _onConversationChanged,
-    );
+  _chatSubscription =
+      ChatRepository.instance.conversationUpdates.listen(
+    _onConversationChanged,
+  );
 
-    _init();
-    _syncTimer = Timer.periodic(
-      const Duration(seconds: 2),
-      (_) => _syncConversation(),
-    );
-  }
-
-  Future<void> _syncConversation() async {
-    if (!mounted) return;
-
-    final receiver = _resolveReceiver();
-
-    await ChatRepository.instance.loadDirectConversation(
-      targetUserId: receiver.userId,
-      receiverPropertyCode: receiver.propertyCode,
-      receiverDatabase: receiver.database,
-    );
-  }
+  _init();
+}
 
   @override
   void dispose() {
@@ -201,31 +180,30 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     _searchCtrl.removeListener(_onSearchChanged);
     _searchCtrl.dispose();
     _searchFocus.dispose();
-    _syncTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _init() async {
-    final sw = Stopwatch()..start();
+  final sw = Stopwatch()..start();
 
-    debugPrint("INIT START");
+  debugPrint("INIT START");
 
-    _myName = await ApiService.getUserName() ?? '';
-    debugPrint("getUserName: ${sw.elapsedMilliseconds} ms");
+  _myName = await ApiService.getUserName() ?? '';
+  debugPrint("getUserName: ${sw.elapsedMilliseconds} ms");
 
-    _myId = await ApiService.getUserId() ?? '';
-    debugPrint("getUserId: ${sw.elapsedMilliseconds} ms");
+  _myId = await ApiService.getUserId() ?? '';
+  debugPrint("getUserId: ${sw.elapsedMilliseconds} ms");
 
-    await _loadMembers();
-    debugPrint("loadMembers: ${sw.elapsedMilliseconds} ms");
+  await _loadMembers();
+  debugPrint("loadMembers: ${sw.elapsedMilliseconds} ms");
 
-    await _loadMessages(isInitial: true);
-    debugPrint("loadMessages: ${sw.elapsedMilliseconds} ms");
+  await _loadMessages(isInitial: true);
+  debugPrint("loadMessages: ${sw.elapsedMilliseconds} ms");
 
-    debugPrint("INIT COMPLETE");
-  }
+  debugPrint("INIT COMPLETE");
+}
 
-  Future<void> _loadMembers() async {
+ Future<void> _loadMembers() async {
     if (widget.groupId.isEmpty) {
       if (mounted) setState(() => _members = []);
       return;
@@ -233,6 +211,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     final data = await ApiService.getGroupMembers(widget.groupId);
     if (mounted) setState(() => _members = data);
   }
+
 
   // ── Scroll ──────────────────────────────────────────────────────
 
@@ -270,117 +249,120 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   // ── Data ────────────────────────────────────────────────────────
 
-  Future<void> _loadMessages({bool isInitial = false}) async {
-    final receiver = _resolveReceiver();
+Future<void> _loadMessages({bool isInitial = false}) async {
+  final receiver = _resolveReceiver();
 
-    final data = await ChatRepository.instance.loadDirectConversation(
-      targetUserId: receiver.userId,
-      receiverPropertyCode: receiver.propertyCode,
-      receiverDatabase: receiver.database,
-    );
+  final data = await ChatRepository.instance.loadDirectConversation(
+    targetUserId: receiver.userId,
+    receiverPropertyCode: receiver.propertyCode,
+    receiverDatabase: receiver.database,
+  );
 
-    if (!mounted) return;
+  if (!mounted) return;
 
-    final hasNew = data.length != messages.length;
+ final hasNew = data.length != messages.length;
 
+  setState(() {
+    messages = data;
+    loading = false;
+  });
+
+  if (isInitial) {
+    _scrollToBottom(animated: false);
+  } else if (hasNew && !_userScrolledUp) {
+    _scrollToBottom();
+  } else if (hasNew && _userScrolledUp) {
     setState(() {
-      messages = data;
-      debugPrint("===== UI =====");
-      for (final m in messages) {
-        debugPrint("${m.chatId} | ${m.messageText}");
-      }
-      debugPrint("==============");
-      loading = false;
+      _newWhileScrolledUp++;
     });
+  }
+}
 
-    if (isInitial) {
-      _scrollToBottom(animated: false);
-    } else if (hasNew && !_userScrolledUp) {
-      _scrollToBottom();
-    } else if (hasNew && _userScrolledUp) {
-      setState(() {
-        _newWhileScrolledUp++;
-      });
-    }
+Future<void> _onConversationChanged(
+    String conversationId,
+) async {
+
+  final receiver = _resolveReceiver();
+
+  final currentConversationId =
+      ConversationHelper.directConversationId(
+        databaseName: receiver.database,
+        userId: receiver.userId,
+        propertyCode: receiver.propertyCode,
+      );
+
+  if (conversationId != currentConversationId) {
+    return;
   }
 
-  Future<void> _onConversationChanged(String conversationId) async {
-    final receiver = _resolveReceiver();
+  final latest =
+      await ChatRepository.instance.getMessages(conversationId);
 
-    final currentConversationId = ConversationHelper.directConversationId(
-      databaseName: receiver.database,
-      userId: receiver.userId,
-      propertyCode: receiver.propertyCode,
-    );
+  if (!mounted) return;
 
-    if (conversationId != currentConversationId) {
-      return;
-    }
+  final oldCount = messages.length;
+  final hasNew = latest.length > oldCount;
 
-    final latest = await ChatRepository.instance.getMessages(conversationId);
+ setState(() {
+  messages = latest;
+  loading = false;
 
-    if (!mounted) return;
+  if (_userScrolledUp && hasNew) {
+    _newWhileScrolledUp++;
+  }
+});
 
-    final oldCount = messages.length;
-    final hasNew = latest.length > oldCount;
+if (!_userScrolledUp) {
+  _scrollToBottom();
+}
 
-    setState(() {
-      messages = latest;
-      loading = false;
+}
 
-      if (_userScrolledUp && hasNew) {
-        _newWhileScrolledUp++;
-      }
-    });
 
-    if (!_userScrolledUp) {
-      _scrollToBottom();
-    }
+ Future<void> _sendMessage() async {
+  final text = _msgCtrl.text.trim();
+
+  if (text.isEmpty && _selectedDocumentId == null) {
+    return;
   }
 
-  Future<void> _sendMessage() async {
-    final text = _msgCtrl.text.trim();
+  final senderName = await ApiService.getUserName() ?? '';
 
-    if (text.isEmpty && _selectedDocumentId == null) {
-      return;
-    }
+  final receiver = _resolveReceiver();
 
-    final senderName = await ApiService.getUserName() ?? '';
+  setState(() {
+    _sending = true;
+  });
 
-    final receiver = _resolveReceiver();
+  _msgCtrl.clear();
 
+  final ok = await ChatRepository.instance.sendDirectMessage(
+    receiverId: receiver.userId,
+    receiverPropertyCode: receiver.propertyCode,
+    receiverDatabase: receiver.database,
+    receiverName: receiver.name,
+    senderName: senderName,
+    senderId: _myId,
+    message: text,
+    documentId: _selectedDocumentId,
+    documentType: _selectedDocumentType,
+  );
+
+  _selectedDocumentId = null;
+  _selectedDocumentType = null;
+
+ 
+
+  if (mounted) {
     setState(() {
-      _sending = true;
+      _sending = false;
     });
-
-    _msgCtrl.clear();
-
-    debugPrint("SEND 1");
-    final ok = await ChatRepository.instance.sendDirectMessage(
-      receiverId: receiver.userId,
-      receiverPropertyCode: receiver.propertyCode,
-      receiverDatabase: receiver.database,
-      receiverName: receiver.name,
-      senderName: senderName,
-      senderId: _myId,
-      message: text,
-      documentId: _selectedDocumentId,
-      documentType: _selectedDocumentType,
-    );
-    debugPrint("SEND 2");
-    _selectedDocumentId = null;
-    _selectedDocumentType = null;
-
-    if (mounted) {
-      setState(() {
-        _sending = false;
-      });
-    }
-
-    if (ok) {
-      _scrollToBottom();
-    }
   }
+
+  if (ok) {
+    _scrollToBottom();
+  }
+}
   // ── Task assign dialog ───────────────────────────────────────────
 
   void _showAssignTaskDialog() async {
@@ -671,7 +653,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       final gId = result['groupId']?.toString() ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.primary,
+          backgroundColor: const Color(0xFF111B21),
           content: Text('Group "$groupName" created!'),
         ),
       );
@@ -713,7 +695,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     }
     final matches = <int>[];
     for (int i = 0; i < messages.length; i++) {
-      final text = (messages[i].messageText ?? '').toLowerCase();
+      final text =
+    (messages[i].messageText ?? '').toLowerCase();
       if (text.contains(q)) matches.add(i);
     }
     setState(() {
@@ -772,33 +755,35 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   // ── Formatters ───────────────────────────────────────────────────
 
-  String _formatTime(int millis) {
-    return DateFormat(
-      'hh:mm a',
-    ).format(DateTime.fromMillisecondsSinceEpoch(millis));
+String _formatTime(int millis) {
+  return DateFormat(
+    'hh:mm a',
+  ).format(
+    DateTime.fromMillisecondsSinceEpoch(millis),
+  );
+}
+
+String? _dateSeparator(int index) {
+  final current = DateTime.fromMillisecondsSinceEpoch(
+    messages[index].messageTime,
+  );
+
+  if (index == 0) {
+    return DateFormat('dd MMM yyyy').format(current);
   }
 
-  String? _dateSeparator(int index) {
-    final current = DateTime.fromMillisecondsSinceEpoch(
-      messages[index].messageTime,
-    );
+  final previous = DateTime.fromMillisecondsSinceEpoch(
+    messages[index - 1].messageTime,
+  );
 
-    if (index == 0) {
-      return DateFormat('dd MMM yyyy').format(current);
-    }
-
-    final previous = DateTime.fromMillisecondsSinceEpoch(
-      messages[index - 1].messageTime,
-    );
-
-    if (previous.year != current.year ||
-        previous.month != current.month ||
-        previous.day != current.day) {
-      return DateFormat('dd MMM yyyy').format(current);
-    }
-
-    return null;
+  if (previous.year != current.year ||
+      previous.month != current.month ||
+      previous.day != current.day) {
+    return DateFormat('dd MMM yyyy').format(current);
   }
+
+  return null;
+}
 
   // ── Build ─────────────────────────────────────────────────────────
 
@@ -806,9 +791,12 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final appBarBg = theme.colorScheme.surface;
+    final appBarText = theme.colorScheme.onSurface;
+    final appBarIcon = theme.colorScheme.onSurface.withOpacity(0.7);
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: _buildAppBar(),
+      appBar: _buildAppBar(appBarBg, appBarText, appBarIcon),
       body: Column(
         children: [
           Expanded(
@@ -818,33 +806,33 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ? _buildEmptyState()
                 : Stack(
                     children: [
-                      _buildMessageList(isDark),
+                      _buildMessageList(),
                       if (_userScrolledUp && _newWhileScrolledUp > 0)
-                        _buildNewMessageBanner(isDark),
+                        _buildNewMessageBanner(),
                     ],
                   ),
           ),
-          if (!_isSearching) _buildInputBar(isDark),
+          if (!_isSearching) _buildInputBar(),
         ],
       ),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
+  PreferredSizeWidget _buildAppBar(Color appBarBg, Color appBarText, Color appBarIcon) {
     return AppBar(
-      backgroundColor: _appBarBg,
+      backgroundColor: appBarBg,
       elevation: 0.5,
-      iconTheme: IconThemeData(color: _appBarIcon),
+      iconTheme: IconThemeData(color: appBarIcon),
       titleSpacing: 0,
       title: _isSearching
           ? TextField(
               controller: _searchCtrl,
               focusNode: _searchFocus,
-              style: TextStyle(color: _appBarText, fontSize: 16),
-              cursorColor: _appBarText,
+              style: TextStyle(color: appBarText, fontSize: 16),
+              cursorColor: appBarText,
               decoration: InputDecoration(
                 hintText: 'Search messages…',
-                hintStyle: TextStyle(color: _appBarIcon.withOpacity(0.6)),
+                hintStyle: TextStyle(color: appBarIcon.withOpacity(0.6)),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -882,7 +870,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       Text(
                         widget.userName,
                         style: TextStyle(
-                          color: _appBarText,
+                          color: appBarText,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -897,7 +885,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                               ? '${widget.companyName!} • ${widget.branchName!}'
                               : widget.companyName!,
                           style: TextStyle(
-                            color: _appBarIcon,
+                            color: appBarIcon,
                             fontSize: 11,
                             fontWeight: FontWeight.w400,
                           ),
@@ -913,13 +901,13 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         IconButton(
           icon: Icon(
             _isSearching ? Icons.close : Icons.search,
-            color: _appBarIcon,
+            color: appBarIcon,
           ),
           onPressed: _toggleSearch,
         ),
         if (!_isSearching)
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: _appBarIcon),
+            icon: Icon(Icons.more_vert, color: appBarIcon),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -941,7 +929,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ? PreferredSize(
               preferredSize: const Size.fromHeight(36),
               child: Container(
-                color: AppColors.bg(context),
+                color: appBarBg,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 6,
@@ -955,14 +943,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                             : _matchIndices.isEmpty
                             ? 'No results'
                             : '${_currentMatch + 1} of ${_matchIndices.length} matches',
-                        style: TextStyle(color: _appBarIcon, fontSize: 13),
+                        style: TextStyle(color: appBarIcon, fontSize: 13),
                       ),
                     ),
                     if (_matchIndices.isNotEmpty) ...[
                       IconButton(
                         icon: Icon(
                           Icons.keyboard_arrow_up,
-                          color: _appBarIcon,
+                          color: appBarIcon,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,
@@ -973,7 +961,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.keyboard_arrow_down,
-                          color: _appBarIcon,
+                          color: appBarIcon,
                           size: 20,
                         ),
                         padding: EdgeInsets.zero,
@@ -990,6 +978,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   }
 
   Widget _buildEmptyState() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -998,7 +988,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.card(context),
+              color: isDark ? const Color(0xFF2A3942) : const Color(0xFFE8F5E9),
               shape: BoxShape.circle,
             ),
             child: const Center(
@@ -1011,20 +1001,22 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textMed(context),
+              color: isDark ? Colors.white70 : const Color(0xFF54656F),
             ),
           ),
           const SizedBox(height: 6),
           Text(
             'Say Hello to ${widget.userName} 👋',
-            style: TextStyle(fontSize: 13, color: AppColors.textMed(context)),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.grey),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMessageList(bool isDark) {
+  Widget _buildMessageList() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return ListView.builder(
       controller: _scrollCtrl,
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1040,7 +1032,8 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
         final docId = msg.documentId;
         final docNo = msg.documentNo ?? '';
         final docType = msg.documentType ?? '';
-        final isMine = msg.senderUserId == _myId;
+        final isMine =
+    msg.senderUserId == _myId;
         final isMatch = _matchIndices.contains(index);
         final isActive =
             _matchIndices.isNotEmpty && _matchIndices[_currentMatch] == index;
@@ -1065,13 +1058,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 ),
                 decoration: BoxDecoration(
                   color: isActive
-                      ? Colors.yellow.shade200
+                      ? const Color(0xFFFFF176)
                       : isMatch
-                      ? Colors.yellow.shade100
+                      ? const Color(0xFFFFF9C4)
                       : isMine
-                      ? (isDark
-                            ? const Color(0xFF005C4B)
-                            : const Color(0xFFD9FDD3))
+                      ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFD9FDD3))
                       : (isDark ? const Color(0xFF202C33) : Colors.white),
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
@@ -1081,7 +1072,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.08),
+                      color: Colors.black.withOpacity(0.08),
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),
@@ -1099,9 +1090,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
-                            color: isDark
-                                ? Colors.white70
-                                : const Color(0xFF54656F),
+                            color: isDark ? Colors.white70 : const Color(0xFF54656F),
                           ),
                         ),
                       ),
@@ -1125,9 +1114,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                           _formatTime(msg.messageTime),
                           style: TextStyle(
                             fontSize: 10,
-                            color: isDark
-                                ? Colors.white54
-                                : Colors.black.withValues(alpha: 0.45),
+                            color: isDark ? Colors.white60 : Colors.black.withOpacity(0.45),
                           ),
                         ),
                         if (isMine) ...[
@@ -1146,32 +1133,39 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
   }
 
-  Widget _buildMessageStatus(ChatMessage msg) {
-    switch (msg.status) {
-      case 'sending':
-        return const SizedBox(
-          width: 12,
-          height: 12,
-          child: CircularProgressIndicator(strokeWidth: 1.5),
-        );
+Widget _buildMessageStatus(ChatMessage msg) {
+  switch (msg.status) {
+    case 'sending':
+      return const SizedBox(
+        width: 12,
+        height: 12,
+        child: CircularProgressIndicator(strokeWidth: 1.5),
+      );
 
-      case 'failed':
-        return const Icon(Icons.error_outline, color: Colors.red, size: 14);
+    case 'failed':
+      return const Icon(
+        Icons.error_outline,
+        color: Colors.red,
+        size: 14,
+      );
 
-      case 'sent':
-        return const Icon(Icons.done, size: 14);
+    case 'sent':
+      return const Icon(Icons.done, size: 14);
 
-      case 'delivered':
-        return const Icon(Icons.done_all, size: 14);
+    case 'delivered':
+      return const Icon(Icons.done_all, size: 14);
 
-      case 'read':
-        return const Icon(Icons.done_all, color: Colors.blue, size: 14);
+    case 'read':
+      return const Icon(
+        Icons.done_all,
+        color: Colors.blue,
+        size: 14,
+      );
 
-      default:
-        return const SizedBox.shrink();
-    }
+    default:
+      return const SizedBox.shrink();
   }
-
+}
   Widget _buildTaskMessage(ChatMessage msg, bool isDark) {
     final taskId = msg.taskId ?? '';
     final taskDatabase = msg.taskDatabase ?? '';
@@ -1180,13 +1174,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark
-            ? Colors.orange.shade900.withOpacity(0.3)
-            : Colors.orange.shade50,
+        color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark ? Colors.orange.shade700 : Colors.orange.shade300,
-        ),
+        border: Border.all(color: isDark ? Colors.orange.shade700 : Colors.orange.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1207,46 +1197,29 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           const SizedBox(height: 8),
           Text(
             msg.messageText ?? '',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white : Colors.black87,
-            ),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
           ),
           const SizedBox(height: 8),
           Text(
             'Assigned To: ${msg.assignedToName ?? msg.assignedTo ?? ''}',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
           const SizedBox(height: 4),
           if ((msg.taskDescription ?? '').isNotEmpty) ...[
             Text(
               msg.taskDescription ?? '',
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white60 : Colors.black54,
-              ),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
             ),
             const SizedBox(height: 4),
           ],
           Text(
             'Priority: ${msg.priority ?? ''}',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
           const SizedBox(height: 4),
           Text(
             'Status: $currentStatus',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.white70 : Colors.black87,
-            ),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
@@ -1390,13 +1363,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isDark
-              ? Colors.red.shade900.withOpacity(0.3)
-              : Colors.red.shade50,
+          color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isDark ? Colors.red.shade700 : Colors.red.shade200,
-          ),
+          border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1417,10 +1386,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                   ),
                   Text(
                     'PDF Document · Tap to open',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.white60 : Colors.black54,
-                    ),
+                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
                   ),
                 ],
               ),
@@ -1454,7 +1420,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     );
   }
 
-  Widget _buildNewMessageBanner(bool isDark) {
+  Widget _buildNewMessageBanner() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Positioned(
       bottom: 10,
       left: 0,
@@ -1471,11 +1439,11 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFF111B21),
+              color: isDark ? const Color(0xFF005C4B) : const Color(0xFF111B21),
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
+                  color: Colors.black.withOpacity(0.2),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -1508,8 +1476,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   // ── Input bar (with attach + task + send) ────────────────────────
 
-  Widget _buildInputBar(bool isDark) {
+  Widget _buildInputBar() {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       color: theme.colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -1590,9 +1559,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 keyboardType: TextInputType.multiline,
                 textInputAction: TextInputAction.newline,
                 decoration: InputDecoration(
-                  hintText: _sending ? 'Sending…' : 'Type message…',
+                  hintText: _sending ? 'Sending…' : 'Type message...',
                   filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest,
+                  fillColor: isDark ? const Color(0xFF2A3942) : const Color(0xFFF0F0F0),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(24),
                     borderSide: BorderSide.none,
@@ -1618,7 +1587,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Material(
-                    color: _sendButtonBg,
+                    color: isDark ? const Color(0xFF005C4B) : const Color(0xFF111B21),
                     shape: const CircleBorder(),
                     child: InkWell(
                       customBorder: const CircleBorder(),
@@ -1708,17 +1677,17 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.group_add_outlined,
-              color: AppColors.textMed(context),
+              color: Color(0xFF54656F),
               size: 20,
             ),
             const SizedBox(width: 10),
-            Expanded(
+            const Expanded(
               child: Text(
                 'Add Group Members',
                 style: TextStyle(
-                  color: AppColors.textHigh(context),
+                  color: Color(0xFF111B21),
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -1728,12 +1697,15 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: const Color(0xFF111B21).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_selected.length} selected',
-                  style: TextStyle(color: AppColors.primary, fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFF111B21),
+                    fontSize: 12,
+                  ),
                 ),
               ),
           ],
@@ -1781,7 +1753,7 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: 8,
                           ),
-                          activeColor: AppColors.primary,
+                          activeColor: const Color(0xFF111B21),
                           value: sel,
                           onChanged: uid.isEmpty
                               ? null
@@ -1796,7 +1768,7 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
                                 },
                           secondary: CircleAvatar(
                             backgroundColor: sel
-                                ? AppColors.primary
+                                ? const Color(0xFF111B21)
                                 : _avatarColorFrom(uname),
                             child: sel
                                 ? const Icon(
@@ -1836,7 +1808,7 @@ class _DmPickMembersDialogState extends State<_DmPickMembersDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -1881,19 +1853,19 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
       titlePadding: EdgeInsets.zero,
       title: Container(
         decoration: BoxDecoration(
-          color: AppColors.card(context),
+          color: Colors.white,
           border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
+        child: const Row(
           children: [
-            Icon(Icons.group, color: AppColors.textMed(context), size: 20),
-            const SizedBox(width: 10),
+            Icon(Icons.group, color: Color(0xFF54656F), size: 20),
+            SizedBox(width: 10),
             Text(
               'Name Your Group',
               style: TextStyle(
-                color: AppColors.textHigh(context),
+                color: Color(0xFF111B21),
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
@@ -1921,7 +1893,7 @@ class _DmNameGroupDialogState extends State<_DmNameGroupDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: const Color(0xFF111B21),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

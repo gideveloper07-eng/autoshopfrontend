@@ -96,11 +96,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ── Polling ────────────────────────────────────────────────────
   Timer? _timer;
 
-  static const Color _appBarBg = Colors.white;
-  static const Color _appBarText = Color(0xFF111B21);
-  static const Color _appBarIcon = Color(0xFF54656F);
-  static const Color _sendBg = Color(0xFF111B21);
-
   @override
   void initState() {
     super.initState();
@@ -464,8 +459,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Future<void> _checkCrossCompanyAndShowDialog() async {
     final session = await ApiService.getUserSession();
-    final currentCode =
-        (session?['companyCode'] ?? '').toString().trim().toLowerCase();
+    final currentCode = (session?['companyCode'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
     final groupCode = (groupPropertyCode ?? '').trim().toLowerCase();
 
     if (groupCode.isNotEmpty &&
@@ -473,15 +470,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         groupCode != currentCode) {
       // Different company — show switch-company message
       if (!mounted) return;
-      final companyLabel = (groupCompanyName?.isNotEmpty == true
+      final companyLabel =
+          (groupCompanyName?.isNotEmpty == true
               ? groupCompanyName
               : widget.groupName) ??
           widget.groupName;
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.swap_horiz_rounded, color: Colors.orange, size: 26),
@@ -679,7 +678,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       return;
                     }
 
-                    final nav       = Navigator.of(context);
+                    final nav = Navigator.of(context);
                     final messenger = ScaffoldMessenger.of(context);
 
                     final ok = await ApiService.createTask(
@@ -788,6 +787,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     String documentType,
     String? documentId,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return InkWell(
       onTap: () async {
         if (documentId == null) return;
@@ -802,9 +803,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.red.shade200),
+          border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -817,14 +818,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 children: [
                   Text(
                     "$documentType #$documentNo",
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
-                  const Text(
+                  Text(
                     "PDF Document · Tap to open",
-                    style: TextStyle(fontSize: 11, color: Colors.black54),
+                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
                   ),
                 ],
               ),
@@ -836,6 +838,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget _buildTaskMessage(dynamic msg) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final taskId = msg['TaskId']?.toString() ?? '';
     final taskDatabase = msg['TaskDatabase']?.toString() ?? '';
     final currentStatus = msg['TaskStatus']?.toString() ?? "Pending";
@@ -843,9 +847,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
+        color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.shade300),
+        border: Border.all(color: isDark ? Colors.orange.shade700 : Colors.orange.shade300),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -868,14 +872,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
           Text(
             msg['MessageText']?.toString() ?? '',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDark ? Colors.white : Colors.black87),
           ),
 
           const SizedBox(height: 8),
 
           Text(
             "Assigned To: ${msg['AssignedToName'] ?? msg['AssignedTo'] ?? ''}",
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
 
           const SizedBox(height: 4),
@@ -883,21 +887,21 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           if ((msg['TaskDescription']?.toString() ?? '').isNotEmpty) ...[
             Text(
               msg['TaskDescription'].toString(),
-              style: const TextStyle(fontSize: 13, color: Colors.black54),
+              style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
             ),
             const SizedBox(height: 4),
           ],
 
           Text(
             "Priority: ${msg['Priority'] ?? ''}",
-            style: const TextStyle(fontSize: 13),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
 
           const SizedBox(height: 4),
 
           Text(
             "Status: $currentStatus",
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87),
           ),
 
           const SizedBox(height: 10),
@@ -942,12 +946,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final appBarBg = theme.colorScheme.surface;
+    final appBarText = theme.colorScheme.onSurface;
+    final appBarIcon = theme.colorScheme.onSurface.withOpacity(0.7);
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: _appBarBg,
+        backgroundColor: appBarBg,
         elevation: 0.5,
-        iconTheme: IconThemeData(color: _appBarIcon),
+        iconTheme: IconThemeData(color: appBarIcon),
         titleSpacing: 0,
         title: Row(
           children: [
@@ -979,23 +988,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   Text(
                     widget.groupName,
                     style: TextStyle(
-                      color: _appBarText,
+                      color: appBarText,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
                   ),
-                  Text(
-                    () {
-                      final membersLabel = _members.isEmpty
-                          ? "Group"
-                          : "${_members.length} member${_members.length == 1 ? '' : 's'}";
-                      final branch = widget.branchName ?? '';
-                      return branch.isNotEmpty
-                          ? "$membersLabel • $branch"
-                          : membersLabel;
-                    }(),
-                    style: TextStyle(color: _appBarIcon, fontSize: 12),
-                  ),
+                  Text(() {
+                    final membersLabel = _members.isEmpty
+                        ? "Group"
+                        : "${_members.length} member${_members.length == 1 ? '' : 's'}";
+                    final branch = widget.branchName ?? '';
+                    return branch.isNotEmpty
+                        ? "$membersLabel • $branch"
+                        : membersLabel;
+                  }(), style: TextStyle(color: appBarIcon, fontSize: 12)),
                 ],
               ),
             ),
@@ -1003,7 +1009,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: _appBarIcon),
+            icon: Icon(Icons.more_vert, color: appBarIcon),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
             ),
@@ -1104,14 +1110,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                     vertical: 5,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFE8E8E8),
+                                    color: isDark ? const Color(0xFF2A3942) : const Color(0xFFE8E8E8),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
                                     text,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
-                                      color: Color(0xFF4A4A4A),
+                                      color: isDark ? Colors.white70 : const Color(0xFF4A4A4A),
                                       fontStyle: FontStyle.italic,
                                     ),
                                     textAlign: TextAlign.center,
@@ -1136,14 +1142,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFE8E8E8),
+                                        color: isDark ? const Color(0xFF2A3942) : const Color(0xFFE8E8E8),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: Text(
                                         separator,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: Color(0xFF4A4A4A),
+                                          color: isDark ? Colors.white70 : const Color(0xFF4A4A4A),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -1169,8 +1175,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isMine
-                                        ? const Color(0xFFD9FDD3)
-                                        : Colors.white,
+                                        ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFD9FDD3))
+                                        : (isDark ? const Color(0xFF202C33) : Colors.white),
                                     borderRadius: BorderRadius.only(
                                       topLeft: const Radius.circular(18),
                                       topRight: const Radius.circular(18),
@@ -1204,10 +1210,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                           ),
                                           child: Text(
                                             senderName,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 12,
-                                              color: Color(0xFF54656F),
+                                              color: isDark ? Colors.white70 : const Color(0xFF54656F),
                                             ),
                                           ),
                                         ),
@@ -1221,9 +1227,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                           ? _buildTaskMessage(msg)
                                           : Text(
                                               text,
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 fontSize: 14,
-                                                color: Colors.black87,
+                                                color: isDark ? Colors.white : Colors.black87,
                                               ),
                                             ),
                                       const SizedBox(height: 3),
@@ -1233,7 +1239,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                                           _formatTime(msgTime),
                                           style: TextStyle(
                                             fontSize: 10,
-                                            color: Colors.black.withValues(
+                                            color: isDark ? Colors.white54 : Colors.black.withValues(
                                               alpha: 0.45,
                                             ),
                                           ),
@@ -1310,7 +1316,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
           // ── Input bar ──────────────────────────────────────────
           Container(
-            color: Colors.white,
+            color: theme.colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1324,9 +1330,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade50,
+                      color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.shade200),
+                      border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
                     ),
                     child: Row(
                       children: [
@@ -1339,10 +1345,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         Expanded(
                           child: Text(
                             "${_selectedDocumentType ?? 'Document'} #${_selectedDocumentNo ?? ''}",
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1468,7 +1474,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           decoration: InputDecoration(
                             hintText: _sending ? "Sending…" : "Type message…",
                             filled: true,
-                            fillColor: const Color(0xFFF0F0F0),
+                            fillColor: theme.colorScheme.surfaceContainerHighest,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(24),
                               borderSide: BorderSide.none,
@@ -1491,7 +1497,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : Material(
-                              color: _sendBg,
+                              color: theme.colorScheme.primary,
                               shape: const CircleBorder(),
                               child: InkWell(
                                 customBorder: const CircleBorder(),
@@ -1530,7 +1536,9 @@ class _GMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = danger ? Colors.red : Colors.black87;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final color = danger ? Colors.red : (isDark ? Colors.white70 : Colors.black87);
     return Row(
       children: [
         Icon(icon, size: 18, color: color),

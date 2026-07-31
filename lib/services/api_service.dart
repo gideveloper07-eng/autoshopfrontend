@@ -5,6 +5,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'cache_service.dart';
 
 class ApiService {
   static const String baseUrl = "http://api.myautoshop365.com";
@@ -13,13 +14,30 @@ class ApiService {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     webOptions: WebOptions(dbName: 'autoshop_db', publicKey: 'as_key_2024'),
   );
-
+static String? _cachedToken;
+static String? _cachedUserId;
+static String? _cachedUserName;
+static String? _cachedCompanyCode;
+static String? _cachedDatabaseName;
   // ───────────────── TOKEN ─────────────────
+static Future<void> initializeCache() async {
+  _cachedToken ??= await _storage.read(key: "token");
+  _cachedUserId ??= await _storage.read(key: "userId");
+  _cachedUserName ??= await _storage.read(key: "userName");
+  _cachedCompanyCode ??= await _storage.read(key: "companyCode");
+  _cachedDatabaseName ??= await _storage.read(key: "databaseName");
+}
 
   static Future<void> saveToken(String t) =>
       _storage.write(key: "token", value: t);
 
-  static Future<String?> getToken() => _storage.read(key: "token");
+  //static Future<String?> getToken() => _storage.read(key: "token");
+static Future<String?> getToken() async {
+  if (_cachedToken != null) return _cachedToken;
+
+  _cachedToken = await _storage.read(key: "token");
+  return _cachedToken;
+}
 
   static Future<void> clearToken() => _storage.delete(key: "token");
   static Future<bool> isAdmin() async {
@@ -56,6 +74,12 @@ class ApiService {
         value: accessibleDatabases ?? "[]",
       ),
     ]);
+await ApiService.initializeCache();
+_cachedToken = token;
+_cachedUserId = userId;
+_cachedUserName = userName;
+_cachedCompanyCode = companyCode;
+_cachedDatabaseName = databaseName;
   }
 
   static Future<void> updateCurrentDatabase({
@@ -68,6 +92,9 @@ class ApiService {
     await _storage.write(key: "databaseName", value: databaseName);
     await _storage.write(key: "companyCode", value: companyCode);
     await _storage.write(key: "clientId", value: clientId);
+_cachedToken = token;
+_cachedDatabaseName = databaseName;
+_cachedCompanyCode = companyCode;
   }
 
   static Future<Map<String, String>> _getHeaders() async {
@@ -130,9 +157,23 @@ class ApiService {
     return List<dynamic>.from(decoded);
   }
 
-  static Future<String?> getUserId() => _storage.read(key: "userId");
+ // static Future<String?> getUserId() => _storage.read(key: "userId");
 
-  static Future<String?> getUserName() => _storage.read(key: "userName");
+ // static Future<String?> getUserName() => _storage.read(key: "userName");
+
+static Future<String?> getUserId() async {
+  if (_cachedUserId != null) return _cachedUserId;
+
+  _cachedUserId = await _storage.read(key: "userId");
+  return _cachedUserId;
+}
+
+static Future<String?> getUserName() async {
+  if (_cachedUserName != null) return _cachedUserName;
+
+  _cachedUserName = await _storage.read(key: "userName");
+  return _cachedUserName;
+}
 
   static Future<String> getClientIp() async {
     try {
@@ -182,6 +223,11 @@ class ApiService {
       _storage.delete(key: "companyCode"),
       _storage.delete(key: "notifiedPendingChallanIds"),
     ]);
+_cachedToken = null;
+_cachedUserId = null;
+_cachedUserName = null;
+_cachedCompanyCode = null;
+_cachedDatabaseName = null;
   }
 
   // ───────────────── DEVICE ID ─────────────────
@@ -387,8 +433,15 @@ class ApiService {
       final token = await getToken();
       if (token == null || token.isEmpty) {
         print("❌ CHALLAN EDIT: No token found");
-        throw Exception("Authentication required. Please login again.");
+        return null;
       }
+
+      final companyCode = _storage.read(key: "companyCode");
+
+      final cacheKey = "challan_edit_${companyCode}_$sp462";
+
+      // Read cached data
+      final cached = await CacheService.getMap(cacheKey);
 
       final url = "$baseUrl/api/challan/edit/$sp462";
       print("🌐 CHALLAN EDIT: Calling $url");
@@ -406,35 +459,36 @@ class ApiService {
       print("📡 CHALLAN EDIT: Status ${res.statusCode}");
       print("📦 CHALLAN EDIT: Body ${res.body}");
 
-      if (res.statusCode == 404) {
-        throw Exception("Challan not found. The record may have been deleted.");
-      }
-
-      if (res.statusCode == 401) {
-        throw Exception("Unauthorized. Please login again.");
-      }
-
-      if (res.statusCode == 500) {
-        final body = jsonDecode(res.body) as Map<String, dynamic>;
-        final errorMsg = body['error'] ?? body['message'] ?? 'Server error';
-        throw Exception("Server error: $errorMsg");
-      }
-
       if (res.statusCode == 200) {
         final body = jsonDecode(res.body) as Map<String, dynamic>;
-        if (body['success'] == true && body['data'] is Map) {
-          print("✅ CHALLAN EDIT: Data received successfully");
-          return Map<String, dynamic>.from(body['data'] as Map);
-        } else {
-          final errorMsg = body['message'] ?? 'Invalid response format';
-          throw Exception(errorMsg);
+
+        if (body["success"] == true && body["data"] is Map) {
+          final data = Map<String, dynamic>.from(body["data"]);
+
+          // Update cache
+          await CacheService.setMap(cacheKey, data);
+
+          return data;
         }
       }
 
-      throw Exception("Unexpected response: HTTP ${res.statusCode}");
+      if (res.statusCode == 404) {
+        print("Challan not found.");
+      } else if (res.statusCode == 401) {
+        print("Unauthorized.");
+      } else if (res.statusCode == 500) {
+        final body = jsonDecode(res.body);
+        print(body["error"] ?? body["message"]);
+      }
+
+      // API failed, return cached data
+      return cached;
     } catch (e) {
       print("❌ CHALLAN EDIT ERROR: $e");
-      rethrow;
+      final companyCode = _storage.read(key: "companyCode");
+      final cacheKey = "challan_edit_${companyCode}_$sp462";
+
+      return await CacheService.getMap(cacheKey);
     }
   }
 
@@ -817,20 +871,39 @@ class ApiService {
     }
   }
 
-  static Future<List<dynamic>> getDirectChatMessages(
+  static Future<Map<String, dynamic>> getDirectChatMessages(
     String receiverId,
     String receiverPropertyCode,
   ) async {
+    final sw = Stopwatch()..start();
+
     try {
       final token = await getToken();
 
-      // Trim both IDs to strip any trailing/leading whitespace from DB values
+      if (token == null) {
+        return {"data": <dynamic>[], "time": 0};
+      }
+
       final cleanReceiverId = receiverId.trim();
       final cleanPropertyCode = receiverPropertyCode.trim();
 
-      if (token == null || cleanReceiverId.isEmpty || cleanPropertyCode.isEmpty) {
-        return [];
+      if (cleanReceiverId.isEmpty || cleanPropertyCode.isEmpty) {
+        return {"data": <dynamic>[], "time": 0};
       }
+
+      // If using FlutterSecureStorage:
+      // final companyCode = await _storage.read(key: "companyCode") ?? "";
+
+      // If using GetStorage:
+      final companyCode = _storage.read(key: "companyCode") ?? "";
+
+      final cacheKey = CacheService.keyDirectMessages(
+        "${companyCode}_$cleanReceiverId",
+        cleanPropertyCode,
+      );
+
+      // Read cached data
+      final cached = await CacheService.getList(cacheKey);
 
       final response = await http.get(
         Uri.parse(
@@ -839,25 +912,84 @@ class ApiService {
         headers: {"Authorization": "Bearer $token"},
       );
 
-      if (response.statusCode != 200) {
-        print("GET DIRECT CHAT ERROR:");
-        print(response.statusCode);
-        print(response.body);
-        return [];
+      sw.stop();
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final data = List<dynamic>.from(body["data"] ?? []);
+
+        // Update cache
+        await CacheService.setList(cacheKey, data);
+
+        return {"data": data, "time": sw.elapsedMilliseconds};
       }
 
-      final body = jsonDecode(response.body);
+      print("GET DIRECT CHAT ERROR:");
+      print(response.statusCode);
+      print(response.body);
 
-      print(body);
-
-      return body["data"] ?? [];
+      // Return cached data if API fails
+      return {"data": cached ?? <dynamic>[], "time": sw.elapsedMilliseconds};
     } catch (e) {
+      sw.stop();
+
       print("GET DIRECT CHAT ERROR: $e");
-      return [];
+
+      // If using FlutterSecureStorage:
+      // final companyCode = await _storage.read(key: "companyCode") ?? "";
+
+      // If using GetStorage:
+      final companyCode = _storage.read(key: "companyCode") ?? "";
+
+      final cached =
+          await CacheService.getList(
+            CacheService.keyDirectMessages(
+              "${companyCode}_$receiverId",
+              receiverPropertyCode,
+            ),
+          ) ??
+          <dynamic>[];
+
+      return {"data": cached, "time": sw.elapsedMilliseconds};
     }
   }
 
-  static Future<bool> sendChatMessage({
+static Future<List<dynamic>> syncDirectChatMessages(
+  String receiverId,
+  String receiverPropertyCode,
+) async {
+  try {
+    final token = await getToken();
+
+    if (token == null) {
+      return [];
+    }
+
+    final response = await http
+        .get(
+          Uri.parse(
+            "$baseUrl/api/chat/direct-messages/$receiverId/$receiverPropertyCode",
+          ),
+          headers: {
+            "Authorization": "Bearer $token",
+          },
+        )
+        .timeout(const Duration(seconds: 5));
+
+    if (response.statusCode != 200) {
+      return [];
+    }
+
+    final body = jsonDecode(response.body);
+
+    return List<dynamic>.from(body["data"] ?? []);
+  } catch (_) {
+    return [];
+  }
+}
+
+  static Future<SendMessageResponse> sendChatMessage({
+    required String chatId,
     required String challanId,
     required String messageText,
     required String senderName,
@@ -875,10 +1007,11 @@ class ApiService {
 
       if (token == null || token.isEmpty) {
         print("❌ SEND CHAT: Token not found");
-        return false;
+        return SendMessageResponse(success: false);
       }
 
       final requestBody = {
+	"chatId": chatId,
         "challanId": challanId,
         "messageText": messageText,
         "senderName": senderName,
@@ -899,23 +1032,31 @@ class ApiService {
 
       print("════════ SEND CHAT REQUEST ════════");
       print(jsonEncode(requestBody));
-
-      final response = await http.post(
-        Uri.parse("$baseUrl/api/chat/send-message"),
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer $token",
-        },
-        body: jsonEncode(requestBody),
-      );
-
+print("BEFORE HTTP");
+      final response = await http
+    .post(
+      Uri.parse("$baseUrl/api/chat/send-message"),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+      body: jsonEncode(requestBody),
+    )
+    .timeout(const Duration(seconds: 15));
+print("AFTER HTTP");
       print("SEND CHAT STATUS: ${response.statusCode}");
       print("SEND CHAT RESPONSE: ${response.body}");
 
-      return response.statusCode == 200;
+      if (response.statusCode != 200) {
+  return SendMessageResponse(success: false);
+}
+
+final json = jsonDecode(response.body);
+
+return SendMessageResponse.fromJson(json);
     } catch (e) {
       print("❌ SEND CHAT ERROR: $e");
-      return false;
+      return SendMessageResponse(success: false);
     }
   }
 
@@ -1358,20 +1499,85 @@ class ApiService {
       return [];
     }
   }*/
-
-  static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
+  /*static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
     final token = await getToken();
 
     if (token == null) return [];
+
     final scope = allChats ? "all" : "property";
 
+    // Different cache key for each scope
+    final cacheKey =
+        "${CacheService.keyDirectChats}_${_storage.read(key: "companyCode")}_$scope";
+
+    // 1. Return cache immediately if available
+    final cached = await CacheService.getList(cacheKey);
+    if (cached != null) {
+      return cached;
+    }
+
+    // 2. Fetch from API
     final res = await http.get(
       Uri.parse("$baseUrl/api/group/my-direct-chats?scope=$scope"),
       headers: {"Authorization": "Bearer $token"},
     );
+
+    if (res.statusCode != 200) {
+      return [];
+    }
+
     final body = jsonDecode(res.body);
-    return List<dynamic>.from(body["data"] ?? []);
-  }
+    final data = List<dynamic>.from(body["data"] ?? []);
+
+    // 3. Save cache
+    await CacheService.setList(cacheKey, data);
+
+    return data;
+  }*/
+static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
+  final token = await getToken();
+
+  if (token == null) return [];
+
+  final scope = allChats ? "all" : "property";
+
+  final cacheKey =
+      "${CacheService.keyDirectChats}_${_storage.read(key: "companyCode")}_$scope";
+
+  // Read cache (used only if API fails)
+  final cached = await CacheService.getList(cacheKey);
+
+  try {
+    final res = await http.get(
+      Uri.parse("$baseUrl/api/group/my-direct-chats?scope=$scope"),
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      final data = List<dynamic>.from(body["data"] ?? []);
+
+      await CacheService.setList(cacheKey, data);
+
+      return data;
+    }
+  } catch (_) {}
+
+  return cached ?? [];
+}
+  // static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
+  //   final token = await getToken();
+
+  //   if (token == null) return [];
+  //   final scope = allChats ? "all" : "property";
+
+  //   final res = await http.get(
+  //     Uri.parse("$baseUrl/api/group/my-direct-chats?scope=$scope"),
+  //     headers: {"Authorization": "Bearer $token"},
+  //   );
+  //   final body = jsonDecode(res.body);
+  //   return List<dynamic>.from(body["data"] ?? []);
+  // }
 
   static Future<List<dynamic>> getMyGroups() async {
     try {
@@ -1396,17 +1602,40 @@ class ApiService {
   static Future<List<dynamic>> getGroupMessages(String groupId) async {
     try {
       final token = await getToken();
-
       if (token == null) return [];
 
+      final cleanGroupId = groupId.trim();
+      if (cleanGroupId.isEmpty) return [];
+
+      final companyCode = await _storage.read(key: "companyCode") ?? "default";
+
+      final cacheKey = CacheService.keyGroupMessages(
+        "${companyCode}_$cleanGroupId",
+      );
+
+      // Read cached messages
+      final cached = await CacheService.getList(cacheKey);
+
       final response = await http.get(
-        Uri.parse("$baseUrl/api/group/messages/$groupId"),
+        Uri.parse("$baseUrl/api/group/messages/$cleanGroupId"),
         headers: {"Authorization": "Bearer $token"},
       );
 
-      final body = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final data = List<dynamic>.from(body["data"] ?? []);
 
-      return body["data"] ?? [];
+        // Update cache
+        await CacheService.setList(cacheKey, data);
+
+        return data;
+      }
+
+      print("GET GROUP MESSAGES ERROR:");
+      print(response.statusCode);
+      print(response.body);
+
+      return cached ?? [];
     } catch (e) {
       print("GET GROUP MESSAGES ERROR: $e");
       return [];
@@ -1934,5 +2163,145 @@ class ApiService {
 
       return {'total': 0, 'branches': <dynamic>[]};
     }
+  }
+
+  /// Fetches full booking detail rows for a specific branch and period.
+  /// [period]: 'today' or 'yesterday'
+  /// [branchName]: branch display name (sp_607) — used to filter results
+  static Future<List<Map<String, dynamic>>> getBranchBookingDetails({
+    required String period,
+    String branchId = '',
+    String branchName = '',
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final params = <String, String>{'period': period};
+
+      if (branchId.trim().isNotEmpty) {
+        params['branchId'] = branchId.trim();
+      }
+
+      if (branchName.trim().isNotEmpty) {
+        params['branchName'] = branchName.trim();
+      }
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/branch-booking-details",
+      ).replace(queryParameters: params);
+
+      print("========== BRANCH DETAIL API ==========");
+      print("URI        : $uri");
+      print("Period     : $period");
+      print("BranchId   : $branchId");
+      print("BranchName : $branchName");
+      print("======================================");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("Status Code : ${response.statusCode}");
+      print("Response    : ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("BRANCH BOOKING DETAILS ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getBranchSaleDetails({
+    required String period,
+    String branchId = '',
+    String branchName = '',
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final params = <String, String>{'period': period};
+
+      if (branchId.trim().isNotEmpty) {
+        params['branchId'] = branchId.trim();
+      }
+
+      if (branchName.trim().isNotEmpty) {
+        params['branchName'] = branchName.trim();
+      }
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/branch-sale-details",
+      ).replace(queryParameters: params);
+
+      print("========== SALE DETAIL API ==========");
+      print("URI        : $uri");
+      print("Period     : $period");
+      print("BranchId   : $branchId");
+      print("BranchName : $branchName");
+      print("====================================");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("Status Code : ${response.statusCode}");
+      print("Response    : ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("BRANCH SALE DETAILS ERROR: $e");
+      return [];
+    }
+  }
+}
+
+class SendMessageResponse {
+  final bool success;
+  final String? chatId;
+
+  SendMessageResponse({
+    required this.success,
+    this.chatId,
+  });
+
+  factory SendMessageResponse.fromJson(Map<String, dynamic> json) {
+    return SendMessageResponse(
+      success: json["success"] == true,
+      chatId: json["data"]?["chatId"]?.toString(),
+    );
   }
 }

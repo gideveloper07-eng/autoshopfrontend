@@ -19,6 +19,8 @@ class TrendCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
     final bool isPositive = growth >= 0;
 
     final double highest = trend.isEmpty
@@ -34,8 +36,8 @@ class TrendCard extends StatelessWidget {
         : trend.reduce((a, b) => a + b) / trend.length;
 
     final Color backgroundColor = color == Colors.blue
-        ? const Color(0xffF6FAFF)
-        : const Color(0xffF6FFF8);
+        ? (isDark ? const Color(0xff1A2535) : const Color(0xffF6FAFF))
+        : (isDark ? const Color(0xff1A2F25) : const Color(0xffF6FFF8));
 
     return Container(
       width: double.infinity,
@@ -86,9 +88,10 @@ class TrendCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 19,
                           fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -99,20 +102,21 @@ class TrendCard extends StatelessWidget {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: theme.colorScheme.surface,
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: theme.dividerColor),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.calendar_today_rounded, size: 14),
-                          SizedBox(width: 6),
+                          Icon(Icons.calendar_today_rounded, size: 14, color: theme.colorScheme.onSurface),
+                          const SizedBox(width: 6),
                           Text(
                             "Last 7 Days",
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -158,7 +162,7 @@ class TrendCard extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                Divider(color: Colors.grey.shade300),
+                Divider(color: theme.dividerColor),
 
                 const SizedBox(height: 16),
 
@@ -169,7 +173,7 @@ class TrendCard extends StatelessWidget {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: theme.colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Row(
@@ -180,13 +184,14 @@ class TrendCard extends StatelessWidget {
                           iconColor: Colors.orange,
                           title: "Highest",
                           value: highest.toStringAsFixed(0),
+                          textColor: theme.colorScheme.onSurface,
                         ),
                       ),
 
                       Container(
                         width: 1,
                         height: 50,
-                        color: Colors.grey.shade300,
+                        color: theme.dividerColor,
                       ),
 
                       Expanded(
@@ -195,13 +200,14 @@ class TrendCard extends StatelessWidget {
                           iconColor: Colors.blue,
                           title: "Average",
                           value: average.toStringAsFixed(1),
+                          textColor: theme.colorScheme.onSurface,
                         ),
                       ),
 
                       Container(
                         width: 1,
                         height: 50,
-                        color: Colors.grey.shade300,
+                        color: theme.dividerColor,
                       ),
 
                       Expanded(
@@ -210,6 +216,7 @@ class TrendCard extends StatelessWidget {
                           iconColor: Colors.red,
                           title: "Lowest",
                           value: lowest.toStringAsFixed(0),
+                          textColor: theme.colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -229,12 +236,14 @@ class _InsightItem extends StatelessWidget {
   final Color iconColor;
   final String title;
   final String value;
+  final Color textColor;
 
   const _InsightItem({
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.value,
+    required this.textColor,
   });
 
   @override
@@ -251,14 +260,14 @@ class _InsightItem extends StatelessWidget {
 
         Text(
           title,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 12),
         ),
 
         const SizedBox(height: 6),
 
         Text(
           value,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
         ),
       ],
     );

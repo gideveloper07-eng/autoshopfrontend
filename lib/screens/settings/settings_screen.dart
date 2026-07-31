@@ -9,18 +9,16 @@ class SettingsScreen extends StatelessWidget {
 
   static const Color _primary   = Color(0xFF1A56DB);
   static const Color _secondary = Color(0xFF3B82F6);
-  static const Color _bg        = Color(0xFFF0F4FF);
-  static const Color _cardBg    = Colors.white;
-  static const Color _textDark  = Color(0xFF1E293B);
-  static const Color _textMid   = Color(0xFF64748B);
 
   @override
   Widget build(BuildContext context) {
     final l10n             = AppLocalizations.of(context)!;
     final languageProvider = Provider.of<LanguageProvider>(context);
+    final theme            = Theme.of(context);
+    final isDark           = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildHeader(context, l10n),
@@ -117,11 +115,16 @@ class SettingsScreen extends StatelessWidget {
     AppLocalizations l10n,
     LanguageProvider languageProvider,
   ) {
+    final theme = Theme.of(context);
+    final cardBg = theme.colorScheme.surface;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = theme.colorScheme.onSurface.withOpacity(0.6);
+
     return Container(
       decoration: BoxDecoration(
-        color: _cardBg,
+        color: cardBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+        border: Border.all(color: theme.dividerColor, width: 1),
         boxShadow: [
           BoxShadow(
               color: _primary.withOpacity(0.08),
@@ -158,21 +161,21 @@ class SettingsScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(l10n.language,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: _textDark)),
+                              color: textDark)),
                       const SizedBox(height: 4),
                       Text(languageProvider.currentLanguageName,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 13,
-                              color: _textMid,
+                              color: textMid,
                               fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded,
-                    size: 18, color: _textMid),
+                Icon(Icons.arrow_forward_ios_rounded,
+                    size: 18, color: textMid),
               ],
             ),
           ),
@@ -188,16 +191,16 @@ class SettingsScreen extends StatelessWidget {
       builder: (context, tp, _) {
         final isAuto      = tp.isAuto;
         final isDark      = tp.isDark;
-        final cardBg      = Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1E2E42)
-            : _cardBg;
-        final onSurface   = Theme.of(context).colorScheme.onSurface;
+        final theme       = Theme.of(context);
+        final cardBg      = theme.colorScheme.surface;
+        final onSurface   = theme.colorScheme.onSurface;
+        final textMid     = theme.colorScheme.onSurface.withOpacity(0.6);
 
         return Container(
           decoration: BoxDecoration(
             color: cardBg,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+            border: Border.all(color: theme.dividerColor, width: 1),
             boxShadow: [
               BoxShadow(
                   color: _primary.withOpacity(0.08),
@@ -254,9 +257,9 @@ class SettingsScreen extends StatelessWidget {
                                 : isDark
                                     ? 'Dark Mode'
                                     : 'Light Mode',
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: 13,
-                                color: _textMid,
+                                color: textMid,
                                 fontWeight: FontWeight.w500),
                           ),
                         ],
@@ -275,7 +278,7 @@ class SettingsScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: _textMid.withOpacity(0.65),
+                    color: textMid.withOpacity(0.65),
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -311,7 +314,7 @@ class SettingsScreen extends StatelessWidget {
                               ? Icons.dark_mode_outlined
                               : Icons.light_mode_outlined,
                           size: 20,
-                          color: !isAuto ? _primary : _textMid,
+                          color: !isAuto ? _primary : textMid,
                         ),
                         const SizedBox(width: 12),
 
@@ -325,7 +328,7 @@ class SettingsScreen extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
-                                  color: !isAuto ? onSurface : _textMid,
+                                  color: !isAuto ? onSurface : textMid,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -337,7 +340,7 @@ class SettingsScreen extends StatelessWidget {
                                         : 'Currently: Light — tap to switch Dark',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: _textMid.withOpacity(0.75),
+                                  color: textMid.withOpacity(0.75),
                                 ),
                               ),
                             ],
@@ -436,7 +439,7 @@ class SettingsScreen extends StatelessWidget {
                                   ? (isDark ? 'moon' : 'sun')
                                   : 'off'),
                               size: 20,
-                              color: isAuto ? _primary : _textMid,
+                              color: isAuto ? _primary : textMid,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -451,7 +454,7 @@ class SettingsScreen extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: isAuto ? onSurface : _textMid,
+                                    color: isAuto ? onSurface : textMid,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -461,7 +464,7 @@ class SettingsScreen extends StatelessWidget {
                                       : 'Light at sunrise · Dark at sunset',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: _textMid.withOpacity(0.75),
+                                    color: textMid.withOpacity(0.75),
                                   ),
                                 ),
                               ],
@@ -528,15 +531,15 @@ class SettingsScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.info_outline,
-                                size: 13, color: _textMid),
+                            Icon(Icons.info_outline,
+                                size: 13, color: textMid),
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
                                 'Checks every minute. Tap a time to adjust.',
                                 style: TextStyle(
                                     fontSize: 11,
-                                    color: _textMid.withOpacity(0.65)),
+                                    color: textMid.withOpacity(0.65)),
                               ),
                             ),
                           ],
@@ -563,13 +566,13 @@ class SettingsScreen extends StatelessWidget {
                         const Icon(Icons.info_outline,
                             size: 15, color: Colors.amber),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             'Auto mode is ON — manual toggle is disabled. '
                             'Turn off Auto to change theme manually.',
                             style: TextStyle(
                                 fontSize: 12,
-                                color: _textMid,
+                                color: textMid,
                                 height: 1.4),
                           ),
                         ),
@@ -592,9 +595,14 @@ class SettingsScreen extends StatelessWidget {
     AppLocalizations l10n,
     LanguageProvider languageProvider,
   ) {
+    final theme = Theme.of(context);
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = theme.colorScheme.onSurface.withOpacity(0.6);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: theme.colorScheme.surface,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
@@ -612,10 +620,10 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(l10n.selectLanguage,
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
-                    color: _textDark)),
+                    color: textDark)),
           ],
         ),
         contentPadding: const EdgeInsets.fromLTRB(0, 20, 0, 0),
@@ -653,7 +661,7 @@ class SettingsScreen extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: isSelected ? _primary : _textMid,
+                          color: isSelected ? _primary : textMid,
                         ),
                       ),
                     ),
@@ -664,7 +672,7 @@ class SettingsScreen extends StatelessWidget {
                           fontWeight: isSelected
                               ? FontWeight.w700
                               : FontWeight.w500,
-                          color: isSelected ? _primary : _textDark)),
+                          color: isSelected ? _primary : textDark)),
                   trailing: isSelected
                       ? const Icon(Icons.check_circle_rounded,
                           color: _primary, size: 24)
@@ -723,6 +731,9 @@ class _TimePickerTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
@@ -747,10 +758,10 @@ class _TimePickerTile extends StatelessWidget {
                           color: iconColor,
                           fontWeight: FontWeight.w600)),
                   Text(_fmt(time),
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF1E293B))),
+                          color: textColor)),
                 ],
               ),
             ),

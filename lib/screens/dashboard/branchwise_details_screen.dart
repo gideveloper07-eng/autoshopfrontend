@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import 'branch_booking_details_screen.dart';
+import 'BranchSaleDetailsScreen.dart';
 
 class BranchwiseDetailsScreen extends StatefulWidget {
   final String reportType;
@@ -39,7 +41,10 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
   }
 
   Future<void> _loadBranchwiseData() async {
-    final cacheKey = CacheService.keyBranchwise(widget.reportType, widget.period);
+    final cacheKey = CacheService.keyBranchwise(
+      widget.reportType,
+      widget.period,
+    );
 
     // ── Step 1: Show cached data immediately ─────────────────────────────
     final cached = await CacheService.getMap(
@@ -103,12 +108,13 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final primaryColor = _isBooking
-        ? const Color(0xFF1565C0)
+        ? theme.colorScheme.primary
         : const Color(0xFF2E7D32);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
 
       appBar: AppBar(
         elevation: 0,
@@ -216,6 +222,8 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
   }
 
   Widget _buildSummary(Color primaryColor) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       width: double.infinity,
 
@@ -224,8 +232,12 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: _isBooking
-              ? const [Color(0xFF0A3D8F), Color(0xFF1E88E5)]
-              : const [Color(0xFF1B5E20), Color(0xFF43A047)],
+              ? (isDark
+                  ? [const Color(0xFF0A2A5C), const Color(0xFF1A4A8C)]
+                  : [const Color(0xFF0A3D8F), const Color(0xFF1E88E5)])
+              : (isDark
+                  ? [const Color(0xFF0A3A20), const Color(0xFF2A5A30)]
+                  : [const Color(0xFF1B5E20), const Color(0xFF43A047)]),
         ),
 
         borderRadius: const BorderRadius.only(
@@ -240,8 +252,13 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
 
         children: [
           Text(
-            _isBooking ? "Today's Total Booking" : "Today's Total Sale",
-
+            _isBooking
+                ? widget.period == 'today'
+                      ? "Today's Total Booking"
+                      : "Yesterday's Total Booking"
+                : widget.period == 'today'
+                ? "Today's Total Sale"
+                : "Yesterday's Total Sale",
             style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
 
@@ -274,107 +291,126 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
 
   Widget _buildBranchCard(Map<String, dynamic> branch, Color primaryColor) {
     final branchName = branch['branchName']?.toString() ?? "Unknown Branch";
-
+    final branchId = branch['branchId']?.toString() ?? "";
     final count = (branch['count'] as num?)?.toInt() ?? 0;
+
+    // Only booking type supports drill-down for now
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-
         borderRadius: BorderRadius.circular(18),
-
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.07),
-
             blurRadius: 14,
-
             offset: const Offset(0, 5),
           ),
         ],
       ),
-
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-
-        child: Row(
-          children: [
-            Container(
-              width: 52,
-
-              height: 52,
-
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.12),
-
-                borderRadius: BorderRadius.circular(15),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => _isBooking
+                    ? BranchBookingDetailsScreen(
+                        branchName: branchName,
+                        branchId: branchId,
+                        period: widget.period,
+                        bookingCount: count,
+                      )
+                    : BranchSaleDetailsScreen(
+                        branchName: branchName,
+                        branchId: branchId,
+                        period: widget.period,
+                        saleCount: count,
+                      ),
               ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon box
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Icon(
+                    _isBooking
+                        ? Icons.bookmark_added_rounded
+                        : Icons.sell_rounded,
+                    color: primaryColor,
+                  ),
+                ),
 
-              child: Icon(
-                _isBooking ? Icons.bookmark_added_rounded : Icons.sell_rounded,
+                const SizedBox(width: 15),
 
-                color: primaryColor,
-              ),
-            ),
+                // Branch name + count label
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        branchName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        _isBooking
+                            ? "$count ${count == 1 ? 'Booking' : 'Bookings'}"
+                            : "$count ${count == 1 ? 'Sale' : 'Sales'}",
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
 
-            const SizedBox(width: 15),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-
-                children: [
-                  Text(
-                    branchName,
-
-                    maxLines: 2,
-
-                    overflow: TextOverflow.ellipsis,
-
-                    style: const TextStyle(
-                      fontSize: 16,
-
+                // Count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.10),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    count.toString(),
+                    style: TextStyle(
+                      color: primaryColor,
+                      fontSize: 17,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
-                  const SizedBox(height: 7),
-
-                  Text(
-                    _isBooking
-                        ? "$count ${count == 1 ? 'Booking' : 'Bookings'}"
-                        : "$count ${count == 1 ? 'Sale' : 'Sales'}",
-
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-
-              decoration: BoxDecoration(
-                color: primaryColor.withOpacity(0.10),
-
-                borderRadius: BorderRadius.circular(20),
-              ),
-
-              child: Text(
-                count.toString(),
-
-                style: TextStyle(
-                  color: primaryColor,
-
-                  fontSize: 17,
-
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
+
+                // Chevron — only for booking drill-down
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: primaryColor.withOpacity(0.5),
+                  size: 22,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -397,13 +433,16 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
           const SizedBox(height: 15),
 
           Text(
-            _isBooking ? "No bookings found today" : "No sales found today",
-
+            _isBooking
+                ? widget.period == 'today'
+                      ? "No bookings found today"
+                      : "No bookings found yesterday"
+                : widget.period == 'today'
+                ? "No sales found today"
+                : "No sales found yesterday",
             style: TextStyle(
               color: Colors.grey[600],
-
               fontSize: 16,
-
               fontWeight: FontWeight.w600,
             ),
           ),

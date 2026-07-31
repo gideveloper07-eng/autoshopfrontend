@@ -598,14 +598,16 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
           // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
             decoration: BoxDecoration(
-              gradient: AppColors.vibrantGradient,
+              gradient: AppColors.vibrantGradientAdaptive(context),
               boxShadow: [
                 BoxShadow(
                   color: AppColors.shadowPrimary,
@@ -1052,8 +1054,10 @@ class _HomeScreenState extends State<HomeScreen>
             child: Container(
               padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF075E54), Color(0xFF128C7E)],
+                gradient: LinearGradient(
+                  colors: isDark
+                      ? [const Color(0xFF0A3D35), const Color(0xFF0E5D5E)]
+                      : [const Color(0xFF075E54), const Color(0xFF128C7E)],
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                 ),
@@ -2049,12 +2053,14 @@ class _AccountDropdownState extends State<_AccountDropdown>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          // Profile header (gradient - always same)
+                          // Profile header (gradient - adaptive)
                           Container(
                             padding: const EdgeInsets.fromLTRB(20, 28, 20, 22),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+                                colors: isDark
+                                    ? [const Color(0xFF0A3A6C), const Color(0xFF2A5A8C)]
+                                    : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),

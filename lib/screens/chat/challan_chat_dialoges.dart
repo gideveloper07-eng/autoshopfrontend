@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:uuid/uuid.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -9,7 +9,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
-import '../../theme/app_colors.dart';
 
 class ChallanChatDialog extends StatefulWidget {
   final String challanId;
@@ -69,12 +68,8 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
   // ── Members ──────────────────────────────────────────────────────
   List<Map<String, dynamic>> _members = [];
 
-  // ── Colors ────────────────────────────────────────────────────────
-  Color get _headerColor => AppColors.primary;
-  Color get _subHeaderColor => AppColors.primary.withValues(alpha: 0.8);
-  Color get _appBarBg => Theme.of(context).colorScheme.surface;
-  Color get _appBarText => Theme.of(context).colorScheme.onSurface;
-  Color get _appBarIcon => Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
+  static const Color _headerColor = Color(0xFF075E54);
+  static const Color _subHeaderColor = Color(0xFF128C7E);
 
   // ────────────────────────────────────────────────────────────────
 
@@ -455,7 +450,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       final groupId = result['groupId']?.toString() ?? '';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppColors.primary,
+          backgroundColor: const Color(0xFF075E54),
           content: Text('Group "$groupName" created!'),
         ),
       );
@@ -582,7 +577,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: _headerColor,
                 shape: BoxShape.circle,
               ),
@@ -623,7 +618,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: AppColors.primary),
+          Icon(icon, size: 18, color: _headerColor),
           const SizedBox(width: 10),
           Text(
             "$label: ",
@@ -632,7 +627,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
           Expanded(
             child: Text(
               value,
-              style: TextStyle(fontSize: 13, color: AppColors.textHigh(context)),
+              style: const TextStyle(fontSize: 13, color: Colors.black87),
             ),
           ),
         ],
@@ -704,104 +699,107 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
     }
   }
 
-Future<void> sendMessage() async {
-  final text = messageController.text.trim();
+  Future<void> sendMessage() async {
+    final text = messageController.text.trim();
 
-  // Prevent empty message and multiple clicks
-  if ((text.isEmpty && selectedDocumentId == null) || _sending) {
-    return;
-  }
+    // Prevent empty message and multiple clicks
+    if ((text.isEmpty && selectedDocumentId == null) || _sending) {
+      return;
+    }
 
-  setState(() {
-    _sending = true;
-  });
+    setState(() {
+      _sending = true;
+    });
 
-  // Save document values before API call
-  final documentId = selectedDocumentId;
-  final documentType = selectedDocumentType;
+    // Save document values before API call
+    final documentId = selectedDocumentId;
+    final documentType = selectedDocumentType;
 
-  try {
-    final session = await ApiService.getUserSession();
+    try {
+      final session = await ApiService.getUserSession();
 
-    final currentDatabase =
-        session?['databaseName']?.toString().trim() ?? '';
+      final currentDatabase = session?['databaseName']?.toString().trim() ?? '';
 
-    final result = await ApiService.sendChatMessage(
-      chatId: const Uuid().v4(),
-      challanId: widget.challanId,
-      messageText:
-          text.isNotEmpty ? text : (documentType ?? 'Document'),
-      senderName: currentUserName,
-      challanNo: widget.challanNo,
-      databaseName: currentDatabase,
-      receiverUserId:
-          widget.receiverUserId?.trim().isNotEmpty == true
-              ? widget.receiverUserId!.trim()
-              : null,
-      receiverName:
-          widget.receiverName?.trim().isNotEmpty == true
-              ? widget.receiverName!.trim()
-              : null,
-      receiverDbName:
-          widget.receiverDatabaseName?.trim().isNotEmpty == true
-              ? widget.receiverDatabaseName!.trim()
-              : null,
-      receiverPropertyCode:
-          widget.receiverPropertyCode?.trim().isNotEmpty == true
-              ? widget.receiverPropertyCode!.trim()
-              : null,
-      messageType: documentId == null ? 'TEXT' : 'DOCUMENT',
-      documentId: documentId,
-    );
+      // Do not clear before calling API
+      final success = await ApiService.sendChatMessage(
+        challanId: widget.challanId,
 
-    if (!mounted) return;
+        messageText: text.isNotEmpty ? text : (documentType ?? 'Document'),
 
-    if (result.success) {
-      // Clear only after successful send
-      messageController.clear();
+        senderName: currentUserName,
 
-      setState(() {
-        selectedDocumentId = null;
-        selectedDocumentType = null;
-        _userScrolledUp = false;
-        _newWhileScrolledUp = 0;
-      });
+        challanNo: widget.challanNo,
 
-      await loadMessages();
+        databaseName: currentDatabase,
+
+        // Challan group chat has no single receiver
+        receiverUserId: widget.receiverUserId?.trim().isNotEmpty == true
+            ? widget.receiverUserId!.trim()
+            : null,
+
+        receiverName: widget.receiverName?.trim().isNotEmpty == true
+            ? widget.receiverName!.trim()
+            : null,
+
+        receiverDbName: widget.receiverDatabaseName?.trim().isNotEmpty == true
+            ? widget.receiverDatabaseName!.trim()
+            : null,
+
+        receiverPropertyCode:
+            widget.receiverPropertyCode?.trim().isNotEmpty == true
+            ? widget.receiverPropertyCode!.trim()
+            : null,
+
+        messageType: documentId == null ? 'TEXT' : 'DOCUMENT',
+
+        documentId: documentId,
+      );
+
+      if (!mounted) return;
+
+      if (success) {
+        // Clear only after message is successfully saved
+        messageController.clear();
+
+        setState(() {
+          selectedDocumentId = null;
+          selectedDocumentType = null;
+
+          _userScrolledUp = false;
+          _newWhileScrolledUp = 0;
+        });
+
+        await loadMessages();
+
+        if (mounted) {
+          scrollToBottom();
+        }
+      } else {
+        // Text remains available when API fails
+        messageController.text = text;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Message could not be sent')),
+        );
+      }
+    } catch (error) {
+      print("SEND MESSAGE SCREEN ERROR: $error");
 
       if (mounted) {
-        scrollToBottom();
+        messageController.text = text;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to send message: $error')),
+        );
       }
-    } else {
-      // Keep text if sending failed
-      messageController.text = text;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Message could not be sent'),
-        ),
-      );
-    }
-  } catch (error) {
-    print("SEND MESSAGE SCREEN ERROR: $error");
-
-    if (mounted) {
-      messageController.text = text;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unable to send message: $error'),
-        ),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() {
-        _sending = false;
-      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _sending = false;
+        });
+      }
     }
   }
-}
   // ── Formatters ───────────────────────────────────────────────────
 
   String formatTime(String value) {
@@ -841,7 +839,6 @@ Future<void> sendMessage() async {
     String documentNo,
     String documentType,
     String? documentId,
-    bool isDark,
   ) {
     return InkWell(
       onTap: () async {
@@ -901,9 +898,9 @@ Future<void> sendMessage() async {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50,
+          color: Colors.red.shade50,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isDark ? Colors.red.shade700 : Colors.red.shade200),
+          border: Border.all(color: Colors.red.shade200),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -916,15 +913,14 @@ Future<void> sendMessage() async {
                 children: [
                   Text(
                     "$documentType #$documentNo",
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
-                      color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
-                  Text(
+                  const Text(
                     "PDF Document · Tap to open",
-                    style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.black54),
+                    style: TextStyle(fontSize: 11, color: Colors.black54),
                   ),
                 ],
               ),
@@ -935,14 +931,14 @@ Future<void> sendMessage() async {
     );
   }
 
-  Widget _buildTaskMessage(Map<String, dynamic> task, bool isDark) {
+  Widget _buildTaskMessage(Map<String, dynamic> task) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
+        color: const Color(0xFFF7F0E0),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isDark ? Colors.orange.shade700 : Colors.orange.shade300),
+        border: Border.all(color: Colors.orange),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -965,14 +961,13 @@ Future<void> sendMessage() async {
 
           Text(
             task["MessageText"]?.toString() ?? "",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black87),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
 
           const SizedBox(height: 8),
 
           Text(
             "Assigned To: ${task["AssignedToName"] ?? task["AssignedTo"] ?? ""}",
-            style: TextStyle(color: isDark ? Colors.white70 : Colors.black87),
           ),
 
           if ((task["TaskDescription"]?.toString() ?? '').isNotEmpty)
@@ -980,13 +975,13 @@ Future<void> sendMessage() async {
               padding: const EdgeInsets.only(top: 4),
               child: Text(
                 task["TaskDescription"].toString(),
-                style: TextStyle(fontSize: 13, color: isDark ? Colors.white60 : Colors.black54),
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
               ),
             ),
 
-          Text("Priority: ${task["Priority"] ?? ""}", style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+          Text("Priority: ${task["Priority"] ?? ""}"),
 
-          Text("Status: ${task["TaskStatus"] ?? "Pending"}", style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+          Text("Status: ${task["TaskStatus"] ?? "Pending"}"),
         ],
       ),
     );
@@ -1004,11 +999,11 @@ Future<void> sendMessage() async {
     );
   }
 
-  Widget _buildHighlightedText(String text, String query, bool isDark) {
+  Widget _buildHighlightedText(String text, String query) {
     if (query.isEmpty) {
       return Text(
         text,
-        style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
       );
     }
     final lowerText = text.toLowerCase();
@@ -1020,17 +1015,17 @@ Future<void> sendMessage() async {
         spans.add(
           TextSpan(
             text: text.substring(start, idx),
-            style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
           ),
         );
       }
       spans.add(
         TextSpan(
           text: text.substring(idx, idx + query.length),
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
-            color: isDark ? Colors.white : Colors.black87,
-            backgroundColor: Colors.yellow.shade200,
+            color: Colors.black87,
+            backgroundColor: Color(0xFFFFE082),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -1041,7 +1036,7 @@ Future<void> sendMessage() async {
       spans.add(
         TextSpan(
           text: text.substring(start),
-          style: TextStyle(fontSize: 14, color: isDark ? Colors.white : Colors.black87),
+          style: const TextStyle(fontSize: 14, color: Colors.black87),
         ),
       );
     }
@@ -1052,30 +1047,28 @@ Future<void> sendMessage() async {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final searchQuery = _searchController.text.trim().toLowerCase();
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFECE5DD),
       appBar: AppBar(
-        backgroundColor: _appBarBg,
-        iconTheme: IconThemeData(color: _appBarIcon),
+        backgroundColor: _headerColor,
+        iconTheme: const IconThemeData(color: Colors.white),
         titleSpacing: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: _appBarIcon),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: _isSearching
             ? TextField(
                 controller: _searchController,
                 focusNode: _searchFocusNode,
-                style: TextStyle(color: _appBarText),
-                cursorColor: _appBarText,
+                style: const TextStyle(color: Colors.white),
+                cursorColor: Colors.white,
                 decoration: InputDecoration(
                   hintText: "Search messages…",
                   hintStyle: TextStyle(
-                    color: _appBarIcon.withValues(alpha: 0.6),
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -1089,7 +1082,7 @@ Future<void> sendMessage() async {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _headerColor,
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -1118,8 +1111,8 @@ Future<void> sendMessage() async {
                                   widget.customerName!.isNotEmpty
                               ? widget.customerName!
                               : "Challan #${widget.challanNo}",
-                          style: TextStyle(
-                            color: _appBarText,
+                          style: const TextStyle(
+                            color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -1129,7 +1122,7 @@ Future<void> sendMessage() async {
                         Text(
                           "Challan #${widget.challanNo}",
                           style: TextStyle(
-                            color: _appBarIcon,
+                            color: Colors.white.withValues(alpha: 0.8),
                             fontSize: 12,
                           ),
                         ),
@@ -1143,7 +1136,7 @@ Future<void> sendMessage() async {
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,
-              color: _appBarIcon,
+              color: Colors.white,
             ),
             tooltip: _isSearching ? "Close search" : "Search",
             onPressed: _toggleSearch,
@@ -1152,7 +1145,7 @@ Future<void> sendMessage() async {
           // Three-dot menu
           if (!_isSearching)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, color: _appBarIcon),
+              icon: const Icon(Icons.more_vert, color: Colors.white),
               tooltip: "Menu",
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -1175,7 +1168,7 @@ Future<void> sendMessage() async {
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(36),
                 child: Container(
-                  color: theme.colorScheme.surface,
+                  color: _subHeaderColor,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 6,
@@ -1190,16 +1183,16 @@ Future<void> sendMessage() async {
                               ? "No results"
                               : "${_currentMatchIndex + 1} of ${_matchIndices.length} matches",
                           style: TextStyle(
-                            color: _appBarIcon,
+                            color: Colors.white.withValues(alpha: 0.9),
                             fontSize: 13,
                           ),
                         ),
                       ),
                       if (_matchIndices.isNotEmpty) ...[
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.keyboard_arrow_up,
-                            color: _appBarIcon,
+                            color: Colors.white,
                             size: 20,
                           ),
                           padding: EdgeInsets.zero,
@@ -1208,9 +1201,9 @@ Future<void> sendMessage() async {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.keyboard_arrow_down,
-                            color: _appBarIcon,
+                            color: Colors.white,
                             size: 20,
                           ),
                           padding: EdgeInsets.zero,
@@ -1233,6 +1226,7 @@ Future<void> sendMessage() async {
                 : Stack(
                     children: [
                       Container(
+                        color: const Color(0xFFECE5DD),
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1271,14 +1265,14 @@ Future<void> sendMessage() async {
                                       vertical: 5,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF2A3942) : const Color(0xFFE8E8E8),
+                                      color: const Color(0xFFD1E8D5),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Text(
                                       message,
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         fontSize: 12,
-                                        color: isDark ? Colors.white70 : const Color(0xFF4A4A4A),
+                                        color: Color(0xFF4A4A4A),
                                         fontStyle: FontStyle.italic,
                                       ),
                                       textAlign: TextAlign.center,
@@ -1310,16 +1304,16 @@ Future<void> sendMessage() async {
                                           vertical: 4,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF2A3942) : const Color(0xFFE8E8E8),
+                                          color: const Color(0xFFD1E8D5),
                                           borderRadius: BorderRadius.circular(
                                             10,
                                           ),
                                         ),
                                         child: Text(
                                           separator,
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             fontSize: 12,
-                                            color: isDark ? Colors.white70 : const Color(0xFF4A4A4A),
+                                            color: Color(0xFF4A4A4A),
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
@@ -1346,12 +1340,12 @@ Future<void> sendMessage() async {
                                     ),
                                     decoration: BoxDecoration(
                                       color: isActiveMatch
-                                          ? Colors.yellow.shade200
+                                          ? const Color(0xFFFFF176)
                                           : isMatch
-                                          ? Colors.yellow.shade100
+                                          ? const Color(0xFFFFF9C4)
                                           : isMine
-                                          ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFD9FDD3))
-                                          : (isDark ? const Color(0xFF202C33) : Colors.white),
+                                          ? const Color(0xFFDCF8C6)
+                                          : Colors.white,
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(18),
                                         topRight: const Radius.circular(18),
@@ -1364,7 +1358,7 @@ Future<void> sendMessage() async {
                                       ),
                                       border: isActiveMatch
                                           ? Border.all(
-                                              color: Colors.orange.shade400,
+                                              color: const Color(0xFFFFB300),
                                               width: 1.5,
                                             )
                                           : null,
@@ -1390,10 +1384,10 @@ Future<void> sendMessage() async {
                                             ),
                                             child: Text(
                                               senderName,
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 12,
-                                                color: isDark ? Colors.white70 : const Color(0xFF54656F),
+                                                color: Color(0xFF075E54),
                                               ),
                                             ),
                                           ),
@@ -1402,21 +1396,19 @@ Future<void> sendMessage() async {
                                                 documentNo,
                                                 documentType,
                                                 documentId,
-                                                isDark,
                                               )
                                             : messageType == "TASK"
-                                            ? _buildTaskMessage(msg, isDark)
+                                            ? _buildTaskMessage(msg)
                                             : (_isSearching && isMatch)
                                             ? _buildHighlightedText(
                                                 message,
                                                 searchQuery,
-                                                isDark,
                                               )
                                             : Text(
                                                 message,
-                                                style: TextStyle(
+                                                style: const TextStyle(
                                                   fontSize: 14,
-                                                  color: isDark ? Colors.white : Colors.black87,
+                                                  color: Colors.black87,
                                                 ),
                                               ),
                                         const SizedBox(height: 3),
@@ -1428,7 +1420,7 @@ Future<void> sendMessage() async {
                                               formatTime(messageTime),
                                               style: TextStyle(
                                                 fontSize: 10,
-                                                color: isDark ? Colors.white54 : Colors.black.withValues(
+                                                color: Colors.black.withValues(
                                                   alpha: 0.45,
                                                 ),
                                               ),
@@ -1468,7 +1460,7 @@ Future<void> sendMessage() async {
                                   vertical: 7,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF111B21),
+                                  color: _headerColor,
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
@@ -1510,7 +1502,7 @@ Future<void> sendMessage() async {
           // ── Input bar ─────────────────────────────────────────
           if (!_isSearching) ...[
             Container(
-              color: theme.colorScheme.surface,
+              color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
@@ -1605,9 +1597,9 @@ Future<void> sendMessage() async {
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         decoration: InputDecoration(
-                          hintText: _sending ? "Sending…" : "Type message…",
+                          hintText: _sending ? "Sending…" : "Type message...",
                           filled: true,
-                          fillColor: theme.colorScheme.surfaceContainerHighest,
+                          fillColor: const Color(0xFFF0F0F0),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(24),
                             borderSide: BorderSide.none,
@@ -1630,7 +1622,7 @@ Future<void> sendMessage() async {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : Material(
-                            color: AppColors.primary,
+                            color: _headerColor,
                             shape: const CircleBorder(),
                             child: InkWell(
                               customBorder: const CircleBorder(),
@@ -1718,9 +1710,9 @@ class _MembersDialogState extends State<_MembersDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -1801,7 +1793,7 @@ class _MembersDialogState extends State<_MembersDialog> {
                       vertical: 4,
                     ),
                     leading: CircleAvatar(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: const Color(0xFF075E54),
                       child: Text(
                         userName.isNotEmpty ? userName[0].toUpperCase() : '?',
                         style: const TextStyle(
@@ -1828,7 +1820,7 @@ class _MembersDialogState extends State<_MembersDialog> {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: const Color(0xFF075E54),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Text(
@@ -1964,9 +1956,9 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
@@ -2040,7 +2032,7 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
                           leading: CircleAvatar(
                             backgroundColor: isAdded
                                 ? Colors.green
-                                : AppColors.primary,
+                                : const Color(0xFF128C7E),
                             child: isAdded
                                 ? const Icon(
                                     Icons.check,
@@ -2084,7 +2076,7 @@ class _AddMemberDialogState extends State<_AddMemberDialog> {
                                 )
                               : ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
+                                    backgroundColor: const Color(0xFF075E54),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
@@ -2166,9 +2158,9 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
@@ -2244,7 +2236,7 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                             horizontal: 8,
                             vertical: 0,
                           ),
-                          activeColor: AppColors.primary,
+                          activeColor: const Color(0xFF075E54),
                           value: isSelected,
                           onChanged: userId.isEmpty
                               ? null
@@ -2259,8 +2251,8 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
                                 },
                           secondary: CircleAvatar(
                             backgroundColor: isSelected
-                                ? AppColors.primary
-                                : AppColors.primary.withOpacity(0.7),
+                                ? const Color(0xFF075E54)
+                                : const Color(0xFF128C7E),
                             child: isSelected
                                 ? const Icon(
                                     Icons.check,
@@ -2299,7 +2291,7 @@ class _PickMembersDialogState extends State<_PickMembersDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
@@ -2345,9 +2337,9 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       titlePadding: EdgeInsets.zero,
       title: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+        decoration: const BoxDecoration(
+          color: Color(0xFF075E54),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: const Row(
@@ -2385,7 +2377,7 @@ class _NameGroupDialogState extends State<_NameGroupDialog> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: const Color(0xFF075E54),
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

@@ -117,14 +117,19 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D3F8A), Color(0xFF2C6CE0), Color(0xFF83C4FF)],
-            stops: [0.0, 0.45, 1.0],
+            colors: isDark
+                ? [const Color(0xFF0A1F3D), const Color(0xFF1A3A6E), const Color(0xFF2A4A8E)]
+                : [const Color(0xFF0D3F8A), const Color(0xFF2C6CE0), const Color(0xFF83C4FF)],
+            stops: const [0.0, 0.45, 1.0],
           ),
         ),
         child: Stack(
@@ -312,6 +317,8 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
     final bool isSelected = selectedIndex == index;
     final String name = (d['propertyname'] ?? '').toString().toUpperCase();
     final String code = (d['propertycode'] ?? '').toString().toUpperCase();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     // Stagger animation offset per card
     return TweenAnimationBuilder<double>(
@@ -339,15 +346,19 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   )
-                : const LinearGradient(
-                    colors: [Colors.white, Color(0xFFF4FBFF)],
+                : LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF1A2535), const Color(0xFF253545)]
+                        : [Colors.white, const Color(0xFFF4FBFF)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
             border: Border.all(
               color: isSelected
                   ? Colors.white.withOpacity(0.4)
-                  : const Color(0xFFE6F4FF),
+                  : isDark
+                      ? const Color(0xFF2A3A4A)
+                      : const Color(0xFFE6F4FF),
               width: 1.3,
             ),
             boxShadow: [
@@ -410,7 +421,7 @@ class _DealershipSelectorScreenState extends State<DealershipSelectorScreen>
                           fontWeight: FontWeight.w800,
                           color: isSelected
                               ? Colors.white
-                              : const Color(0xFF10253F),
+                              : theme.colorScheme.onSurface,
                           letterSpacing: 0.3,
                         ),
                       ),
