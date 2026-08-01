@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -682,12 +683,21 @@ _cachedDatabaseName = null;
 
   static Future<void> logout(String token) async {
     try {
+      // Get the FCM token so the backend can deactivate this specific device
+      String? fcmToken;
+      if (!kIsWeb) {
+        try {
+          fcmToken = await FirebaseMessaging.instance.getToken();
+        } catch (_) {}
+      }
+
       await http.post(
         Uri.parse("$baseUrl/api/auth/logout"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
         },
+        body: jsonEncode({"fcmToken": fcmToken ?? ""}),
       );
     } catch (e) {
       print("LOGOUT API ERROR: $e");
