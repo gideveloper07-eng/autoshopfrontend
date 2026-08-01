@@ -833,19 +833,47 @@ _cachedDatabaseName = null;
 
       if (token == null) return;
 
+      // Collect device info to send alongside the token
+      String platform = 'android';
+      String deviceModel = '';
+      String appVersion = '1.0.0';
+
+      try {
+        final deviceInfo = DeviceInfoPlugin();
+        if (kIsWeb) {
+          platform = 'web';
+          final webInfo = await deviceInfo.webBrowserInfo;
+          deviceModel = webInfo.browserName.name;
+        } else if (!kIsWeb) {
+          if (Platform.isAndroid) {
+            platform = 'android';
+            final androidInfo = await deviceInfo.androidInfo;
+            deviceModel = androidInfo.model;
+          } else if (Platform.isIOS) {
+            platform = 'ios';
+            final iosInfo = await deviceInfo.iosInfo;
+            deviceModel = iosInfo.utsname.machine ?? iosInfo.model ?? '';
+          }
+        }
+      } catch (e) {
+        print("DEVICE INFO ERROR: $e");
+      }
+
       await http.post(
         Uri.parse("$baseUrl/api/auth/save-fcm-token"),
-
         headers: {
           "Content-Type": "application/json",
-
           "Authorization": "Bearer $token",
         },
-
-        body: jsonEncode({"token": fcmToken}),
+        body: jsonEncode({
+          "token": fcmToken,
+          "platform": platform,
+          "deviceModel": deviceModel,
+          "appVersion": appVersion,
+        }),
       );
 
-      print("FCM TOKEN SAVED");
+      print("FCM TOKEN SAVED (platform: $platform, model: $deviceModel)");
     } catch (e) {
       print("SAVE FCM TOKEN ERROR: $e");
     }

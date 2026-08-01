@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import '../../services/api_service.dart';
 import '../home/home_screen.dart';
 import '../../services/activity_service.dart';
@@ -126,6 +128,19 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } catch (e) {
         debugPrint("Activity Log Error: $e");
+      }
+
+      // Register FCM token so push notifications work on this device
+      if (!kIsWeb) {
+        try {
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null && fcmToken.isNotEmpty) {
+            await ApiService.saveFCMToken(fcmToken);
+            debugPrint("FCM token registered after login");
+          }
+        } catch (e) {
+          debugPrint("FCM token registration error: $e");
+        }
       }
       final databases = res['accessibleDatabases'] ?? [];
 
