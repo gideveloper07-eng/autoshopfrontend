@@ -58,6 +58,9 @@ dependencies:
   path: ^1.9.1
   uuid: ^4.5.1
   connectivity_plus: ^7.0.0
+  tithi_engine: ^5.0.0
+  astronomia: ^0.3.0
+  flutter_markdown: ^0.7.3
   # screen_protector: Temporarily removed due to build compatibility issues
 
 dev_dependencies:

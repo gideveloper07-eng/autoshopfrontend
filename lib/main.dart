@@ -20,6 +20,7 @@ import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
 import 'package:college_app/database/chat_database.dart';
 import 'package:college_app/chat/services/connectivity_service.dart';
+import 'services/festival_service.dart';
 
 // ── Global navigator key — lets us navigate from outside widget tree ──────────
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -203,6 +204,9 @@ void main() {
 
       await ActivityService.initialize();
 
+      // Initialize festival service with real-time data
+      await FestivalService.initializeWithApi();
+
       runApp(
         MultiProvider(
           providers: [
@@ -313,10 +317,23 @@ class _MyAppState extends State<MyApp> {
 
       initialRoute: '/',
       navigatorObservers: [appRouteObserver],
-      builder: (context, child) => ChatBubbleOverlay(
-        routeObserver: appRouteObserver,
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) {
+        // On Android 15+ (e.g. Samsung S25 Ultra), edge-to-edge is enforced.
+        // We must re-apply viewInsets (keyboard height) here so that the
+        // keyboard does not overlap text fields.
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            viewInsets: mediaQuery.viewInsets,
+            viewPadding: mediaQuery.viewPadding,
+            padding: mediaQuery.padding,
+          ),
+          child: ChatBubbleOverlay(
+            routeObserver: appRouteObserver,
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+      },
       routes: {
         '/': (_) => const SplashScreen(),
         '/login': (_) => const LoginScreen(),
@@ -517,8 +534,14 @@ class ChatBubbleOverlay extends StatelessWidget {
             final isCompact = MediaQuery.sizeOf(context).width < 600;
             final isChallanDetails =
                 routeObserver.currentRouteName == 'ChallanEditDetailsScreen';
+            final isHomeScreen =
+                routeObserver.currentRouteName == 'HomeScreen';
             final bubbleSize = isCompact ? 56.0 : 64.0;
-            final bottomOffset = isChallanDetails ? 92.0 : 18.0;
+            final bottomOffset = isChallanDetails
+                ? 92.0
+                : isHomeScreen && isCompact
+                    ? 90.0
+                    : 18.0;
 
             return Positioned(
               left: isCompact && !isChallanDetails ? 18 : null,

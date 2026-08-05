@@ -486,8 +486,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
   }
 
   Widget _buildStatRow() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      color: const Color(0xFF111B21),
+      color: isDark ? const Color(0xFF111B21) : const Color(0xFFF5F5F5),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
       child: Row(
         children: [
@@ -497,37 +498,65 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
           const SizedBox(width: 8),
           _statChip('Completed', _countFiltered('Completed'), Colors.green),
           const SizedBox(width: 8),
-          _statChip('Total', _filtered(_currentSource).length, Colors.white54),
+          _statChip('Total', _filtered(_currentSource).length,
+              isDark ? Colors.white54 : Colors.blueGrey),
         ],
       ),
     );
   }
 
   Widget _statChip(String label, int count, Color color) {
+    // "Total" chip resets filter to All; others toggle to that status
+    final filterValue = label == 'Total' ? 'All' : label;
+    final isActive = label == 'Total'
+        ? _statusFilter == 'All'
+        : _statusFilter == label;
+
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$count',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: color,
+      child: GestureDetector(
+        onTap: () => setState(() => _statusFilter = filterValue),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isActive ? color : color.withOpacity(0.3),
+              width: isActive ? 1.8 : 1,
+            ),
+            boxShadow: isActive
+                ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))]
+                : [],
+          ),
+          child: Column(
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(fontSize: 10, color: color.withOpacity(0.8)),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(fontSize: 10, color: color.withOpacity(0.8), fontWeight: isActive ? FontWeight.w700 : FontWeight.w400),
+              ),
+              if (isActive) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: 16,
+                  height: 2,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

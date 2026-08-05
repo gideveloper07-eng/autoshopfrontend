@@ -4,6 +4,7 @@ import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
 import 'branch_booking_details_screen.dart';
 import 'BranchSaleDetailsScreen.dart';
+import 'modelwise_summary_screen.dart';
 
 class BranchwiseDetailsScreen extends StatefulWidget {
   final String reportType;
@@ -130,6 +131,22 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
         ),
 
         actions: [
+          // Summary — opens model-wise breakdown
+          IconButton(
+            tooltip: "Model Summary",
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ModelwiseSummaryScreen(
+                    reportType: widget.reportType,
+                    period: widget.period,
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.bar_chart_rounded),
+          ),
           IconButton(
             tooltip: "Refresh",
 

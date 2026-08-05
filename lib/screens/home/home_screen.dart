@@ -1,5 +1,6 @@
 ﻿import 'dart:async';
-
+import 'dart:math' as math;
+import '../ai/ai_chat_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -23,7 +24,10 @@ import '../chat/chat_requests_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
+import '../../widgets/festival_banner.dart';
 import '../chat/my_contact_requests_screen.dart';
+import 'global_task_screen.dart';
+import '../../services/festival_service.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -69,6 +73,20 @@ class _HomeScreenState extends State<HomeScreen>
   bool _chatPreviewLoading = false;
 
   static const Color _chatGreen = Color(0xFF075E54);
+
+  // ── Assign Task dialog state (used directly from home purple card) ────────
+  final _assignTitleCtrl = TextEditingController();
+  final _assignDescCtrl = TextEditingController();
+  String _assignPriority = 'Medium';
+  DateTime? _assignStartDate;
+  DateTime? _assignDueDate;
+  List<Map<String, dynamic>> _assignUsers = [];
+  String? _assignSelectedUserId;
+  bool _assignUsersLoaded = false;
+
+  // Festival banner state
+  bool _showFestivalBanner = true;
+  Timer? _festivalUpdateTimer;
 
   @override
   void initState() {
@@ -130,6 +148,19 @@ class _HomeScreenState extends State<HomeScreen>
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) setState(() => _showWelcome = false);
     });
+
+    // Initialize periodic festival updates for real-time data
+    _festivalUpdateTimer = Timer.periodic(
+      const Duration(hours: 24), // Update festival dates daily
+      (_) async {
+        await FestivalService.schedulePeriodicUpdates();
+        if (mounted) {
+          setState(() {
+            _showFestivalBanner = FestivalService.isTodayFestival();
+          });
+        }
+      },
+    );
   }
 
   /*Future<void> loadDashboardStats() async {
@@ -246,7 +277,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _loadChatPreview() async {
     // ── Step 1: Show cached preview immediately ──────────────────────────
-    final cachedChallans = await CacheService.getListMap(CacheService.keyChallanList);
+    final cachedChallans = await CacheService.getListMap(
+      CacheService.keyChallanList,
+    );
     final cachedGroups = await CacheService.getList(CacheService.keyGroups);
     if ((cachedChallans != null || cachedGroups != null) && mounted) {
       setState(() {
@@ -422,8 +455,11 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _pendingChallanTimer?.cancel();
+    _festivalUpdateTimer?.cancel();
     _requestBlink.dispose();
     _removeAccountOverlay();
+    _assignTitleCtrl.dispose();
+    _assignDescCtrl.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -432,6 +468,11 @@ class _HomeScreenState extends State<HomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkPendingChallanNotifications();
+      // Check for festival updates when app resumes
+      FestivalService.autoRefreshIfNeeded();
+      setState(() {
+        _showFestivalBanner = FestivalService.isTodayFestival();
+      });
     }
   }
 
@@ -805,7 +846,7 @@ class _HomeScreenState extends State<HomeScreen>
           // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -852,6 +893,16 @@ class _HomeScreenState extends State<HomeScreen>
                           )
                         : const SizedBox.shrink(key: ValueKey('hidden')),
                   ),
+
+                  // Festival banner — shows on festival days
+                  if (_showFestivalBanner && FestivalService.isTodayFestival())
+                    FestivalBanner(
+                      onClose: () {
+                        setState(() {
+                          _showFestivalBanner = false;
+                        });
+                      },
+                    ),
 
                   // â”€â”€ TODAY STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Row(
@@ -956,6 +1007,7 @@ class _HomeScreenState extends State<HomeScreen>
                   const SizedBox(height: 24),
 
                   // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  // Admin: Challan + Tasks (assign & view all)
                   if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
                     Column(
                       children: [
@@ -980,10 +1032,10 @@ class _HomeScreenState extends State<HomeScreen>
                           },
                         ),
                         const SizedBox(height: 12),
-                        // Row 2: Tasks full width
+                        // Row 2: Task Dashboard (green) — admin only
                         _dashCard(
                           icon: Icons.task_alt,
-                          label: "Tasks",
+                          label: "Task Dashboard Screen",
                           subtitle: "View assigned tasks",
                           gradient: const [
                             Color(0xFF00695C),
@@ -1000,17 +1052,58 @@ class _HomeScreenState extends State<HomeScreen>
                             );
                           },
                         ),
+                        const SizedBox(height: 12),
+                        // Row 3: Assign Task (purple) — admin only
+                        _dashCard(
+                          icon: Icons.assignment_ind_rounded,
+                          label: "Assign Task",
+                          subtitle: "Assign and track task",
+                          gradient: const [
+                            Color(0xFF4A148C),
+                            Color(0xFF6A1B9A),
+                            Color(0xFF8E24AA),
+                          ],
+                          accentColor: Colors.purpleAccent,
+                          onTap: () => _showAssignTaskDialog(),
+                        ),
                       ],
                     ),
 
+                  // Assign Task card — non-admin only
                   if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
                       !isLoading)
-                    const SizedBox.shrink(), // Chat card removed
+                    _dashCard(
+                      icon: Icons.assignment_ind_rounded,
+                      label: "Assigned task",
+                      subtitle: "Assigned Task",
+                      gradient: const [
+                        Color(0xFF4A148C),
+                        Color(0xFF6A1B9A),
+                        Color(0xFF8E24AA),
+                      ],
+                      accentColor: Colors.purpleAccent,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const GlobalTaskScreen(),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
           ),
         ],
+      ),
+      floatingActionButton: _AiGlobeButton(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AIChatScreen()),
+          );
+        },
       ),
     );
   }
@@ -1597,6 +1690,652 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Assign Task Dialog (shown directly from home purple card) ─────────────
+  Future<void> _showAssignTaskDialog() async {
+    // Load users if not already loaded
+    if (!_assignUsersLoaded) {
+      try {
+        final users = await ApiService.getMergedUsers();
+        if (mounted) {
+          setState(() {
+            _assignUsers = users;
+            _assignUsersLoaded = true;
+          });
+        }
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+
+    // Reset dialog state
+    _assignTitleCtrl.clear();
+    _assignDescCtrl.clear();
+    _assignPriority = 'Medium';
+    _assignStartDate = null;
+    _assignDueDate = null;
+    _assignSelectedUserId = null;
+
+    String fmtDate(DateTime? d) {
+      if (d == null) return 'Select date';
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+      return '${d.day.toString().padLeft(2, '0')} ${months[d.month - 1]} ${d.year}';
+    }
+
+    Color priorityColor(String p) {
+      switch (p) {
+        case 'High':
+          return const Color(0xFFE53935);
+        case 'Medium':
+          return const Color(0xFFFB8C00);
+        case 'Low':
+          return const Color(0xFF43A047);
+        default:
+          return const Color(0xFFFB8C00);
+      }
+    }
+
+    IconData priorityIcon(String p) {
+      switch (p) {
+        case 'High':
+          return Icons.keyboard_double_arrow_up_rounded;
+        case 'Medium':
+          return Icons.remove_rounded;
+        case 'Low':
+          return Icons.keyboard_double_arrow_down_rounded;
+        default:
+          return Icons.remove_rounded;
+      }
+    }
+
+    // Input decoration factory
+    InputDecoration _fieldDecor({
+      required String label,
+      required IconData icon,
+      Widget? suffix,
+    }) => InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(fontSize: 13, color: Color(0xFF7B5EA7)),
+      prefixIcon: Icon(icon, size: 18, color: const Color(0xFF7B5EA7)),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: const Color(0xFFF5F0FF),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFD5C5F0), width: 1.2),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF7B5EA7), width: 1.8),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+    );
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDlg) {
+          final screenW = MediaQuery.sizeOf(ctx).width;
+          final isNarrow = screenW < 500;
+
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: isNarrow ? 12 : 40,
+              vertical: 24,
+            ),
+            child: Container(
+              width: isNarrow ? double.infinity : 480,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4A148C).withOpacity(0.22),
+                    blurRadius: 40,
+                    offset: const Offset(0, 16),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Gradient header ───────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 22, 20, 20),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF4A148C),
+                          Color(0xFF6A1B9A),
+                          Color(0xFF9C27B0),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.assignment_ind_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Assign Task',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Create & assign a new task',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(ctx),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Form body ─────────────────────────────────────
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Task Title
+                          TextField(
+                            controller: _assignTitleCtrl,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: _fieldDecor(
+                              label: 'Task Title',
+                              icon: Icons.title_rounded,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Description
+                          TextField(
+                            controller: _assignDescCtrl,
+                            maxLines: 3,
+                            style: const TextStyle(fontSize: 14),
+                            decoration: _fieldDecor(
+                              label: 'Description',
+                              icon: Icons.notes_rounded,
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Assign To
+                          DropdownButtonFormField<String>(
+                            value: _assignSelectedUserId,
+                            isExpanded: true,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: _fieldDecor(
+                              label: 'Assign To',
+                              icon: Icons.person_outline_rounded,
+                            ),
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            items: _assignUsers.map((u) {
+                              final id =
+                                  u['UserId']?.toString() ??
+                                  u['id']?.toString() ??
+                                  '';
+                              final name =
+                                  u['UserName']?.toString() ??
+                                  u['name']?.toString() ??
+                                  id;
+                              return DropdownMenuItem<String>(
+                                value: id,
+                                child: Text(
+                                  name,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 14),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (v) =>
+                                setDlg(() => _assignSelectedUserId = v),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Priority — chip row
+                          const Text(
+                            'Priority',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF7B5EA7),
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: ['Low', 'Medium', 'High'].map((p) {
+                              final selected = _assignPriority == p;
+                              final c = priorityColor(p);
+                              return Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        setDlg(() => _assignPriority = p),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 200,
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: selected
+                                            ? c
+                                            : c.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: selected
+                                              ? c
+                                              : c.withOpacity(0.3),
+                                          width: selected ? 2 : 1,
+                                        ),
+                                        boxShadow: selected
+                                            ? [
+                                                BoxShadow(
+                                                  color: c.withOpacity(0.3),
+                                                  blurRadius: 8,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ]
+                                            : [],
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            priorityIcon(p),
+                                            size: 18,
+                                            color: selected ? Colors.white : c,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            p,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: selected
+                                                  ? Colors.white
+                                                  : c,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          const SizedBox(height: 14),
+
+                          // Date row
+                          Row(
+                            children: [
+                              // Start Date
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: ctx,
+                                      initialDate:
+                                          _assignStartDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2100),
+                                    );
+                                    if (picked != null)
+                                      setDlg(() => _assignStartDate = picked);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 13,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F0FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _assignStartDate != null
+                                            ? const Color(0xFF7B5EA7)
+                                            : const Color(0xFFD5C5F0),
+                                        width: _assignStartDate != null
+                                            ? 1.8
+                                            : 1.2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.calendar_month_rounded,
+                                              size: 14,
+                                              color: Color(0xFF7B5EA7),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            const Text(
+                                              'Start Date',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF7B5EA7),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          fmtDate(_assignStartDate),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _assignStartDate != null
+                                                ? const Color(0xFF2D1B5E)
+                                                : Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Due Date
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: ctx,
+                                      initialDate:
+                                          _assignDueDate ??
+                                          (_assignStartDate ?? DateTime.now()),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2100),
+                                    );
+                                    if (picked != null)
+                                      setDlg(() => _assignDueDate = picked);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 13,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF5F0FF),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: _assignDueDate != null
+                                            ? const Color(0xFF7B5EA7)
+                                            : const Color(0xFFD5C5F0),
+                                        width: _assignDueDate != null
+                                            ? 1.8
+                                            : 1.2,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.event_rounded,
+                                              size: 14,
+                                              color: Color(0xFF7B5EA7),
+                                            ),
+                                            const SizedBox(width: 5),
+                                            const Text(
+                                              'Due Date',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Color(0xFF7B5EA7),
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 5),
+                                        Text(
+                                          fmtDate(_assignDueDate),
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _assignDueDate != null
+                                                ? const Color(0xFF2D1B5E)
+                                                : Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // ── Action buttons ────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(
+                                color: Color(0xFFD5C5F0),
+                                width: 1.5,
+                              ),
+                              foregroundColor: const Color(0xFF6A1B9A),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6A1B9A), Color(0xFF9C27B0)],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF6A1B9A,
+                                  ).withOpacity(0.4),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                if (_assignTitleCtrl.text.trim().isEmpty ||
+                                    _assignSelectedUserId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Please fill title and select a user',
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
+                                final messenger = ScaffoldMessenger.of(context);
+                                final navigator = Navigator.of(ctx);
+                                final ok = await ApiService.createGlobalTask(
+                                  receiverId: _assignSelectedUserId!,
+                                  taskTitle: _assignTitleCtrl.text.trim(),
+                                  taskDescription: _assignDescCtrl.text.trim(),
+                                  priority: _assignPriority,
+                                  startDate: _assignStartDate
+                                      ?.toIso8601String(),
+                                  dueDate: _assignDueDate?.toIso8601String(),
+                                );
+                                if (!mounted) return;
+                                navigator.pop();
+                                messenger.showSnackBar(
+                                  ok
+                                      ? const SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.check_circle,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Task assigned successfully',
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: Color(0xFF2E7D32),
+                                          behavior: SnackBarBehavior.floating,
+                                        )
+                                      : const SnackBar(
+                                          content: Text(
+                                            'Failed to assign task',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.send_rounded,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Assign Task',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _dashCard({
     required IconData icon,
     required String label,
@@ -2059,8 +2798,14 @@ class _AccountDropdownState extends State<_AccountDropdown>
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: isDark
-                                    ? [const Color(0xFF0A3A6C), const Color(0xFF2A5A8C)]
-                                    : [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+                                    ? [
+                                        const Color(0xFF0A3A6C),
+                                        const Color(0xFF2A5A8C),
+                                      ]
+                                    : [
+                                        const Color(0xFF1565C0),
+                                        const Color(0xFF42A5F5),
+                                      ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -2492,3 +3237,202 @@ class _DropdownMenuItem extends StatelessWidget {
 }
 
 // ignore_for_file: deprecated_member_use
+
+// ── AI Globe Floating Button ─────────────────────────────────────────────────
+class _AiGlobeButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AiGlobeButton({required this.onTap});
+
+  @override
+  State<_AiGlobeButton> createState() => _AiGlobeButtonState();
+}
+
+class _AiGlobeButtonState extends State<_AiGlobeButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) => Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const RadialGradient(
+              center: Alignment(-0.3, -0.3),
+              radius: 0.9,
+              colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFb040ff).withOpacity(0.55),
+                blurRadius: 18,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: const Color(0xFF00d4ff).withOpacity(0.35),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: CustomPaint(
+            painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
+            child: const Center(
+              child: Text(
+                'AI',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xFF00d4ff),
+                      blurRadius: 12,
+                    ),
+                    Shadow(
+                      color: Color(0xFFb040ff),
+                      blurRadius: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GlobePainter extends CustomPainter {
+  final double angle;
+  _GlobePainter({required this.angle});
+
+  // Fixed node positions on a unit sphere (longitude, latitude) in radians
+  static final List<List<double>> _nodes = [
+    [0.0, 0.0], [1.05, 0.52], [2.09, 0.0], [3.14, 0.52], [4.19, 0.0],
+    [5.24, 0.52], [0.52, 1.05], [1.57, 1.05], [2.62, 1.05], [3.67, 1.05],
+    [4.71, 1.05], [0.0, -1.05], [1.05, -0.52], [2.09, -1.05], [3.14, -0.52],
+    [4.19, -1.05], [5.24, -0.52], [0.52, -1.05], [1.57, -1.05], [2.62, -1.05],
+    [3.67, -1.05], [4.71, -1.05], [0.79, 0.0], [1.57, 0.0], [2.36, 0.0],
+    [3.14, 0.0], [3.93, 0.0], [4.71, 0.0], [0.0, 1.57], [3.14, 1.57],
+    [0.0, -1.57], [3.14, -1.57],
+  ];
+
+  // Which nodes connect (indices)
+  static final List<List<int>> _edges = [
+    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0],
+    [0, 6], [1, 6], [1, 7], [2, 7], [2, 8], [3, 8],
+    [3, 9], [4, 9], [4, 10], [5, 10], [5, 6],
+    [0, 12], [12, 1], [1, 13], [2, 14], [14, 3], [3, 15],
+    [4, 16], [16, 5], [5, 17],
+    [6, 28], [7, 28], [8, 28], [9, 29], [10, 29],
+    [11, 30], [12, 30], [13, 30], [14, 31], [15, 31],
+    [22, 23], [23, 24], [24, 25], [25, 26], [26, 27],
+    [6, 22], [7, 23], [8, 24], [9, 25], [10, 26],
+  ];
+
+  Offset _project(double lon, double lat, double cx, double cy, double r) {
+    final rotLon = lon + angle;
+    final x = math.cos(lat) * math.cos(rotLon);
+    final y = math.sin(lat);
+    final z = math.cos(lat) * math.sin(rotLon);
+    // Simple perspective
+    final scale = (z + 2.5) / 3.5;
+    return Offset(cx + x * r * scale, cy - y * r * scale);
+  }
+
+  double _depth(double lon, double lat) {
+    final rotLon = lon + angle;
+    return math.cos(lat) * math.sin(rotLon);
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width * 0.42;
+
+    // Draw edges
+    for (final edge in _edges) {
+      final n1 = _nodes[edge[0]];
+      final n2 = _nodes[edge[1]];
+      final d1 = _depth(n1[0], n1[1]);
+      final d2 = _depth(n2[0], n2[1]);
+      final avgDepth = (d1 + d2) / 2;
+      // Only draw edges on the front hemisphere (partially)
+      final alpha = ((avgDepth + 1) / 2).clamp(0.08, 0.7);
+
+      final p1 = _project(n1[0], n1[1], cx, cy, r);
+      final p2 = _project(n2[0], n2[1], cx, cy, r);
+
+      // Gradient from magenta to cyan based on longitude
+      final t = ((n1[0] + angle) % (2 * math.pi)) / (2 * math.pi);
+      final edgeColor = Color.lerp(
+        const Color(0xFFcc44ff),
+        const Color(0xFF00ddff),
+        t,
+      )!.withOpacity(alpha);
+
+      canvas.drawLine(
+        p1,
+        p2,
+        Paint()
+          ..color = edgeColor
+          ..strokeWidth = 0.8
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    // Draw nodes
+    for (final node in _nodes) {
+      final d = _depth(node[0], node[1]);
+      if (d < -0.2) continue; // skip back nodes
+      final alpha = ((d + 1) / 2).clamp(0.2, 1.0);
+      final pos = _project(node[0], node[1], cx, cy, r);
+      final t = ((node[0] + angle) % (2 * math.pi)) / (2 * math.pi);
+      final nodeColor = Color.lerp(
+        const Color(0xFFee55ff),
+        const Color(0xFF00eeff),
+        t,
+      )!.withOpacity(alpha);
+
+      final dotR = 1.8 * ((d + 2.5) / 3.5).clamp(0.5, 1.2);
+
+      // Glow
+      canvas.drawCircle(
+        pos,
+        dotR + 1.5,
+        Paint()
+          ..color = nodeColor.withOpacity(alpha * 0.35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.5),
+      );
+      // Core dot
+      canvas.drawCircle(pos, dotR, Paint()..color = nodeColor);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GlobePainter old) => old.angle != angle;
+}

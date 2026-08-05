@@ -85,9 +85,9 @@ class ChatMapper {
 
       messageTime: _parseMessageTime(json),
 
-      isRead: (json['IsRead'] ?? false) == true,
+      isRead: _parseBool(json['IsRead']),
 
-      status: 'sent',
+      status: _parseBool(json['IsRead']) ? 'read' : 'sent',
 
       isDeleted: (json['IsDeleted'] ?? false) == true,
 
@@ -117,6 +117,15 @@ class ChatMapper {
 
       companyName: json['CompanyName']?.toString(),
     );
+  }
+
+  /// Safely converts SQL bit (0/1), bool, or null to a Dart bool.
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is int) return value == 1;
+    if (value is String) return value == '1' || value.toLowerCase() == 'true';
+    return false;
   }
 
   static int _parseMessageTime(Map<String, dynamic> json) {

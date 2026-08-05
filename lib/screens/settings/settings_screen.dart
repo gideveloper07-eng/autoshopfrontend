@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/theme_provider.dart';
+import '../festival_preview_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -30,6 +31,8 @@ class SettingsScreen extends StatelessWidget {
                   _buildLanguageCard(context, l10n, languageProvider),
                   const SizedBox(height: 16),
                   _buildThemeCard(context),
+                  const SizedBox(height: 16),
+                  _buildFestivalPreviewCard(context),
                 ],
               ),
             ),
@@ -585,6 +588,110 @@ class SettingsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  // ── Festival Preview card ──────────────────────────────────────────────────
+
+  Widget _buildFestivalPreviewCard(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textDark = theme.colorScheme.onSurface;
+    final textMid = theme.colorScheme.onSurface.withOpacity(0.6);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(0.07)
+              : Colors.black.withOpacity(0.06),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFFF6B35), Color(0xFFFF9800)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Center(
+                    child: Text('🪔', style: TextStyle(fontSize: 22)),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Festival Banner Preview',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'See how banners look on each festival day',
+                        style: TextStyle(fontSize: 12, color: textMid),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+            Text(
+              'Today there is no festival, but you can preview every festival banner — colors, emoji, and wish message — exactly as it will appear in the app.',
+              style: TextStyle(fontSize: 13, color: textMid, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FestivalPreviewScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.preview_rounded),
+                label: const Text('Open Festival Preview'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF6B35),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
