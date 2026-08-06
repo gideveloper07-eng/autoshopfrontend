@@ -9,9 +9,14 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Let Flutter own the full window area so it can handle
-        // system bar / keyboard insets correctly on Android 15+
-        // (edge-to-edge is enforced by default on Android 15 / Samsung S25)
+        // Edge-to-edge: let the Flutter engine manage all insets itself.
+        // Flutter 3.x+ handles keyboard, navigation bar, and status bar
+        // insets correctly on all Android versions including Android 15
+        // (Samsung S25 Ultra, Pixel 9, etc.) when this is set to false.
+        //
+        // DO NOT add any manual inset handling here — Flutter's
+        // MediaQuery.viewInsets / viewPadding already reflect the live
+        // values from the OS when setDecorFitsSystemWindows = false.
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Prevent screenshots and screen recording
@@ -21,3 +26,4 @@ class MainActivity : FlutterActivity() {
         )
     }
 }
+

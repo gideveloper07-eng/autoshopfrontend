@@ -15,6 +15,9 @@ class AIMessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final aiBubbleColor = isDark ? const Color(0xFF1E2A3A) : Colors.white;
+    final aiTextColor = isDark ? const Color(0xFFE0E6F0) : Colors.black87;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -39,9 +42,7 @@ class AIMessageBubble extends StatelessWidget {
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isUser
-                      ? const Color(0xff1565C0)
-                      : Colors.white,
+                  color: isUser ? const Color(0xff1565C0) : aiBubbleColor,
                   borderRadius: BorderRadius.only(
                     topLeft: const Radius.circular(18),
                     topRight: const Radius.circular(18),
@@ -65,10 +66,10 @@ class AIMessageBubble extends StatelessWidget {
                         data: message.text,
                         selectable: true,
                         styleSheet: MarkdownStyleSheet(
-                          p: const TextStyle(
+                          p: TextStyle(
                             fontSize: 15,
                             height: 1.5,
-                            color: Colors.black87,
+                            color: aiTextColor,
                           ),
                         ),
                       )
@@ -76,9 +77,7 @@ class AIMessageBubble extends StatelessWidget {
                       SelectableText(
                         message.text,
                         style: TextStyle(
-                          color: isUser
-                              ? Colors.white
-                              : Colors.black87,
+                          color: isUser ? Colors.white : aiTextColor,
                           fontSize: 15,
                           height: 1.4,
                         ),
@@ -92,9 +91,7 @@ class AIMessageBubble extends StatelessWidget {
                         _formatTime(message.time),
                         style: TextStyle(
                           fontSize: 11,
-                          color: isUser
-                              ? Colors.white70
-                              : Colors.grey,
+                          color: isUser ? Colors.white70 : Colors.grey,
                         ),
                       ),
                     ),

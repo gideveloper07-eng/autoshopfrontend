@@ -48,6 +48,8 @@ class _AITypingIndicatorState
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bubbleColor = isDark ? const Color(0xFF1E2A3A) : Colors.white;
 
     return Padding(
 
@@ -95,7 +97,7 @@ class _AITypingIndicatorState
 
             decoration: BoxDecoration(
 
-              color: Colors.white,
+              color: bubbleColor,
 
               borderRadius:
                   BorderRadius.circular(18),

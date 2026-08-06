@@ -18,6 +18,8 @@ import 'screens/auth/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
+import 'screens/chat/chat_requests_screen.dart';
+import 'screens/notification/notification_screen.dart';
 import 'package:college_app/database/chat_database.dart';
 import 'package:college_app/chat/services/connectivity_service.dart';
 import 'services/festival_service.dart';
@@ -38,10 +40,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Show a local notification so it appears in the system tray
   await _showLocalChatNotification(message);
 }
-
-/// Shows a local notification for a chat message.
+/// Shows a local notification for any incoming FCM message.
+/// Routes to the correct notification channel based on message type.
 Future<void> _showLocalChatNotification(RemoteMessage message) async {
-  // With data-only FCM messages, title/body come from data map, not notification block
   final title =
       message.notification?.title ??
       message.data['title'] ??
@@ -52,29 +53,36 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
       message.data['body'] ??
       message.data['messageText'] ??
       '';
+
+  final type = message.data['type'] ?? '';
   final challanId = message.data['challanId'] ?? '';
   final challanNo = message.data['challanNo'] ?? '';
 
-  const androidDetails = AndroidNotificationDetails(
-    'chat_messages',
-    'Chat Messages',
-    channelDescription: 'Push notifications for challan chat messages',
+  // Challan status notifications use their own channel
+  final bool isChallanStatus =
+      type == 'CHALLAN_APPROVED' || type == 'CHALLAN_REJECTED';
+
+  final androidDetails = AndroidNotificationDetails(
+    isChallanStatus ? 'challan_notifications' : 'chat_messages',
+    isChallanStatus ? 'Challan Notifications' : 'Chat Messages',
+    channelDescription: isChallanStatus
+        ? 'Notifications for challan approval and rejection'
+        : 'Push notifications for challan chat messages',
     importance: Importance.max,
     priority: Priority.high,
     enableVibration: true,
     playSound: true,
+    sound: const RawResourceAndroidNotificationSound('notification'),
   );
 
-  const notificationDetails = NotificationDetails(
+  final notificationDetails = NotificationDetails(
     android: androidDetails,
-    iOS: DarwinNotificationDetails(sound: 'default'),
+    iOS: const DarwinNotificationDetails(sound: 'default'),
   );
 
-  final notifId = challanId.isNotEmpty
-      ? challanId.hashCode.abs() % 100000
-      : 9999;
-  // Store both IDs in payload so tap handler can open correct chat with correct title
-  final payload = '$challanId|$challanNo';
+  // Encode full data as payload so tap handler knows what to open
+  final payload = '$type|$challanId|$challanNo';
+  final notifId = (type + challanId).hashCode.abs() % 100000;
 
   await flutterLocalNotificationsPlugin.show(
     notifId,
@@ -82,6 +90,50 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
     body,
     notificationDetails,
     payload: payload,
+  );
+}
+
+/// Routes a notification tap to the correct screen based on type.
+void _handleNotificationData(Map<String, dynamic> data) {
+  final type = data['type'] ?? '';
+  final challanId = data['challanId'] ?? '';
+  final challanNo = data['challanNo'] ?? '';
+
+  if (type == 'CHALLAN_APPROVED' || type == 'CHALLAN_REJECTED') {
+    // Navigate to notification screen so user sees the approval/rejection
+    _openNotificationScreen();
+  } else if (type == 'CHAT_REQUEST') {
+    // Navigate to chat requests screen so user can accept/reject
+    _openChatRequestsScreen();
+  } else if (challanId.isNotEmpty) {
+    // Chat message — open the challan chat
+    _openChatFromNotification(challanId, challanNo: challanNo);
+  }
+}
+
+/// Opens the Chat Requests screen.
+void _openChatRequestsScreen() {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      settings: const RouteSettings(name: 'ChatRequestsScreen'),
+      builder: (_) => const ChatRequestsScreen(),
+    ),
+  );
+}
+
+/// Opens the Notification screen.
+void _openNotificationScreen() {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      settings: const RouteSettings(name: 'NotificationScreen'),
+      builder: (_) => const NotificationScreen(),
+    ),
   );
 }
 
@@ -181,9 +233,15 @@ void main() {
           onDidReceiveNotificationResponse: (NotificationResponse response) {
             final payload = response.payload ?? '';
             final parts = payload.split('|');
-            final challanId = parts.isNotEmpty ? parts[0] : '';
-            final challanNo = parts.length > 1 ? parts[1] : '';
-            _openChatFromNotification(challanId, challanNo: challanNo);
+            // payload format: 'TYPE|challanId|challanNo'
+            final type = parts.isNotEmpty ? parts[0] : '';
+            final challanId = parts.length > 1 ? parts[1] : '';
+            final challanNo = parts.length > 2 ? parts[2] : '';
+            _handleNotificationData({
+              'type': type,
+              'challanId': challanId,
+              'challanNo': challanNo,
+            });
           },
         );
 
@@ -196,6 +254,22 @@ void main() {
                 'chat_messages',
                 'Chat Messages',
                 description: 'Push notifications for challan chat messages',
+                importance: Importance.max,
+                playSound: true,
+              ),
+            );
+
+        // Challan approval / rejection channel
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.createNotificationChannel(
+              const AndroidNotificationChannel(
+                'challan_notifications',
+                'Challan Notifications',
+                description:
+                    'Notifications for challan approval and rejection status',
                 importance: Importance.max,
                 playSound: true,
               ),
@@ -228,8 +302,7 @@ void main() {
 /// Returns true for Flutter Web engine assertion errors that are caused by
 /// Chrome DevTools viewport resizing — not real app bugs.
 bool _isKnownEngineNoise(String msg) {
-  return msg.contains('viewInsets') ||
-      msg.contains('ViewOutsets cannot be negative') ||
+  return msg.contains('ViewOutsets cannot be negative') ||
       msg.contains('physicalSize') ||
       msg.contains('Zone mismatch');
 }
@@ -255,24 +328,34 @@ class _MyAppState extends State<MyApp> {
 
       // ── App BACKGROUND → tapped notification ────────────────────────
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        final type = message.data['type'] ?? '';
         final challanId = message.data['challanId'] ?? '';
         final challanNo = message.data['challanNo'] ?? '';
         print(
-          "NOTIFICATION TAPPED (background): challanId=$challanId challanNo=$challanNo",
+          "NOTIFICATION TAPPED (background): type=$type challanId=$challanId",
         );
-        _openChatFromNotification(challanId, challanNo: challanNo);
+        _handleNotificationData({
+          'type': type,
+          'challanId': challanId,
+          'challanNo': challanNo,
+        });
       });
 
       // ── App was TERMINATED → tapped notification ─────────────────────
       FirebaseMessaging.instance.getInitialMessage().then((message) {
         if (message != null) {
+          final type = message.data['type'] ?? '';
           final challanId = message.data['challanId'] ?? '';
           final challanNo = message.data['challanNo'] ?? '';
           print(
-            "NOTIFICATION TAPPED (terminated): challanId=$challanId challanNo=$challanNo",
+            "NOTIFICATION TAPPED (terminated): type=$type challanId=$challanId",
           );
           Future.delayed(const Duration(milliseconds: 500), () {
-            _openChatFromNotification(challanId, challanNo: challanNo);
+            _handleNotificationData({
+              'type': type,
+              'challanId': challanId,
+              'challanNo': challanNo,
+            });
           });
         }
       });
@@ -318,20 +401,14 @@ class _MyAppState extends State<MyApp> {
       initialRoute: '/',
       navigatorObservers: [appRouteObserver],
       builder: (context, child) {
-        // On Android 15+ (e.g. Samsung S25 Ultra), edge-to-edge is enforced.
-        // We must re-apply viewInsets (keyboard height) here so that the
-        // keyboard does not overlap text fields.
-        final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQuery.copyWith(
-            viewInsets: mediaQuery.viewInsets,
-            viewPadding: mediaQuery.viewPadding,
-            padding: mediaQuery.padding,
-          ),
-          child: ChatBubbleOverlay(
-            routeObserver: appRouteObserver,
-            child: child ?? const SizedBox.shrink(),
-          ),
+        // No manual MediaQuery override needed.
+        // WindowCompat.setDecorFitsSystemWindows(false) in MainActivity.kt
+        // makes Flutter receive live insets from the OS on all devices.
+        // Flutter's own Scaffold + resizeToAvoidBottomInset handles the
+        // keyboard correctly on every phone (S25 Ultra, older Androids, iOS).
+        return ChatBubbleOverlay(
+          routeObserver: appRouteObserver,
+          child: child ?? const SizedBox.shrink(),
         );
       },
       routes: {

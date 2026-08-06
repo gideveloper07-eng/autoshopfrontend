@@ -23,12 +23,16 @@ class AIInputBar extends StatefulWidget {
 class _AIInputBarState extends State<AIInputBar> {
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final barBg = isDark ? const Color(0xFF1A1A2E) : Colors.white;
+    final fieldBg = isDark ? const Color(0xFF2A2A3E) : const Color(0xffF5F7FA);
+
     return SafeArea(
       top: false,
       child: Container(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: barBg,
           boxShadow: [
             BoxShadow(
               blurRadius: 10,
@@ -57,7 +61,7 @@ class _AIInputBarState extends State<AIInputBar> {
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xffF5F7FA),
+                  color: fieldBg,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: TextField(

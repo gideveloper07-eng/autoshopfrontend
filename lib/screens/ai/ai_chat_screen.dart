@@ -227,8 +227,9 @@ _scrollToBottom();
     const int headerCount = 3;
     final int messageCount = _messages.length + (_isTyping ? 1 : 0);
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xffF5F7FA),
+      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xffF5F7FA),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xff1565C0),

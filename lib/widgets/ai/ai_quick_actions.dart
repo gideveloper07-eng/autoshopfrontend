@@ -54,15 +54,17 @@ class AIQuickActions extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: _actions.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (_, index) {
+        itemBuilder: (context, index) {
           final item = _actions[index];
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final cardBg = isDark ? const Color(0xFF1E2A3A) : Colors.white;
           return InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: () => onSelected(item.title),
             child: Container(
               width: cardW,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
