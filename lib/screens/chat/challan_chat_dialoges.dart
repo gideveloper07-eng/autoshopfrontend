@@ -1501,7 +1501,9 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
 
           // ── Input bar ─────────────────────────────────────────
           if (!_isSearching) ...[
-            Container(
+            SafeArea(
+            top: false,
+            child: Container(
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
@@ -1637,6 +1639,7 @@ class _ChallanChatDialogState extends State<ChallanChatDialog> {
                   ),
                 ],
               ),
+            ),
             ),
           ],
         ],

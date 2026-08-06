@@ -1509,7 +1509,9 @@ Future<void> sendMessage() async {
 
           // ── Input bar ─────────────────────────────────────────
           if (!_isSearching) ...[
-            Container(
+            SafeArea(
+            top: false,
+            child: Container(
               color: theme.colorScheme.surface,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
@@ -1645,6 +1647,7 @@ Future<void> sendMessage() async {
                   ),
                 ],
               ),
+            ),
             ),
           ],
         ],

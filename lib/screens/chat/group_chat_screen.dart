@@ -1315,7 +1315,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
 
           // ── Input bar ──────────────────────────────────────────
-          Container(
+          SafeArea(
+          top: false,
+          child: Container(
             color: theme.colorScheme.surface,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             child: Column(
@@ -1514,6 +1516,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 ),
               ],
             ),
+          ),
           ),
         ],
       ),

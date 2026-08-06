@@ -1510,7 +1510,9 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
   Widget _buildInputBar(bool isDark) {
     final theme = Theme.of(context);
-    return Container(
+    return SafeArea(
+      top: false,
+      child: Container(
       color: theme.colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: Row(
@@ -1633,6 +1635,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
           ),
         ],
       ),
+    ),
     );
   }
 }
