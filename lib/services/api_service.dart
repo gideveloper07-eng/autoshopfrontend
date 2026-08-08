@@ -1988,6 +1988,29 @@ class ApiService {
     }
   }
 
+  /// Non-admin: notify the admin that a task has been completed.
+  /// Does NOT change the task status in the DB.
+  /// Calls POST /api/chat/notify-task-complete
+  static Future<bool> notifyTaskComplete({required String taskId}) async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+
+      final response = await http.post(
+        Uri.parse("$baseUrl/api/chat/notify-task-complete"),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode({"taskId": taskId}),
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print("NOTIFY TASK COMPLETE ERROR: $e");
+      return false;
+    }
+  }
+
   /// Creates a standalone task assigned to any user (admin only).
   /// Calls POST /api/chat/create-global-task
   static Future<bool> createGlobalTask({

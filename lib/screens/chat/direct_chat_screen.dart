@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../services/api_service.dart';
+import '../../services/recurring_task_scheduler.dart';
 import 'chat_document_picker_dialog.dart';
 import 'group_chat_screen.dart';
 import '../../database/models/chat_message.dart';
@@ -124,6 +125,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
   final TextEditingController _taskTitleCtrl = TextEditingController();
   final TextEditingController _taskDescCtrl = TextEditingController();
   String _selectedPriority = 'Medium';
+  String? _selectedFrequency; // null = one-time, 'Weekly', 'Monthly', 'Yearly'
   DateTime? _taskStartDate;
   DateTime? _taskDueDate;
 
@@ -221,6 +223,14 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
 
     await _loadMessages(isInitial: true);
     debugPrint("loadMessages: ${sw.elapsedMilliseconds} ms");
+
+    // ── Process any recurring tasks whose start date has arrived ─────────────
+    final created = await RecurringTaskScheduler.processDueSlots();
+    if (created > 0 && mounted) {
+      // Reload messages so the newly created task(s) appear in chat
+      await _loadMessages();
+      debugPrint("Recurring scheduler created $created task(s)");
+    }
 
     debugPrint("INIT COMPLETE");
   }
@@ -435,6 +445,7 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
     _taskTitleCtrl.clear();
     _taskDescCtrl.clear();
     _selectedPriority = 'Medium';
+    _selectedFrequency = null; // Reset to one-time task
     _taskStartDate = null;
     _taskDueDate = null;
 
@@ -525,6 +536,22 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                     onChanged: (v) => setDS(() => _selectedPriority = v!),
                   ),
                   const SizedBox(height: 12),
+                  // ── Frequency Dropdown ──────────────────────────
+                  DropdownButtonFormField<String?>(
+                    value: _selectedFrequency,
+                    decoration: const InputDecoration(
+                      labelText: 'Frequency',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('One-time')),
+                      DropdownMenuItem(value: 'Weekly', child: Text('Weekly')),
+                      DropdownMenuItem(value: 'Monthly', child: Text('Monthly')),
+                      DropdownMenuItem(value: 'Yearly', child: Text('Yearly')),
+                    ],
+                    onChanged: (v) => setDS(() => _selectedFrequency = v),
+                  ),
+                  const SizedBox(height: 12),
                   // ── Start Date ──────────────────────────────────
                   InkWell(
                     onTap: () async {
@@ -603,25 +630,110 @@ class _DirectChatScreenState extends State<DirectChatScreen> {
                 if (_taskTitleCtrl.text.trim().isEmpty) return;
                 final messenger = ScaffoldMessenger.of(context);
                 final nav = Navigator.of(ctx);
+
+                // ── Build all recurring slots ──────────────────────────────
+                final List<(DateTime, DateTime)> allSlots = [];
+
+                if (_selectedFrequency != null &&
+                    _taskStartDate != null &&
+                    _taskDueDate != null) {
+                  DateTime slotStart = _taskStartDate!;
+                  final rangeEnd = _taskDueDate!;
+
+                  while (!slotStart.isAfter(rangeEnd)) {
+                    DateTime slotEnd;
+                    if (_selectedFrequency == 'Weekly') {
+                      slotEnd = slotStart.add(const Duration(days: 6));
+                    } else if (_selectedFrequency == 'Monthly') {
+                      final nextMonth = DateTime(
+                        slotStart.month == 12
+                            ? slotStart.year + 1
+                            : slotStart.year,
+                        slotStart.month == 12 ? 1 : slotStart.month + 1,
+                        slotStart.day,
+                      );
+                      slotEnd = nextMonth.subtract(const Duration(days: 1));
+                    } else {
+                      // Yearly
+                      slotEnd = DateTime(
+                        slotStart.year + 1,
+                        slotStart.month,
+                        slotStart.day,
+                      ).subtract(const Duration(days: 1));
+                    }
+                    if (slotEnd.isAfter(rangeEnd)) slotEnd = rangeEnd;
+                    allSlots.add((slotStart, slotEnd));
+
+                    // Advance to next slot
+                    if (_selectedFrequency == 'Weekly') {
+                      slotStart = slotStart.add(const Duration(days: 7));
+                    } else if (_selectedFrequency == 'Monthly') {
+                      slotStart = DateTime(
+                        slotStart.month == 12
+                            ? slotStart.year + 1
+                            : slotStart.year,
+                        slotStart.month == 12 ? 1 : slotStart.month + 1,
+                        slotStart.day,
+                      );
+                    } else {
+                      slotStart = DateTime(
+                        slotStart.year + 1,
+                        slotStart.month,
+                        slotStart.day,
+                      );
+                    }
+                  }
+                }
+
+                // ── Create only the FIRST slot now (one chat message) ──────
+                final firstStart =
+                    allSlots.isNotEmpty ? allSlots.first.$1 : _taskStartDate;
+                final firstEnd =
+                    allSlots.isNotEmpty ? allSlots.first.$2 : _taskDueDate;
+
                 final ok = await ApiService.createIndividualTask(
-                  receiverId: assignedToId.isNotEmpty ? assignedToId : _myId,
+                  receiverId:
+                      assignedToId.isNotEmpty ? assignedToId : _myId,
                   receiverPropertyCode: widget.receiverPropertyCode ?? '',
                   taskTitle: _taskTitleCtrl.text.trim(),
                   taskDescription: _taskDescCtrl.text.trim(),
                   priority: _selectedPriority,
-                  startDate: _taskStartDate?.toIso8601String(),
-                  dueDate: _taskDueDate?.toIso8601String(),
+                  startDate: firstStart?.toIso8601String(),
+                  dueDate: firstEnd?.toIso8601String(),
                 );
+
+                // ── Schedule future slots (slot index 1 onwards) ───────────
+                if (ok && allSlots.length > 1) {
+                  await RecurringTaskScheduler.addIndividualPendingSlots(
+                    receiverId:
+                        assignedToId.isNotEmpty ? assignedToId : _myId,
+                    receiverPropertyCode: widget.receiverPropertyCode ?? '',
+                    taskTitle: _taskTitleCtrl.text.trim(),
+                    taskDescription: _taskDescCtrl.text.trim(),
+                    priority: _selectedPriority,
+                    futureSlots: allSlots.sublist(1),
+                  );
+                }
+
                 if (!mounted) return;
                 nav.pop();
                 if (ok) {
                   await _loadMessages();
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Task assigned successfully')),
+                    SnackBar(
+                      content: Text(
+                        allSlots.length > 1
+                            ? 'Task assigned. ${allSlots.length - 1} future ${_selectedFrequency!.toLowerCase()} task(s) scheduled.'
+                            : 'Task assigned successfully',
+                      ),
+                    ),
                   );
                 } else {
                   messenger.showSnackBar(
-                    const SnackBar(content: Text('Failed to assign task')),
+                    const SnackBar(
+                      content: Text('Failed to assign task'),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               },

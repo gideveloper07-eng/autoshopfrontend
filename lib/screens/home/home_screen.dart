@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import '../../services/recurring_task_scheduler.dart';
 import '../../l10n/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 //import '../../services/notification_service.dart';
@@ -25,9 +26,12 @@ import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
 import '../../widgets/festival_banner.dart';
+import '../../widgets/daily_quote_widget.dart';
+import '../../services/quote_service.dart';
 import '../chat/my_contact_requests_screen.dart';
 import 'global_task_screen.dart';
 import '../../services/festival_service.dart';
+import '../../main.dart' show pendingTaskCompletionCount;
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -83,14 +87,22 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _assignUsers = [];
   String? _assignSelectedUserId;
   bool _assignUsersLoaded = false;
+  String? _assignFrequency; // null = one-time, 'Weekly', 'Monthly', 'Yearly'
 
   // Festival banner state
   bool _showFestivalBanner = true;
   Timer? _festivalUpdateTimer;
 
+  // Daily quote state — hidden until dismiss check completes
+  bool _showDailyQuote = false;
+
   @override
   void initState() {
     super.initState();
+    // Check if quote was dismissed less than 1 hour ago
+    QuoteService.isDismissed().then((dismissed) {
+      if (mounted) setState(() => _showDailyQuote = !dismissed);
+    });
 
     // ── Blink animation for chat request icon ──────────────────────────────
     _requestBlink = AnimationController(
@@ -119,6 +131,14 @@ class _HomeScreenState extends State<HomeScreen>
     Future.delayed(const Duration(milliseconds: 450), _loadChatPreview);
     Future.delayed(const Duration(milliseconds: 600), _loadCompanyInfo);
     Future.delayed(const Duration(milliseconds: 500), _loadRequestInfo);
+
+    // Process any due recurring tasks scheduled from previous assign-task actions
+    Future.delayed(const Duration(milliseconds: 800), () async {
+      final created = await RecurringTaskScheduler.processDueSlots();
+      if (created > 0) {
+        debugPrint('RecurringTaskScheduler: created $created task(s) on home init');
+      }
+    });
 
     // Defer Firebase operations to after initial paint
     Future.delayed(const Duration(milliseconds: 750), () {
@@ -904,6 +924,17 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                     ),
 
+                  // Daily quote widget
+                  if (_showDailyQuote)
+                    DailyQuoteWidget(
+                      onClose: () {
+                        QuoteService.dismiss(); // persist 1-hour hide
+                        setState(() {
+                          _showDailyQuote = false;
+                        });
+                      },
+                    ),
+
                   // â”€â”€ TODAY STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1033,22 +1064,54 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         const SizedBox(height: 12),
                         // Row 2: Task Dashboard (green) — admin only
-                        _dashCard(
-                          icon: Icons.task_alt,
-                          label: "Task Dashboard Screen",
-                          subtitle: "View assigned tasks",
-                          gradient: const [
-                            Color(0xFF00695C),
-                            Color(0xFF00897B),
-                            Color(0xFF26A69A),
-                          ],
-                          accentColor: Colors.tealAccent,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TaskDashboardScreen(),
-                              ),
+                        ValueListenableBuilder<int>(
+                          valueListenable: pendingTaskCompletionCount,
+                          builder: (context, count, _) {
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                _dashCard(
+                                  icon: Icons.task_alt,
+                                  label: "Task Dashboard Screen",
+                                  subtitle: count > 0
+                                      ? "$count task${count > 1 ? 's' : ''} completed by user"
+                                      : "View assigned tasks",
+                                  gradient: const [
+                                    Color(0xFF00695C),
+                                    Color(0xFF00897B),
+                                    Color(0xFF26A69A),
+                                  ],
+                                  accentColor: Colors.tealAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const TaskDashboardScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (count > 0)
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        '$count',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             );
                           },
                         ),
@@ -1714,6 +1777,7 @@ class _HomeScreenState extends State<HomeScreen>
     _assignStartDate = null;
     _assignDueDate = null;
     _assignSelectedUserId = null;
+    _assignFrequency = null;
 
     String fmtDate(DateTime? d) {
       if (d == null) return 'Select date';
@@ -2039,6 +2103,43 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                           const SizedBox(height: 14),
 
+                          // Frequency
+                          DropdownButtonFormField<String?>(
+                            value: _assignFrequency,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            decoration: _fieldDecor(
+                              label: 'Frequency',
+                              icon: Icons.repeat_rounded,
+                            ),
+                            dropdownColor: Colors.white,
+                            borderRadius: BorderRadius.circular(14),
+                            items: const [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text('One-time'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Weekly',
+                                child: Text('Weekly'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Monthly',
+                                child: Text('Monthly'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Yearly',
+                                child: Text('Yearly'),
+                              ),
+                            ],
+                            onChanged: (v) =>
+                                setDlg(() => _assignFrequency = v),
+                          ),
+                          const SizedBox(height: 14),
+
                           // Date row
                           Row(
                             children: [
@@ -2259,34 +2360,124 @@ class _HomeScreenState extends State<HomeScreen>
                                 }
                                 final messenger = ScaffoldMessenger.of(context);
                                 final navigator = Navigator.of(ctx);
+
+                                // ── Build recurring slots ────────────────────
+                                final List<(DateTime, DateTime)> allSlots = [];
+
+                                if (_assignFrequency != null &&
+                                    _assignStartDate != null &&
+                                    _assignDueDate != null) {
+                                  DateTime slotStart = _assignStartDate!;
+                                  final rangeEnd = _assignDueDate!;
+
+                                  while (!slotStart.isAfter(rangeEnd)) {
+                                    DateTime slotEnd;
+                                    if (_assignFrequency == 'Weekly') {
+                                      slotEnd = slotStart.add(
+                                        const Duration(days: 6),
+                                      );
+                                    } else if (_assignFrequency == 'Monthly') {
+                                      final nextMonth = DateTime(
+                                        slotStart.month == 12
+                                            ? slotStart.year + 1
+                                            : slotStart.year,
+                                        slotStart.month == 12
+                                            ? 1
+                                            : slotStart.month + 1,
+                                        slotStart.day,
+                                      );
+                                      slotEnd = nextMonth.subtract(
+                                        const Duration(days: 1),
+                                      );
+                                    } else {
+                                      // Yearly
+                                      slotEnd = DateTime(
+                                        slotStart.year + 1,
+                                        slotStart.month,
+                                        slotStart.day,
+                                      ).subtract(const Duration(days: 1));
+                                    }
+                                    if (slotEnd.isAfter(rangeEnd)) {
+                                      slotEnd = rangeEnd;
+                                    }
+                                    allSlots.add((slotStart, slotEnd));
+
+                                    if (_assignFrequency == 'Weekly') {
+                                      slotStart = slotStart.add(
+                                        const Duration(days: 7),
+                                      );
+                                    } else if (_assignFrequency == 'Monthly') {
+                                      slotStart = DateTime(
+                                        slotStart.month == 12
+                                            ? slotStart.year + 1
+                                            : slotStart.year,
+                                        slotStart.month == 12
+                                            ? 1
+                                            : slotStart.month + 1,
+                                        slotStart.day,
+                                      );
+                                    } else {
+                                      slotStart = DateTime(
+                                        slotStart.year + 1,
+                                        slotStart.month,
+                                        slotStart.day,
+                                      );
+                                    }
+                                  }
+                                }
+
+                                // ── Create first slot now ────────────────────
+                                final firstStart = allSlots.isNotEmpty
+                                    ? allSlots.first.$1
+                                    : _assignStartDate;
+                                final firstEnd = allSlots.isNotEmpty
+                                    ? allSlots.first.$2
+                                    : _assignDueDate;
+
                                 final ok = await ApiService.createGlobalTask(
                                   receiverId: _assignSelectedUserId!,
                                   taskTitle: _assignTitleCtrl.text.trim(),
                                   taskDescription: _assignDescCtrl.text.trim(),
                                   priority: _assignPriority,
-                                  startDate: _assignStartDate
-                                      ?.toIso8601String(),
-                                  dueDate: _assignDueDate?.toIso8601String(),
+                                  startDate: firstStart?.toIso8601String(),
+                                  dueDate: firstEnd?.toIso8601String(),
                                 );
+
+                                // ── Schedule future slots ────────────────────
+                                if (ok && allSlots.length > 1) {
+                                  await RecurringTaskScheduler
+                                      .addGlobalPendingSlots(
+                                    receiverId: _assignSelectedUserId!,
+                                    taskTitle: _assignTitleCtrl.text.trim(),
+                                    taskDescription:
+                                        _assignDescCtrl.text.trim(),
+                                    priority: _assignPriority,
+                                    futureSlots: allSlots.sublist(1),
+                                  );
+                                }
+
                                 if (!mounted) return;
                                 navigator.pop();
                                 messenger.showSnackBar(
                                   ok
-                                      ? const SnackBar(
+                                      ? SnackBar(
                                           content: Row(
                                             children: [
-                                              Icon(
+                                              const Icon(
                                                 Icons.check_circle,
                                                 color: Colors.white,
                                                 size: 18,
                                               ),
-                                              SizedBox(width: 8),
+                                              const SizedBox(width: 8),
                                               Text(
-                                                'Task assigned successfully',
+                                                allSlots.length > 1
+                                                    ? 'Task assigned. ${allSlots.length - 1} future ${_assignFrequency!.toLowerCase()} task(s) scheduled.'
+                                                    : 'Task assigned successfully',
                                               ),
                                             ],
                                           ),
-                                          backgroundColor: Color(0xFF2E7D32),
+                                          backgroundColor:
+                                              const Color(0xFF2E7D32),
                                           behavior: SnackBarBehavior.floating,
                                         )
                                       : const SnackBar(

@@ -102,6 +102,9 @@ class _GlobalTaskScreenState extends State<GlobalTaskScreen> {
   }
 
   Future<void> _updateStatus(dynamic task, String newStatus) async {
+    // Only admin can update task status
+    if (!_isAdmin) return;
+
     final taskId = task['TaskId']?.toString() ?? '';
     final groupId = task['GroupId']?.toString() ?? '';
     final source = task['TaskSource']?.toString() ?? '';
@@ -131,6 +134,36 @@ class _GlobalTaskScreenState extends State<GlobalTaskScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Failed to update status'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
+  // Non-admin: notify admin without changing DB status
+  Future<void> _notifyTaskComplete(dynamic task) async {
+    final taskId = task['TaskId']?.toString() ?? '';
+    if (taskId.isEmpty) return;
+
+    final ok = await ApiService.notifyTaskComplete(taskId: taskId);
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 18),
+            SizedBox(width: 10),
+            Expanded(child: Text('Admin has been notified. They will update the status.')),
+          ],
+        ),
+        backgroundColor: Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(14),
+        duration: const Duration(seconds: 4),
+      ));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Failed to notify admin. Please try again.'),
         backgroundColor: Colors.red,
       ));
     }
@@ -586,7 +619,7 @@ class _GlobalTaskScreenState extends State<GlobalTaskScreen> {
             const SizedBox(height: 10),
             const Divider(height: 1),
             const SizedBox(height: 10),
-            // ── Status: editable for admin, read-only for non-admin ─
+            // ── Status: editable for admin, read-only + complete button for non-admin ─
             Row(
               children: [
                 Text('Status:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7))),
@@ -620,6 +653,89 @@ class _GlobalTaskScreenState extends State<GlobalTaskScreen> {
                         : Text(status, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: statColor)),
                   ),
                 ),
+                // ── Mark Complete button for non-admin ─────────────
+                if (!_isAdmin && status != 'Completed') ...[
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: 'Mark as Complete',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text('Complete Task'),
+                            content: const Text('Mark this task as completed?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('Complete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) _notifyTaskComplete(task);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.withOpacity(0.4)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 16, color: Colors.green),
+                            SizedBox(width: 4),
+                            Text(
+                              'Complete',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                // ── Already completed badge for non-admin ───────────
+                if (!_isAdmin && status == 'Completed') ...[
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle, size: 16, color: Colors.green),
+                        SizedBox(width: 4),
+                        Text(
+                          'Done',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ],

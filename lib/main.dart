@@ -20,6 +20,7 @@ import 'screens/chat/chat_list_screen.dart';
 import 'screens/chat/challan_chat_dialog.dart';
 import 'screens/chat/chat_requests_screen.dart';
 import 'screens/notification/notification_screen.dart';
+import 'screens/chat/task_dashboard_screen.dart';
 import 'package:college_app/database/chat_database.dart';
 import 'package:college_app/chat/services/connectivity_service.dart';
 import 'services/festival_service.dart';
@@ -27,6 +28,19 @@ import 'services/festival_service.dart';
 // ── Global navigator key — lets us navigate from outside widget tree ──────────
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 final AppRouteObserver appRouteObserver = AppRouteObserver();
+
+// ── Task completion notification stream ───────────────────────────────────────
+// Emits when a TASK_COMPLETE_REQUEST notification arrives while app is foreground.
+// TaskDashboardScreen listens to this and shows an in-screen banner.
+final StreamController<Map<String, String>> taskCompleteStreamController =
+    StreamController<Map<String, String>>.broadcast();
+
+// ── Pending completion notifications (queued while dashboard is closed) ────────
+// Stored here so when admin opens Task Dashboard they see all banners queued.
+final List<Map<String, String>> pendingTaskCompletions = [];
+
+// ── Notifier for pending count — home screen uses this for badge ──────────────
+final ValueNotifier<int> pendingTaskCompletionCount = ValueNotifier<int>(0);
 
 // ── Local notifications plugin instance ───────────────────────────────────────
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -105,6 +119,13 @@ void _handleNotificationData(Map<String, dynamic> data) {
   } else if (type == 'CHAT_REQUEST') {
     // Navigate to chat requests screen so user can accept/reject
     _openChatRequestsScreen();
+  } else if (type == 'TASK_COMPLETE_REQUEST') {
+    // Non-admin marked a task as complete — open Task Dashboard for admin
+    _openTaskDashboard(
+      taskId: data['taskId'] ?? '',
+      taskTitle: data['taskTitle'] ?? '',
+      completedBy: data['completedBy'] ?? '',
+    );
   } else if (challanId.isNotEmpty) {
     // Chat message — open the challan chat
     _openChatFromNotification(challanId, challanNo: challanNo);
@@ -149,6 +170,28 @@ void _openChatFromNotification(String challanId, {String challanNo = ''}) {
       builder: (_) => ChallanChatDialog(
         challanId: challanId,
         challanNo: challanNo.isNotEmpty ? challanNo : challanId,
+      ),
+    ),
+  );
+}
+
+/// Opens the Task Dashboard when admin receives a task-complete notification.
+/// Passes the task info so the dashboard can show a banner.
+void _openTaskDashboard({
+  required String taskId,
+  required String taskTitle,
+  required String completedBy,
+}) {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      settings: const RouteSettings(name: 'TaskDashboardScreen'),
+      builder: (_) => TaskCompletionNotificationWrapper(
+        taskId: taskId,
+        taskTitle: taskTitle,
+        completedBy: completedBy,
       ),
     ),
   );
@@ -323,14 +366,31 @@ class _MyAppState extends State<MyApp> {
       // ── App FOREGROUND: show local notification ──────────────────────
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         print("FCM FOREGROUND: ${message.notification?.title}");
-        _showLocalChatNotification(message);
+        final type = message.data['type'] ?? '';
+        if (type == 'TASK_COMPLETE_REQUEST') {
+          final payload = <String, String>{
+            'taskId': message.data['taskId']?.toString() ?? '',
+            'taskTitle': message.data['taskTitle']?.toString() ?? '',
+            'completedBy': message.data['completedBy']?.toString() ?? '',
+          };
+          // Store so dashboard picks it up even if opened later
+          pendingTaskCompletions.add(payload);
+          pendingTaskCompletionCount.value = pendingTaskCompletions.length;
+          // Also emit to stream if dashboard is already open
+          taskCompleteStreamController.add(payload);
+        } else {
+          _showLocalChatNotification(message);
+        }
       });
 
       // ── App BACKGROUND → tapped notification ────────────────────────
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        final type = message.data['type'] ?? '';
-        final challanId = message.data['challanId'] ?? '';
-        final challanNo = message.data['challanNo'] ?? '';
+        final type = message.data['type']?.toString() ?? '';
+        final challanId = message.data['challanId']?.toString() ?? '';
+        final challanNo = message.data['challanNo']?.toString() ?? '';
+        final taskId = message.data['taskId']?.toString() ?? '';
+        final taskTitle = message.data['taskTitle']?.toString() ?? '';
+        final completedBy = message.data['completedBy']?.toString() ?? '';
         print(
           "NOTIFICATION TAPPED (background): type=$type challanId=$challanId",
         );
@@ -338,15 +398,21 @@ class _MyAppState extends State<MyApp> {
           'type': type,
           'challanId': challanId,
           'challanNo': challanNo,
+          'taskId': taskId,
+          'taskTitle': taskTitle,
+          'completedBy': completedBy,
         });
       });
 
       // ── App was TERMINATED → tapped notification ─────────────────────
       FirebaseMessaging.instance.getInitialMessage().then((message) {
         if (message != null) {
-          final type = message.data['type'] ?? '';
-          final challanId = message.data['challanId'] ?? '';
-          final challanNo = message.data['challanNo'] ?? '';
+          final type = message.data['type']?.toString() ?? '';
+          final challanId = message.data['challanId']?.toString() ?? '';
+          final challanNo = message.data['challanNo']?.toString() ?? '';
+          final taskId = message.data['taskId']?.toString() ?? '';
+          final taskTitle = message.data['taskTitle']?.toString() ?? '';
+          final completedBy = message.data['completedBy']?.toString() ?? '';
           print(
             "NOTIFICATION TAPPED (terminated): type=$type challanId=$challanId",
           );
@@ -355,6 +421,9 @@ class _MyAppState extends State<MyApp> {
               'type': type,
               'challanId': challanId,
               'challanNo': challanNo,
+              'taskId': taskId,
+              'taskTitle': taskTitle,
+              'completedBy': completedBy,
             });
           });
         }
@@ -666,6 +735,175 @@ class ChatBubbleOverlay extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+/// Wraps [TaskDashboardScreen] and shows a top banner when admin arrives
+/// via a task-completion push notification.
+class TaskCompletionNotificationWrapper extends StatelessWidget {
+  final String taskId;
+  final String taskTitle;
+  final String completedBy;
+
+  const TaskCompletionNotificationWrapper({
+    super.key,
+    required this.taskId,
+    required this.taskTitle,
+    required this.completedBy,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        const TaskDashboardScreen(),
+        // ── Top banner ─────────────────────────────────────────────
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _TaskCompletionBanner(
+            taskTitle: taskTitle,
+            completedBy: completedBy,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TaskCompletionBanner extends StatefulWidget {
+  final String taskTitle;
+  final String completedBy;
+
+  const _TaskCompletionBanner({
+    required this.taskTitle,
+    required this.completedBy,
+  });
+
+  @override
+  State<_TaskCompletionBanner> createState() => _TaskCompletionBannerState();
+}
+
+class _TaskCompletionBannerState extends State<_TaskCompletionBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Offset> _slide;
+  bool _visible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _ctrl.forward();
+
+    // Auto-dismiss after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
+      if (mounted) _dismiss();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _dismiss() {
+    _ctrl.reverse().then((_) {
+      if (mounted) setState(() => _visible = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_visible) return const SizedBox.shrink();
+
+    return SlideTransition(
+      position: _slide,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1B5E20),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.green.shade400, width: 1.2),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade700,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Task Completed',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${widget.completedBy} completed: "${widget.taskTitle}"',
+                          style: TextStyle(
+                            color: Colors.green.shade100,
+                            fontSize: 12,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Update the task status below.',
+                          style: TextStyle(
+                            color: Colors.green.shade300,
+                            fontSize: 11,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    onPressed: _dismiss,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

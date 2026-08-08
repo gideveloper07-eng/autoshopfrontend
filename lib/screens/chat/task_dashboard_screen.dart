@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import '../../main.dart' show taskCompleteStreamController, pendingTaskCompletions, pendingTaskCompletionCount;
 
 class TaskDashboardScreen extends StatefulWidget {
   const TaskDashboardScreen({super.key});
@@ -14,6 +16,18 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     with SingleTickerProviderStateMixin {
   List<dynamic> _tasks = [];
   bool _loading = true;
+  bool _isAdmin = false;
+
+  // ── Task completion notification banner ───────────────────────────────────
+  StreamSubscription<Map<String, String>>? _completionSub;
+  // List of pending completion notifications to show as banners
+  final List<Map<String, String>> _completionBanners = [];
+  
+  // ── Repeating notification system ──────────────────────────────────────────
+  // Track tasks that have been marked complete but not yet reviewed by admin
+  // Map<taskId, {taskTitle, completedBy, timestamp}>
+  final Map<String, Map<String, dynamic>> _pendingCompletions = {};
+  Timer? _reminderTimer;
 
   // Filter
   String _statusFilter = 'All';
@@ -49,11 +63,87 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    _isAdmin = await ApiService.isAdmin();
+    // Only admins need the completion banner stream
+    if (_isAdmin) {
+      // Load any pending notifications that arrived before the dashboard opened
+      if (pendingTaskCompletions.isNotEmpty) {
+        for (final item in List<Map<String, String>>.from(pendingTaskCompletions)) {
+          _addPendingCompletion(item);
+        }
+        pendingTaskCompletions.clear();
+        pendingTaskCompletionCount.value = 0;
+        setState(() {});
+      }
+      // Listen for new ones arriving while dashboard is open
+      _completionSub = taskCompleteStreamController.stream.listen((data) {
+        if (mounted) {
+          _addPendingCompletion(data);
+          // Remove from pending since dashboard is now open
+          pendingTaskCompletions.remove(data);
+          pendingTaskCompletionCount.value = pendingTaskCompletions.length;
+          setState(() {});
+        }
+      });
+
+      // ── Repeating reminder: re-show banner every 2 minutes if
+      //    admin hasn't acted yet ──────────────────────────────────
+      _reminderTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+        if (!mounted || _pendingCompletions.isEmpty) return;
+        // Re-add banners for all tasks still waiting for admin review
+        setState(() {
+          for (final entry in _pendingCompletions.entries) {
+            final taskId = entry.key;
+            final info = entry.value;
+            // Only add a new banner if one isn't already visible for this task
+            final alreadyShowing = _completionBanners.any(
+              (b) => b['taskId'] == taskId,
+            );
+            if (!alreadyShowing) {
+              _completionBanners.add({
+                'taskId': taskId,
+                'taskTitle': info['taskTitle'] as String,
+                'completedBy': info['completedBy'] as String,
+              });
+            }
+          }
+        });
+      });
+    }
     _loadTasks();
+  }
+
+  void _addPendingCompletion(Map<String, String> data) {
+    final taskId = data['taskId'] ?? data['taskTitle'] ?? '';
+    if (taskId.isEmpty) return;
+    // Track in persistent pending map so reminders keep firing
+    _pendingCompletions[taskId] = {
+      'taskTitle': data['taskTitle'] ?? '',
+      'completedBy': data['completedBy'] ?? '',
+      'timestamp': DateTime.now(),
+    };
+    // Show banner immediately
+    _completionBanners.add({
+      'taskId': taskId,
+      'taskTitle': data['taskTitle'] ?? '',
+      'completedBy': data['completedBy'] ?? '',
+    });
+  }
+
+  /// Called when admin updates a task status — removes it from the
+  /// repeating-reminder tracking so the banner stops firing.
+  void _clearPendingCompletion(String taskId) {
+    _pendingCompletions.remove(taskId);
   }
 
   @override
   void dispose() {
+    _completionSub?.cancel();
+    _reminderTimer?.cancel();
     _tabController.dispose();
     super.dispose();
   }
@@ -160,6 +250,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
   // ── Status update ─────────────────────────────────────────────────────────
 
   Future<void> _updateStatus(dynamic task, String newStatus) async {
+    // Only admin can update task status
+    if (!_isAdmin) return;
+
     final taskId = task['TaskId']?.toString() ?? '';
     final taskDb = task['TaskDatabase']?.toString() ?? '';
     final groupId = task['GroupId']?.toString() ?? '';
@@ -168,7 +261,6 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     bool ok = false;
 
     if (source == 'Group' && groupId.isNotEmpty) {
-      // Group tasks — use /api/group/update-task-status
       ok = await ApiService.updateTaskStatus(
         taskId: taskId,
         status: newStatus,
@@ -176,7 +268,6 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
         taskDatabase: taskDb.isNotEmpty ? taskDb : null,
       );
     } else {
-      // Challan / Individual tasks — use /api/chat/update-task-status
       ok = await ApiService.updateChatTaskStatus(
         taskId: taskId,
         status: newStatus,
@@ -186,6 +277,8 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     if (!mounted) return;
     if (ok) {
       setState(() => task['Status'] = newStatus);
+      // ── Clear from pending completions so reminders stop ──────────────
+      _clearPendingCompletion(taskId);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Status updated to $newStatus'),
@@ -202,6 +295,52 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Failed to update status'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(14),
+        ),
+      );
+    }
+  }
+
+  // ── Non-admin: notify admin without touching DB status ────────────────────
+
+  Future<void> _notifyTaskComplete(dynamic task) async {
+    final taskId = task['TaskId']?.toString() ?? '';
+    if (taskId.isEmpty) return;
+
+    final ok = await ApiService.notifyTaskComplete(taskId: taskId);
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white, size: 18),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Admin has been notified. They will update the status.',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(14),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Failed to notify admin. Please try again.'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -267,6 +406,329 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       default:
         return Icons.task_alt;
     }
+  }
+
+  // ── Performance scoring ───────────────────────────────────────────────────
+  //
+  // Scoring (0-100) computed purely from existing fields — no new DB columns.
+  //
+  //  Completion  (50 pts max)
+  //    Completed   → 50
+  //    In Progress → 20
+  //    Pending     →  0
+  //    Cancelled   →  0
+  //
+  //  Timeliness  (30 pts max)   — needs DueDate
+  //    Completed on-time/early  → 30
+  //    Completed ≤3 days late   → 15
+  //    Completed >3 days late   →  5
+  //    Not completed, overdue   →  0  (penalty applied below)
+  //    No DueDate               → 15  (neutral)
+  //
+  //  Quality/Priority bonus (20 pts max) — only if Completed
+  //    High   → +20
+  //    Medium → +10
+  //    Low    →  +5
+  //
+  //  Overdue penalty (for Pending/In Progress past DueDate): –10
+  //
+  //  Final = clamp(sum, 0, 100)
+
+  int _calcScore(dynamic task) {
+    final status = task['Status']?.toString() ?? 'Pending';
+    final priority = task['Priority']?.toString() ?? 'Medium';
+    final dueDateRaw = task['DueDate']?.toString();
+    final now = DateTime.now();
+
+    int score = 0;
+
+    // 1. Completion score
+    if (status == 'Completed') {
+      score += 50;
+    } else if (status == 'In Progress') {
+      score += 20;
+    }
+
+    // 2. Timeliness score
+    final dueDate = dueDateRaw != null ? DateTime.tryParse(dueDateRaw) : null;
+    if (dueDate == null) {
+      score += 15; // neutral — no due date set
+    } else if (status == 'Completed') {
+      // Use CreatedDate as proxy for completion date (best available)
+      // In practice completedDate ≈ last updated, but we don't store it.
+      // We compare now (when admin marks complete) vs dueDate.
+      final diff = now.difference(dueDate).inDays;
+      if (diff <= 0) {
+        score += 30; // on-time or early
+      } else if (diff <= 3) {
+        score += 15; // slightly late
+      } else {
+        score += 5; // very late but done
+      }
+    } else {
+      // Not completed — check if overdue
+      if (now.isAfter(dueDate)) {
+        score -= 10; // overdue penalty
+      } else {
+        score += 15; // still within deadline
+      }
+    }
+
+    // 3. Priority bonus — only awarded on completion
+    if (status == 'Completed') {
+      switch (priority.toLowerCase()) {
+        case 'high':
+          score += 20;
+          break;
+        case 'medium':
+          score += 10;
+          break;
+        case 'low':
+          score += 5;
+          break;
+      }
+    }
+
+    return score.clamp(0, 100);
+  }
+
+  Color _scoreColor(int score) {
+    if (score >= 80) return const Color(0xFF2E7D32); // dark green
+    if (score >= 60) return const Color(0xFF388E3C); // green
+    if (score >= 40) return const Color(0xFFF57C00); // orange
+    if (score >= 20) return const Color(0xFFE64A19); // deep orange
+    return const Color(0xFFC62828); // red
+  }
+
+  String _scoreGrade(int score) {
+    if (score >= 90) return 'A+';
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B+';
+    if (score >= 60) return 'B';
+    if (score >= 50) return 'C';
+    if (score >= 35) return 'D';
+    return 'F';
+  }
+
+  String _scoreLegend(int score) {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Average';
+    if (score >= 20) return 'Below Average';
+    return 'Poor';
+  }
+
+  /// Builds the per-employee performance summary card shown above task list.
+  /// Groups tasks by AssignedTo, calculates avg score per employee.
+  Widget _buildPerformanceSummary(List<dynamic> tasks) {
+    if (tasks.isEmpty) return const SizedBox.shrink();
+
+    // Group tasks by employee
+    final Map<String, List<dynamic>> byEmployee = {};
+    for (final t in tasks) {
+      final emp =
+          t['AssignedToName']?.toString() ??
+          t['AssignedTo']?.toString() ??
+          'Unknown';
+      byEmployee.putIfAbsent(emp, () => []).add(t);
+    }
+
+    // Sort employees by avg score descending
+    final entries = byEmployee.entries.toList()
+      ..sort((a, b) {
+        final avgA =
+            a.value.map(_calcScore).fold(0, (s, v) => s + v) ~/
+            a.value.length;
+        final avgB =
+            b.value.map(_calcScore).fold(0, (s, v) => s + v) ~/
+            b.value.length;
+        return avgB.compareTo(avgA);
+      });
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1A2535) : Colors.white;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      child: Material(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+        elevation: 2,
+        shadowColor: Colors.black.withOpacity(0.07),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Theme(
+            data:
+                Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              tilePadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              leading: Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1565C0).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.bar_chart_rounded,
+                  color: Color(0xFF1565C0),
+                  size: 20,
+                ),
+              ),
+              title: const Text(
+                'Employee Performance',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1565C0),
+                ),
+              ),
+              subtitle: Text(
+                '${entries.length} employee${entries.length == 1 ? '' : 's'} · tap to expand',
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              children: entries.map((entry) {
+                final emp = entry.key;
+                final empTasks = entry.value;
+                final total = empTasks.length;
+                final completed = empTasks
+                    .where((t) => t['Status'] == 'Completed')
+                    .length;
+                final inProgress = empTasks
+                    .where((t) => t['Status'] == 'In Progress')
+                    .length;
+                final overdue = empTasks.where((t) {
+                  final due =
+                      DateTime.tryParse(t['DueDate']?.toString() ?? '');
+                  final st = t['Status']?.toString() ?? '';
+                  return due != null &&
+                      DateTime.now().isAfter(due) &&
+                      st != 'Completed' &&
+                      st != 'Cancelled';
+                }).length;
+
+                final avgScore =
+                    empTasks.map(_calcScore).fold(0, (s, v) => s + v) ~/
+                    total;
+                final scoreColor = _scoreColor(avgScore);
+                final grade = _scoreGrade(avgScore);
+                final legend = _scoreLegend(avgScore);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Divider(height: 1),
+                      const SizedBox(height: 10),
+                      // Employee name + grade badge
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: scoreColor.withOpacity(0.15),
+                            child: Text(
+                              emp.isNotEmpty ? emp[0].toUpperCase() : '?',
+                              style: TextStyle(
+                                color: scoreColor,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  emp,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  '$total task${total == 1 ? '' : 's'}'
+                                  '  ·  $completed completed'
+                                  '  ·  $inProgress in-progress'
+                                  '${overdue > 0 ? '  ·  $overdue overdue' : ''}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Grade badge
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: scoreColor.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: scoreColor, width: 2),
+                            ),
+                            child: Center(
+                              child: Text(
+                                grade,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w900,
+                                  color: scoreColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Score bar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: avgScore / 100,
+                                minHeight: 7,
+                                backgroundColor: scoreColor.withOpacity(0.12),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scoreColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            '$avgScore / 100',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: scoreColor,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '· $legend',
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   bool _matchesTimeFilter(DateTime date) {
@@ -382,13 +844,15 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     final bgColor = theme.scaffoldBackgroundColor;
     final cardBg = theme.colorScheme.surface;
     final isMobile = MediaQuery.of(context).size.width < 800;
-    return Scaffold(
-      backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: bgColor,
+          appBar: AppBar(
+            backgroundColor: theme.colorScheme.primary,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text(
           'Task Dashboard',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
@@ -482,6 +946,32 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                 ),
               ],
             ),
+        ),
+        // ── Completion notification banners ────────────────────────
+        if (_isAdmin && _completionBanners.isNotEmpty)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: _completionBanners.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final banner = entry.value;
+                  return _TaskCompletionBanner(
+                    key: ValueKey('${banner['taskId']}_$idx'),
+                    taskTitle: banner['taskTitle'] ?? '',
+                    completedBy: banner['completedBy'] ?? '',
+                    onDismiss: () {
+                      setState(() => _completionBanners.removeAt(idx));
+                    },
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -777,8 +1267,13 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       onRefresh: _loadTasks,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 20),
-        itemCount: tasks.length,
-        itemBuilder: (_, i) => _buildTaskCard(tasks[i]),
+        itemCount: tasks.length + (_isAdmin ? 1 : 0),
+        itemBuilder: (_, i) {
+          // Admin sees the performance summary as the first item
+          if (_isAdmin && i == 0) return _buildPerformanceSummary(tasks);
+          final task = tasks[_isAdmin ? i - 1 : i];
+          return _buildTaskCard(task);
+        },
       ),
     );
   }
@@ -961,59 +1456,389 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
+                    padding: EdgeInsets.symmetric(
                       horizontal: 10,
-                      vertical: 2,
+                      vertical: _isAdmin ? 2 : 4,
                     ),
                     decoration: BoxDecoration(
                       color: statColor.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: statColor.withOpacity(0.3)),
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: status,
-                        isDense: true,
-                        icon: Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 16,
-                          color: statColor,
+                    child: _isAdmin
+                        ? DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: status,
+                              isDense: true,
+                              icon: Icon(
+                                Icons.keyboard_arrow_down_rounded,
+                                size: 16,
+                                color: statColor,
+                              ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: statColor,
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'Pending',
+                                  child: Text('Pending'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'In Progress',
+                                  child: Text('In Progress'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Completed',
+                                  child: Text('Completed'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Cancelled',
+                                  child: Text('Cancelled'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null && val != status) {
+                                  _updateStatus(task, val);
+                                }
+                              },
+                            ),
+                          )
+                        : Text(
+                            status,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: statColor,
+                            ),
+                          ),
+                  ),
+                ),
+                // ── Mark Complete button for non-admin ─────────────
+                if (!_isAdmin && status != 'Completed') ...[
+                  const SizedBox(width: 10),
+                  Tooltip(
+                    message: 'Mark as Complete',
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text('Complete Task'),
+                            content: const Text(
+                              'Mark this task as completed?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () =>
+                                    Navigator.pop(context, true),
+                                child: const Text('Complete'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) _notifyTaskComplete(task);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
                         ),
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: statColor,
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.4),
+                          ),
                         ),
-                        items: const [
-                          DropdownMenuItem(
-                            value: 'Pending',
-                            child: Text('Pending'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'In Progress',
-                            child: Text('In Progress'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Completed',
-                            child: Text('Completed'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'Cancelled',
-                            child: Text('Cancelled'),
-                          ),
-                        ],
-                        onChanged: (val) {
-                          if (val != null && val != status) {
-                            _updateStatus(task, val);
-                          }
-                        },
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 16,
+                              color: Colors.green,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Complete',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
+                  ),
+                ],
+                // ── Already completed badge for non-admin ───────────
+                if (!_isAdmin && status == 'Completed') ...[
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Colors.green,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Done',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+
+            // ── Performance score row ──────────────────────────────
+            Builder(builder: (_) {
+              final score = _calcScore(task);
+              final sColor = _scoreColor(score);
+              final grade = _scoreGrade(score);
+              final legend = _scoreLegend(score);
+              return Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.bar_chart_rounded,
+                          size: 13,
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(width: 4),
+                        const Text(
+                          'Performance:',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$score / 100',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            color: sColor,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: sColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(5),
+                            border:
+                                Border.all(color: sColor.withOpacity(0.35)),
+                          ),
+                          child: Text(
+                            grade,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              color: sColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          legend,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: score / 100,
+                        minHeight: 5,
+                        backgroundColor: sColor.withOpacity(0.1),
+                        valueColor: AlwaysStoppedAnimation<Color>(sColor),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── In-screen task completion banner ─────────────────────────────────────────
+
+class _TaskCompletionBanner extends StatefulWidget {
+  final String taskTitle;
+  final String completedBy;
+  final VoidCallback onDismiss;
+
+  const _TaskCompletionBanner({
+    super.key,
+    required this.taskTitle,
+    required this.completedBy,
+    required this.onDismiss,
+  });
+
+  @override
+  State<_TaskCompletionBanner> createState() => _TaskCompletionBannerState();
+}
+
+class _TaskCompletionBannerState extends State<_TaskCompletionBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, -1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _ctrl.forward();
+
+    // Auto-dismiss after 45 seconds (stays visible until admin reads it)
+    Future.delayed(const Duration(seconds: 45), _dismiss);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  void _dismiss() {
+    if (!mounted) return;
+    _ctrl.reverse().then((_) {
+      if (mounted) widget.onDismiss();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SlideTransition(
+      position: _slide,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        child: Material(
+          elevation: 6,
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B5E20),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.green.shade400, width: 1.2),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade700,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '✅ Task Completed by User',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${widget.completedBy} completed: "${widget.taskTitle}"',
+                        style: TextStyle(
+                          color: Colors.green.shade100,
+                          fontSize: 12,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Please review and update the task status below.',
+                        style: TextStyle(
+                          color: Colors.green.shade300,
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: _dismiss,
+                  child: const Icon(
+                    Icons.close,
+                    color: Colors.white70,
+                    size: 18,
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );

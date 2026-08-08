@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import '../../services/recurring_task_scheduler.dart';
 import 'chat_document_picker_dialog.dart';
 
 // Avatar color palette
@@ -71,6 +72,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   DateTime? _startDate;
   DateTime? _dueDate;
+  String? _selectedFrequency; // null = one-time, 'Weekly', 'Monthly', 'Yearly'
   final ScrollController _scrollCtrl = ScrollController();
   final FocusNode _inputFocus = FocusNode();
   final TextEditingController messageController = TextEditingController();
@@ -120,6 +122,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     currentUserName = await ApiService.getUserName() ?? "";
     currentUserId = await ApiService.getUserId() ?? "";
     await Future.wait([_loadMessages(isInitial: true), _loadMembers()]);
+
+    // ── Process any recurring tasks whose start date has arrived ─────────────
+    final created = await RecurringTaskScheduler.processDueSlots();
+    if (created > 0 && mounted) {
+      await _loadMessages();
+      debugPrint("Recurring scheduler created $created task(s) in group chat");
+    }
   }
 
   // ── Scroll ─────────────────────────────────────────────────────
@@ -446,6 +455,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     _selectedTaskUserId = null;
     _selectedPriority = "Medium";
+    _selectedFrequency = null;
     _startDate = null;
     _dueDate = null;
 
@@ -591,6 +601,37 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
                       const SizedBox(height: 12),
 
+                      // ── Frequency Dropdown ──────────────────────────────
+                      DropdownButtonFormField<String?>(
+                        value: _selectedFrequency,
+                        decoration: const InputDecoration(
+                          labelText: 'Frequency',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: null,
+                            child: Text('One-time'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Weekly',
+                            child: Text('Weekly'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Monthly',
+                            child: Text('Monthly'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Yearly',
+                            child: Text('Yearly'),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setDialogState(() => _selectedFrequency = v),
+                      ),
+
+                      const SizedBox(height: 12),
+
                       // ── Start Date ──────────────────────────────
                       InkWell(
                         onTap: () async {
@@ -681,22 +722,99 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     final nav = Navigator.of(context);
                     final messenger = ScaffoldMessenger.of(context);
 
+                    // Resolve assigned-to member info
+                    final assignedMember = _members.firstWhere(
+                      (m) => m['UserId']?.toString() == _selectedTaskUserId,
+                      orElse: () => {},
+                    );
+                    final assignedToDatabase =
+                        assignedMember['DatabaseName']?.toString();
+
+                    // ── Build all recurring slots ────────────────────────
+                    final List<(DateTime, DateTime)> allSlots = [];
+
+                    if (_selectedFrequency != null &&
+                        _startDate != null &&
+                        _dueDate != null) {
+                      DateTime slotStart = _startDate!;
+                      final rangeEnd = _dueDate!;
+
+                      while (!slotStart.isAfter(rangeEnd)) {
+                        DateTime slotEnd;
+                        if (_selectedFrequency == 'Weekly') {
+                          slotEnd = slotStart.add(const Duration(days: 6));
+                        } else if (_selectedFrequency == 'Monthly') {
+                          final nextMonth = DateTime(
+                            slotStart.month == 12
+                                ? slotStart.year + 1
+                                : slotStart.year,
+                            slotStart.month == 12 ? 1 : slotStart.month + 1,
+                            slotStart.day,
+                          );
+                          slotEnd =
+                              nextMonth.subtract(const Duration(days: 1));
+                        } else {
+                          // Yearly
+                          slotEnd = DateTime(
+                            slotStart.year + 1,
+                            slotStart.month,
+                            slotStart.day,
+                          ).subtract(const Duration(days: 1));
+                        }
+                        if (slotEnd.isAfter(rangeEnd)) slotEnd = rangeEnd;
+                        allSlots.add((slotStart, slotEnd));
+
+                        // Advance to next slot
+                        if (_selectedFrequency == 'Weekly') {
+                          slotStart =
+                              slotStart.add(const Duration(days: 7));
+                        } else if (_selectedFrequency == 'Monthly') {
+                          slotStart = DateTime(
+                            slotStart.month == 12
+                                ? slotStart.year + 1
+                                : slotStart.year,
+                            slotStart.month == 12 ? 1 : slotStart.month + 1,
+                            slotStart.day,
+                          );
+                        } else {
+                          slotStart = DateTime(
+                            slotStart.year + 1,
+                            slotStart.month,
+                            slotStart.day,
+                          );
+                        }
+                      }
+                    }
+
+                    // ── Create only the FIRST slot now (one chat msg) ────
+                    final firstStart =
+                        allSlots.isNotEmpty ? allSlots.first.$1 : _startDate;
+                    final firstEnd =
+                        allSlots.isNotEmpty ? allSlots.first.$2 : _dueDate;
+
                     final ok = await ApiService.createTask(
                       groupId: widget.groupId,
                       taskTitle: _taskTitleCtrl.text.trim(),
                       taskDescription: _taskDescCtrl.text.trim(),
                       assignedTo: _selectedTaskUserId!,
                       priority: _selectedPriority,
-                      startDate: _startDate?.toIso8601String(),
-                      dueDate: _dueDate?.toIso8601String(),
-                      assignedToDatabase: _members
-                          .firstWhere(
-                            (m) =>
-                                m['UserId']?.toString() == _selectedTaskUserId,
-                            orElse: () => {},
-                          )['DatabaseName']
-                          ?.toString(),
+                      startDate: firstStart?.toIso8601String(),
+                      dueDate: firstEnd?.toIso8601String(),
+                      assignedToDatabase: assignedToDatabase,
                     );
+
+                    // ── Schedule future slots (slot index 1 onwards) ─────
+                    if (ok && allSlots.length > 1) {
+                      await RecurringTaskScheduler.addGroupPendingSlots(
+                        groupId: widget.groupId,
+                        assignedTo: _selectedTaskUserId!,
+                        taskTitle: _taskTitleCtrl.text.trim(),
+                        taskDescription: _taskDescCtrl.text.trim(),
+                        priority: _selectedPriority,
+                        futureSlots: allSlots.sublist(1),
+                        assignedToDatabase: assignedToDatabase,
+                      );
+                    }
 
                     if (!mounted) return;
 
@@ -704,13 +822,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       nav.pop();
                       await _loadMessages();
                       messenger.showSnackBar(
-                        const SnackBar(
-                          content: Text("Task assigned successfully"),
+                        SnackBar(
+                          content: Text(
+                            allSlots.length > 1
+                                ? 'Task assigned. ${allSlots.length - 1} future ${_selectedFrequency!.toLowerCase()} task(s) scheduled.'
+                                : 'Task assigned successfully',
+                          ),
                         ),
                       );
                     } else {
                       messenger.showSnackBar(
-                        const SnackBar(content: Text("Failed to assign task")),
+                        const SnackBar(
+                          content: Text("Failed to assign task"),
+                        ),
                       );
                     }
                   },

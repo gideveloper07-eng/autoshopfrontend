@@ -131,22 +131,6 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
         ),
 
         actions: [
-          // Summary — opens model-wise breakdown
-          IconButton(
-            tooltip: "Model Summary",
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ModelwiseSummaryScreen(
-                    reportType: widget.reportType,
-                    period: widget.period,
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.bar_chart_rounded),
-          ),
           IconButton(
             tooltip: "Refresh",
 
@@ -264,42 +248,85 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
         ),
       ),
 
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-
         children: [
-          Text(
-            _isBooking
-                ? widget.period == 'today'
-                      ? "Today's Total Booking"
-                      : "Yesterday's Total Booking"
-                : widget.period == 'today'
-                ? "Today's Total Sale"
-                : "Yesterday's Total Sale",
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
+          // Left: stats text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _isBooking
+                      ? widget.period == 'today'
+                            ? "Today's Total Booking"
+                            : "Yesterday's Total Booking"
+                      : widget.period == 'today'
+                      ? "Today's Total Sale"
+                      : "Yesterday's Total Sale",
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
 
-          const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-          Text(
-            _total.toString(),
+                Text(
+                  _total.toString(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
 
-            style: const TextStyle(
-              color: Colors.white,
+                const SizedBox(height: 4),
 
-              fontSize: 34,
-
-              fontWeight: FontWeight.w900,
+                Text(
+                  "${_branchData.length} "
+                  "${_branchData.length == 1 ? 'Branch' : 'Branches'}",
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ],
             ),
           ),
 
-          const SizedBox(height: 4),
-
-          Text(
-            "${_branchData.length} "
-            "${_branchData.length == 1 ? 'Branch' : 'Branches'}",
-
-            style: const TextStyle(color: Colors.white70),
+          // Right: Model Summary button
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ModelwiseSummaryScreen(
+                    reportType: widget.reportType,
+                    period: widget.period,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.35)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
+                  SizedBox(height: 4),
+                  Text(
+                    "Model\nSummary",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

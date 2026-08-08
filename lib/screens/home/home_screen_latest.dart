@@ -21,6 +21,7 @@ import 'package:intl/intl.dart';
 import '../chat/task_dashboard_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
+import '../../main.dart' show pendingTaskCompletionCount;
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -820,22 +821,54 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(height: 12),
                         // Row 2: Tasks full width
-                        _dashCard(
-                          icon: Icons.task_alt,
-                          label: "Tasks",
-                          subtitle: "View assigned tasks",
-                          gradient: const [
-                            Color(0xFF00695C),
-                            Color(0xFF00897B),
-                            Color(0xFF26A69A),
-                          ],
-                          accentColor: Colors.tealAccent,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const TaskDashboardScreen(),
-                              ),
+                        ValueListenableBuilder<int>(
+                          valueListenable: pendingTaskCompletionCount,
+                          builder: (context, count, _) {
+                            return Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                _dashCard(
+                                  icon: Icons.task_alt,
+                                  label: "Tasks",
+                                  subtitle: count > 0
+                                      ? "$count task${count > 1 ? 's' : ''} completed by user"
+                                      : "View assigned tasks",
+                                  gradient: const [
+                                    Color(0xFF00695C),
+                                    Color(0xFF00897B),
+                                    Color(0xFF26A69A),
+                                  ],
+                                  accentColor: Colors.tealAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const TaskDashboardScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                if (count > 0)
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        '$count',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             );
                           },
                         ),
