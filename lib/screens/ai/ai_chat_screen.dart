@@ -223,11 +223,10 @@ class _AIChatScreenState extends State<AIChatScreen> {
   // ============================================================
 
   Widget _emptyChat() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 30,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 30),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -235,7 +234,9 @@ class _AIChatScreenState extends State<AIChatScreen> {
               width: 64,
               height: 64,
               decoration: BoxDecoration(
-                color: const Color(0xffE3F2FD),
+                color: isDark
+                    ? const Color(0xFF1E2A3A)
+                    : const Color(0xffE3F2FD),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: const Icon(
@@ -247,13 +248,15 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
             const SizedBox(height: 16),
 
-            const Text(
+            Text(
               "Start a conversation",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: Color(0xff263238),
+                color: isDark
+                    ? Colors.white
+                    : const Color(0xff263238),
               ),
             ),
 
@@ -265,7 +268,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
               style: TextStyle(
                 fontSize: 13,
                 height: 1.4,
-                color: Colors.grey.shade600,
+                color: Colors.grey.shade500,
               ),
             ),
           ],
@@ -320,7 +323,7 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffF5F7FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       // ========================================================
       // APP BAR
