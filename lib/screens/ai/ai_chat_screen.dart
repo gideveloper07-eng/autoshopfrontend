@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
 import '../../models/ai_message.dart';
 import '../../widgets/ai/ai_input_bar.dart';
 import '../../widgets/ai/ai_message_bubble.dart';
 import '../../widgets/ai/ai_quick_actions.dart';
 import '../../widgets/ai/ai_typing_indicator.dart';
-
 
 class AIChatScreen extends StatefulWidget {
   const AIChatScreen({super.key});
@@ -15,12 +15,9 @@ class AIChatScreen extends StatefulWidget {
 }
 
 class _AIChatScreenState extends State<AIChatScreen> {
+  final TextEditingController _controller = TextEditingController();
 
-  final TextEditingController _controller =
-      TextEditingController();
-
-  final ScrollController _scrollController =
-      ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
   final List<AIMessage> _messages = [];
 
@@ -28,17 +25,16 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   @override
   void dispose() {
-
     _controller.dispose();
-
     _scrollController.dispose();
-
     super.dispose();
-
   }
 
-  String get _greeting {
+  // ============================================================
+  // GREETING
+  // ============================================================
 
+  String get _greeting {
     final hour = DateTime.now().hour;
 
     if (hour < 12) {
@@ -52,36 +48,40 @@ class _AIChatScreenState extends State<AIChatScreen> {
     return "Good Evening";
   }
 
+  // ============================================================
+  // SCROLL TO BOTTOM
+  // ============================================================
+
   void _scrollToBottom() {
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
-
-      if (!_scrollController.hasClients) return;
+      if (!_scrollController.hasClients) {
+        return;
+      }
 
       _scrollController.animateTo(
-
         _scrollController.position.maxScrollExtent,
-
         duration: const Duration(milliseconds: 300),
-
         curve: Curves.easeOut,
-
       );
-
     });
-
   }
 
-Future<void> _sendMessage([String? quickMessage]) async {
+  // ============================================================
+  // SEND MESSAGE
+  // ============================================================
 
-    final text =
-        quickMessage ??
-            _controller.text.trim();
+  Future<void> _sendMessage([String? quickMessage]) async {
+    final text = (quickMessage ?? _controller.text).trim();
 
-    if (text.isEmpty) return;
+    if (text.isEmpty || _isTyping) {
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // Add user message
+    // ----------------------------------------------------------
 
     setState(() {
-
       _messages.add(
         AIMessage.user(text),
       );
@@ -89,212 +89,328 @@ Future<void> _sendMessage([String? quickMessage]) async {
       _controller.clear();
 
       _isTyping = true;
-
     });
 
     _scrollToBottom();
 
-    // API call will be added in Part 2
+    // ----------------------------------------------------------
+    // Call AI API
+    // ----------------------------------------------------------
 
-   try {
+    try {
+      final reply = await ApiService.askAI(text);
 
-    final reply = await ApiService.askAI(text);
+      if (!mounted) {
+        return;
+      }
 
-    setState(() {
-
+      setState(() {
         _messages.add(
-            AIMessage.ai(reply),
+          AIMessage.ai(reply),
         );
 
         _isTyping = false;
+      });
 
-    });
+      _scrollToBottom();
+    } catch (e) {
+      debugPrint("AI CHAT ERROR: $e");
 
-} catch (e) {
+      if (!mounted) {
+        return;
+      }
 
-    setState(() {
-
+      setState(() {
         _messages.add(
-            AIMessage.ai(
-                "Unable to contact MyAutoShop AI.",
-            ),
+          AIMessage.ai(
+            "Unable to contact MyAutoShop AI right now. Please try again.",
+          ),
         );
 
         _isTyping = false;
+      });
 
-    });
+      _scrollToBottom();
+    }
+  }
 
-}
-
-_scrollToBottom();
-
-
-}
+  // ============================================================
+  // WELCOME CARD
+  // ============================================================
 
   Widget _welcomeCard() {
-
     return Container(
-
-      margin: const EdgeInsets.all(16),
-
-      padding: const EdgeInsets.all(20),
-
-      decoration: BoxDecoration(
-
-        gradient: const LinearGradient(
-
-          colors: [
-
-            Color(0xff1565C0),
-
-            Color(0xff42A5F5),
-
-          ],
-
-        ),
-
-        borderRadius:
-            BorderRadius.circular(20),
-
+      margin: const EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        12,
       ),
-
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xff1565C0),
+            Color(0xff42A5F5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xff1565C0).withOpacity(0.18),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
       child: Column(
-
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ------------------------------------------------------
+          // Greeting
+          // ------------------------------------------------------
 
           Text(
-
             "$_greeting 👋",
-
             style: const TextStyle(
-
               color: Colors.white70,
-
-              fontSize: 16,
-
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
-
-          ),
-
-          const SizedBox(height: 10),
-
-          const Text(
-
-            "MyAutoShop AI",
-
-            style: TextStyle(
-
-              color: Colors.white,
-
-              fontSize: 26,
-
-              fontWeight: FontWeight.bold,
-
-            ),
-
           ),
 
           const SizedBox(height: 8),
 
+          // ------------------------------------------------------
+          // Title
+          // ------------------------------------------------------
+
           const Text(
-
-            "Your intelligent dealership assistant.\nAsk anything about bookings, sales, finance, workshop or inventory.",
-
+            "MyAutoShop AI",
             style: TextStyle(
-
               color: Colors.white,
-
-              height: 1.4,
-
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.3,
             ),
-
           ),
 
+          const SizedBox(height: 8),
+
+          // ------------------------------------------------------
+          // Description
+          // ------------------------------------------------------
+
+          const Text(
+            "Your intelligent dealership assistant.\n"
+            "Ask anything about bookings, sales, finance, "
+            "workshop or inventory.",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
         ],
-
       ),
-
     );
-
   }
+
+  // ============================================================
+  // EMPTY CHAT VIEW
+  // ============================================================
+
+  Widget _emptyChat() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 30,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: const Color(0xffE3F2FD),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 32,
+                color: Color(0xff1565C0),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            const Text(
+              "Start a conversation",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Color(0xff263238),
+              ),
+            ),
+
+            const SizedBox(height: 6),
+
+            Text(
+              "Ask MyAutoShop AI about your dealership data.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MESSAGE LIST
+  // ============================================================
+
+  Widget _messageList() {
+    if (_messages.isEmpty && !_isTyping) {
+      return _emptyChat();
+    }
+
+    return ListView.builder(
+      controller: _scrollController,
+      keyboardDismissBehavior:
+          ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.only(
+        top: 8,
+        bottom: 12,
+      ),
+      itemCount:
+          _messages.length + (_isTyping ? 1 : 0),
+      itemBuilder: (context, index) {
+        // --------------------------------------------------------
+        // Typing indicator
+        // --------------------------------------------------------
+
+        if (_isTyping && index == _messages.length) {
+          return const AITypingIndicator();
+        }
+
+        // --------------------------------------------------------
+        // Message bubble
+        // --------------------------------------------------------
+
+        return AIMessageBubble(
+          message: _messages[index],
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    // Total extra items before messages: welcome card + quick actions + divider
-    const int headerCount = 3;
-    final int messageCount = _messages.length + (_isTyping ? 1 : 0);
-
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xffF5F7FA),
+      backgroundColor: const Color(0xffF5F7FA),
+
+      // ========================================================
+      // APP BAR
+      // ========================================================
+
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xff1565C0),
         foregroundColor: Colors.white,
-        title: const Text("MyAutoShop AI"),
+        centerTitle: false,
+
+        title: const Row(
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 21,
+            ),
+
+            SizedBox(width: 8),
+
+            Text(
+              "MyAutoShop AI",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          // ── Messages + header all in one scrollable list ──────────────
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.only(bottom: 8),
-              itemCount: headerCount + (messageCount == 0 ? 1 : messageCount),
-              itemBuilder: (context, index) {
-                // Header slot 0: welcome card
-                if (index == 0) return _welcomeCard();
 
-                // Header slot 1: quick actions (only when no messages yet)
-                if (index == 1) {
-                  return AIQuickActions(
-                    onSelected: _sendMessage,
-                  );
-                }
+      // ========================================================
+      // BODY
+      // ========================================================
 
-                // Header slot 2: divider
-                if (index == 2) return const Divider(height: 1);
+      body: SafeArea(
+        child: Column(
+          children: [
+            // --------------------------------------------------
+            // Welcome card
+            // --------------------------------------------------
 
-                // Empty state
-                if (messageCount == 0) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40),
-                    child: Center(
-                      child: Text(
-                        "Start a conversation with MyAutoShop AI",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  );
-                }
+            _welcomeCard(),
 
-                final msgIndex = index - headerCount;
+            // --------------------------------------------------
+            // Quick actions
+            // --------------------------------------------------
 
-                // Typing indicator at the end
-                if (_isTyping && msgIndex == _messages.length) {
-                  return const AITypingIndicator();
-                }
-
-                return AIMessageBubble(message: _messages[msgIndex]);
+            AIQuickActions(
+              onSelected: (text) {
+                _sendMessage(text);
               },
             ),
-          ),
 
-          // ── Input bar pinned at bottom ────────────────────────────────
-          AIInputBar(
-            controller: _controller,
-            isLoading: _isTyping,
-            onSend: _sendMessage,
-            onVoice: () {},
-            onAttachment: () {},
-          ),
-        ],
+            const SizedBox(height: 4),
+
+            const Divider(
+              height: 1,
+              thickness: 1,
+            ),
+
+            // --------------------------------------------------
+            // Messages
+            // --------------------------------------------------
+
+            Expanded(
+              child: _messageList(),
+            ),
+
+            // --------------------------------------------------
+            // Input bar
+            // --------------------------------------------------
+
+            AIInputBar(
+              controller: _controller,
+              isLoading: _isTyping,
+
+              onSend: _sendMessage,
+
+              onVoice: () {
+                // Voice functionality can be implemented here.
+              },
+
+              onAttachment: () {
+                // Attachment functionality can be implemented here.
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
-
 }
