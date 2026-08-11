@@ -4,6 +4,7 @@ import '../ai/ai_chat_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:animated_flip_counter/animated_flip_counter.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
 import '../../services/recurring_task_scheduler.dart';
@@ -23,6 +24,8 @@ import 'package:intl/intl.dart';
 import '../chat/task_dashboard_screen.dart';
 import '../chat/chat_requests_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
+import '../dashboard/pending_delivery_branchwise_screen.dart';
+import '../dashboard/sales_performance_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
 import '../../widgets/festival_banner.dart';
@@ -56,8 +59,13 @@ class _HomeScreenState extends State<HomeScreen>
   int _yesterdaySale = 0;
   double _saleGrowth = 0;
 
+  int _pendingDelivery = 0; // pending delivery count
+
   List<double> _bookingTrend = [];
   List<double> _saleTrend = [];
+
+  // PageController for the stats card swipe (Bookings / Sales / Pending Delivery)
+  final PageController _statsPageController = PageController();
 
   List<dynamic> _accessibleDatabases = []; // â† for switch company button
   String _currentCompanyName = ""; // â† shown in header subtitle
@@ -136,7 +144,9 @@ class _HomeScreenState extends State<HomeScreen>
     Future.delayed(const Duration(milliseconds: 800), () async {
       final created = await RecurringTaskScheduler.processDueSlots();
       if (created > 0) {
-        debugPrint('RecurringTaskScheduler: created $created task(s) on home init');
+        debugPrint(
+          'RecurringTaskScheduler: created $created task(s) on home init',
+        );
       }
     });
 
@@ -238,6 +248,8 @@ class _HomeScreenState extends State<HomeScreen>
               (stats['saleTrend'] as List).map((e) => (e as num).toDouble()),
             )
           : [];
+
+      _pendingDelivery = (stats['pendingDelivery'] as num? ?? 0).toInt();
     });
   }
 
@@ -477,6 +489,7 @@ class _HomeScreenState extends State<HomeScreen>
     _pendingChallanTimer?.cancel();
     _festivalUpdateTimer?.cancel();
     _requestBlink.dispose();
+    _statsPageController.dispose();
     _removeAccountOverlay();
     _assignTitleCtrl.dispose();
     _assignDescCtrl.dispose();
@@ -492,6 +505,10 @@ class _HomeScreenState extends State<HomeScreen>
       FestivalService.autoRefreshIfNeeded();
       setState(() {
         _showFestivalBanner = FestivalService.isTodayFestival();
+      });
+      // Re-check quote visibility on resume — quote changes daily at midnight
+      QuoteService.isDismissed().then((dismissed) {
+        if (mounted) setState(() => _showDailyQuote = !dismissed);
       });
     }
   }
@@ -935,95 +952,123 @@ class _HomeScreenState extends State<HomeScreen>
                       },
                     ),
 
-                  // â”€â”€ TODAY STATS ROW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: DashboardComparisonCard(
-                          compact: true,
-                          title: "Bookings",
-                          icon: Icons.bookmark_added_rounded,
-                          today: _todayBooking,
-                          yesterday: _yesterdayBooking,
-                          growth: _bookingGrowth,
-                          trend: _bookingTrend, // replace later with API
-                          gradient: const [
-                            Color(0xFF0A3D8F),
-                            Color(0xFF1565C0),
-                            Color(0xFF1E88E5),
-                          ],
-                          onTodayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BranchwiseDetailsScreen(
-                                  reportType: "booking",
-                                  period: "today",
-                                  title: "Today's Booking",
+                  // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
+                  SizedBox(
+                    height: 170,
+                    child: PageView(
+                      controller: _statsPageController,
+                      children: [
+                        // ── Page 1: Bookings ──────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: DashboardComparisonCard(
+                            compact: true,
+                            title: "Bookings",
+                            icon: Icons.bookmark_added_rounded,
+                            today: _todayBooking,
+                            yesterday: _yesterdayBooking,
+                            growth: _bookingGrowth,
+                            trend: _bookingTrend,
+                            gradient: const [
+                              Color(0xFF0A3D8F),
+                              Color(0xFF1565C0),
+                              Color(0xFF1E88E5),
+                            ],
+                            onTodayTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BranchwiseDetailsScreen(
+                                    reportType: "booking",
+                                    period: "today",
+                                    title: "Today's Booking",
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          onYesterdayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => BranchwiseDetailsScreen(
-                                  reportType: "booking",
-                                  period: "yesterday",
-                                  title: "Yesterday's Booking",
+                              );
+                            },
+                            onYesterdayTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => BranchwiseDetailsScreen(
+                                    reportType: "booking",
+                                    period: "yesterday",
+                                    title: "Yesterday's Booking",
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      Expanded(
-                        child: DashboardComparisonCard(
-                          compact: true,
-                          title: "Sales",
-                          icon: Icons.sell_rounded,
-                          today: _todaySale,
-                          yesterday: _yesterdaySale,
-                          growth: _saleGrowth,
-                          trend: _saleTrend, // replace later with API
-                          gradient: const [
-                            Color(0xFF1B5E20),
-                            Color(0xFF2E7D32),
-                            Color(0xFF43A047),
-                          ],
-                          onTodayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const BranchwiseDetailsScreen(
-                                  reportType: "sale",
-                                  period: "today",
-                                  title: "Today's Sale",
+                        // ── Page 2: Sales ─────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 6),
+                          child: DashboardComparisonCard(
+                            compact: true,
+                            title: "Sales",
+                            icon: Icons.sell_rounded,
+                            today: _todaySale,
+                            yesterday: _yesterdaySale,
+                            growth: _saleGrowth,
+                            trend: _saleTrend,
+                            gradient: const [
+                              Color(0xFF1B5E20),
+                              Color(0xFF2E7D32),
+                              Color(0xFF43A047),
+                            ],
+                            onPerformanceTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SalesPerformanceScreen(),
                                 ),
-                              ),
-                            );
-                          },
-                          onYesterdayTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const BranchwiseDetailsScreen(
-                                  reportType: "sale",
-                                  period: "yesterday",
-                                  title: "Yesterday's Sale",
+                              );
+                            },
+                            onTodayTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BranchwiseDetailsScreen(
+                                    reportType: "sale",
+                                    period: "today",
+                                    title: "Today's Sale",
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                            onYesterdayTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BranchwiseDetailsScreen(
+                                    reportType: "sale",
+                                    period: "yesterday",
+                                    title: "Yesterday's Sale",
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                    ],
+                        // ── Page 3: Pending Delivery ──────────────────────
+                        Padding(
+                          padding: const EdgeInsets.only(left: 6),
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    const PendingDeliveryBranchwiseScreen(),
+                              ),
+                            ),
+                            child: _PendingDeliveryCard(count: _pendingDelivery),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(height: 8),
+                  _StatsPageDots(controller: _statsPageController, count: 3),
 
                   const SizedBox(height: 24),
 
@@ -1086,7 +1131,8 @@ class _HomeScreenState extends State<HomeScreen>
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => const TaskDashboardScreen(),
+                                        builder: (_) =>
+                                            const TaskDashboardScreen(),
                                       ),
                                     );
                                   },
@@ -1862,235 +1908,357 @@ class _HomeScreenState extends State<HomeScreen>
               horizontal: isNarrow ? 12 : 40,
               vertical: 24,
             ),
-            child: Container(
-              width: isNarrow ? double.infinity : 480,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF4A148C).withOpacity(0.22),
-                    blurRadius: 40,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(ctx).height * 0.88,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Gradient header ───────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(24, 22, 20, 20),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Color(0xFF4A148C),
-                          Color(0xFF6A1B9A),
-                          Color(0xFF9C27B0),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(24),
-                      ),
+              child: Container(
+                width: isNarrow ? double.infinity : 480,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4A148C).withOpacity(0.22),
+                      blurRadius: 40,
+                      offset: const Offset(0, 16),
                     ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.assignment_ind_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ── Gradient header ───────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(24, 22, 20, 20),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            Color(0xFF4A148C),
+                            Color(0xFF6A1B9A),
+                            Color(0xFF9C27B0),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        const SizedBox(width: 14),
-                        const Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Assign Task',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 0.3,
-                                ),
-                              ),
-                              SizedBox(height: 2),
-                              Text(
-                                'Create & assign a new task',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(ctx),
-                          child: Container(
-                            width: 32,
-                            height: 32,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.18),
-                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
-                              Icons.close_rounded,
+                              Icons.assignment_ind_rounded,
                               color: Colors.white,
-                              size: 18,
+                              size: 22,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Form body ─────────────────────────────────────
-                  Flexible(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Task Title
-                          TextField(
-                            controller: _assignTitleCtrl,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            decoration: _fieldDecor(
-                              label: 'Task Title',
-                              icon: Icons.title_rounded,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Description
-                          TextField(
-                            controller: _assignDescCtrl,
-                            maxLines: 3,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: _fieldDecor(
-                              label: 'Description',
-                              icon: Icons.notes_rounded,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Assign To
-                          DropdownButtonFormField<String>(
-                            value: _assignSelectedUserId,
-                            isExpanded: true,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            decoration: _fieldDecor(
-                              label: 'Assign To',
-                              icon: Icons.person_outline_rounded,
-                            ),
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            items: _assignUsers.map((u) {
-                              final id =
-                                  u['UserId']?.toString() ??
-                                  u['id']?.toString() ??
-                                  '';
-                              final name =
-                                  u['UserName']?.toString() ??
-                                  u['name']?.toString() ??
-                                  id;
-                              return DropdownMenuItem<String>(
-                                value: id,
-                                child: Text(
-                                  name,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 14),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Assign Task',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.3,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
-                            onChanged: (v) =>
-                                setDlg(() => _assignSelectedUserId = v),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Priority — chip row
-                          const Text(
-                            'Priority',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF7B5EA7),
-                              letterSpacing: 0.5,
+                                SizedBox(height: 2),
+                                Text(
+                                  'Create & assign a new task',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: ['Low', 'Medium', 'High'].map((p) {
-                              final selected = _assignPriority == p;
-                              final c = priorityColor(p);
-                              return Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: GestureDetector(
-                                    onTap: () =>
-                                        setDlg(() => _assignPriority = p),
-                                    child: AnimatedContainer(
-                                      duration: const Duration(
-                                        milliseconds: 200,
-                                      ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: selected
-                                            ? c
-                                            : c.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
+                          GestureDetector(
+                            onTap: () => Navigator.pop(ctx),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.close_rounded,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ── Form body ─────────────────────────────────────
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Task Title
+                            TextField(
+                              controller: _assignTitleCtrl,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: _fieldDecor(
+                                label: 'Task Title',
+                                icon: Icons.title_rounded,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Description
+                            TextField(
+                              controller: _assignDescCtrl,
+                              maxLines: 3,
+                              style: const TextStyle(fontSize: 14),
+                              decoration: _fieldDecor(
+                                label: 'Description',
+                                icon: Icons.notes_rounded,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Assign To
+                            DropdownButtonFormField<String>(
+                              value: _assignSelectedUserId,
+                              isExpanded: true,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: _fieldDecor(
+                                label: 'Assign To',
+                                icon: Icons.person_outline_rounded,
+                              ),
+                              dropdownColor: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              items: _assignUsers.map((u) {
+                                final id =
+                                    u['UserId']?.toString() ??
+                                    u['id']?.toString() ??
+                                    '';
+                                final name =
+                                    u['UserName']?.toString() ??
+                                    u['name']?.toString() ??
+                                    id;
+                                return DropdownMenuItem<String>(
+                                  value: id,
+                                  child: Text(
+                                    name,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 14),
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (v) =>
+                                  setDlg(() => _assignSelectedUserId = v),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Priority — chip row
+                            const Text(
+                              'Priority',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF7B5EA7),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: ['Low', 'Medium', 'High'].map((p) {
+                                final selected = _assignPriority == p;
+                                final c = priorityColor(p);
+                                return Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 8),
+                                    child: GestureDetector(
+                                      onTap: () =>
+                                          setDlg(() => _assignPriority = p),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
                                           color: selected
                                               ? c
-                                              : c.withOpacity(0.3),
-                                          width: selected ? 2 : 1,
-                                        ),
-                                        boxShadow: selected
-                                            ? [
-                                                BoxShadow(
-                                                  color: c.withOpacity(0.3),
-                                                  blurRadius: 8,
-                                                  offset: const Offset(0, 3),
-                                                ),
-                                              ]
-                                            : [],
-                                      ),
-                                      child: Column(
-                                        children: [
-                                          Icon(
-                                            priorityIcon(p),
-                                            size: 18,
-                                            color: selected ? Colors.white : c,
+                                              : c.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            p,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
+                                          border: Border.all(
+                                            color: selected
+                                                ? c
+                                                : c.withOpacity(0.3),
+                                            width: selected ? 2 : 1,
+                                          ),
+                                          boxShadow: selected
+                                              ? [
+                                                  BoxShadow(
+                                                    color: c.withOpacity(0.3),
+                                                    blurRadius: 8,
+                                                    offset: const Offset(0, 3),
+                                                  ),
+                                                ]
+                                              : [],
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Icon(
+                                              priorityIcon(p),
+                                              size: 18,
                                               color: selected
                                                   ? Colors.white
                                                   : c,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              p,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w700,
+                                                color: selected
+                                                    ? Colors.white
+                                                    : c,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Frequency
+                            DropdownButtonFormField<String?>(
+                              value: _assignFrequency,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              decoration: _fieldDecor(
+                                label: 'Frequency',
+                                icon: Icons.repeat_rounded,
+                              ),
+                              dropdownColor: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: null,
+                                  child: Text('One-time'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Weekly',
+                                  child: Text('Weekly'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Monthly',
+                                  child: Text('Monthly'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'Yearly',
+                                  child: Text('Yearly'),
+                                ),
+                              ],
+                              onChanged: (v) =>
+                                  setDlg(() => _assignFrequency = v),
+                            ),
+                            const SizedBox(height: 14),
+
+                            // Date row
+                            Row(
+                              children: [
+                                // Start Date
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: ctx,
+                                        initialDate:
+                                            _assignStartDate ?? DateTime.now(),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime(2100),
+                                      );
+                                      if (picked != null)
+                                        setDlg(() => _assignStartDate = picked);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 13,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF5F0FF),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: _assignStartDate != null
+                                              ? const Color(0xFF7B5EA7)
+                                              : const Color(0xFFD5C5F0),
+                                          width: _assignStartDate != null
+                                              ? 1.8
+                                              : 1.2,
+                                        ),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.calendar_month_rounded,
+                                                size: 14,
+                                                color: Color(0xFF7B5EA7),
+                                              ),
+                                              const SizedBox(width: 5),
+                                              const Text(
+                                                'Start Date',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF7B5EA7),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 5),
+                                          Text(
+                                            fmtDate(_assignStartDate),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: _assignStartDate != null
+                                                  ? const Color(0xFF2D1B5E)
+                                                  : Colors.grey,
                                             ),
                                           ),
                                         ],
@@ -2098,427 +2266,326 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                   ),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Frequency
-                          DropdownButtonFormField<String?>(
-                            value: _assignFrequency,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            decoration: _fieldDecor(
-                              label: 'Frequency',
-                              icon: Icons.repeat_rounded,
-                            ),
-                            dropdownColor: Colors.white,
-                            borderRadius: BorderRadius.circular(14),
-                            items: const [
-                              DropdownMenuItem(
-                                value: null,
-                                child: Text('One-time'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Weekly',
-                                child: Text('Weekly'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Monthly',
-                                child: Text('Monthly'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Yearly',
-                                child: Text('Yearly'),
-                              ),
-                            ],
-                            onChanged: (v) =>
-                                setDlg(() => _assignFrequency = v),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Date row
-                          Row(
-                            children: [
-                              // Start Date
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await showDatePicker(
-                                      context: ctx,
-                                      initialDate:
-                                          _assignStartDate ?? DateTime.now(),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                    );
-                                    if (picked != null)
-                                      setDlg(() => _assignStartDate = picked);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 13,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF5F0FF),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: _assignStartDate != null
-                                            ? const Color(0xFF7B5EA7)
-                                            : const Color(0xFFD5C5F0),
-                                        width: _assignStartDate != null
-                                            ? 1.8
-                                            : 1.2,
+                                const SizedBox(width: 10),
+                                // Due Date
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final picked = await showDatePicker(
+                                        context: ctx,
+                                        initialDate:
+                                            _assignDueDate ??
+                                            (_assignStartDate ??
+                                                DateTime.now()),
+                                        firstDate: DateTime(2020),
+                                        lastDate: DateTime(2100),
+                                      );
+                                      if (picked != null)
+                                        setDlg(() => _assignDueDate = picked);
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 13,
                                       ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.calendar_month_rounded,
-                                              size: 14,
-                                              color: Color(0xFF7B5EA7),
-                                            ),
-                                            const SizedBox(width: 5),
-                                            const Text(
-                                              'Start Date',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Color(0xFF7B5EA7),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFF5F0FF),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: _assignDueDate != null
+                                              ? const Color(0xFF7B5EA7)
+                                              : const Color(0xFFD5C5F0),
+                                          width: _assignDueDate != null
+                                              ? 1.8
+                                              : 1.2,
                                         ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          fmtDate(_assignStartDate),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: _assignStartDate != null
-                                                ? const Color(0xFF2D1B5E)
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              // Due Date
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    final picked = await showDatePicker(
-                                      context: ctx,
-                                      initialDate:
-                                          _assignDueDate ??
-                                          (_assignStartDate ?? DateTime.now()),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                    );
-                                    if (picked != null)
-                                      setDlg(() => _assignDueDate = picked);
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 13,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF5F0FF),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: _assignDueDate != null
-                                            ? const Color(0xFF7B5EA7)
-                                            : const Color(0xFFD5C5F0),
-                                        width: _assignDueDate != null
-                                            ? 1.8
-                                            : 1.2,
                                       ),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.event_rounded,
-                                              size: 14,
-                                              color: Color(0xFF7B5EA7),
-                                            ),
-                                            const SizedBox(width: 5),
-                                            const Text(
-                                              'Due Date',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Color(0xFF7B5EA7),
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 5),
-                                        Text(
-                                          fmtDate(_assignDueDate),
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: _assignDueDate != null
-                                                ? const Color(0xFF2D1B5E)
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // ── Action buttons ────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              side: const BorderSide(
-                                color: Color(0xFFD5C5F0),
-                                width: 1.5,
-                              ),
-                              foregroundColor: const Color(0xFF6A1B9A),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF6A1B9A), Color(0xFF9C27B0)],
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF6A1B9A,
-                                  ).withOpacity(0.4),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 5),
-                                ),
-                              ],
-                            ),
-                            child: ElevatedButton.icon(
-                              onPressed: () async {
-                                if (_assignTitleCtrl.text.trim().isEmpty ||
-                                    _assignSelectedUserId == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Please fill title and select a user',
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                final messenger = ScaffoldMessenger.of(context);
-                                final navigator = Navigator.of(ctx);
-
-                                // ── Build recurring slots ────────────────────
-                                final List<(DateTime, DateTime)> allSlots = [];
-
-                                if (_assignFrequency != null &&
-                                    _assignStartDate != null &&
-                                    _assignDueDate != null) {
-                                  DateTime slotStart = _assignStartDate!;
-                                  final rangeEnd = _assignDueDate!;
-
-                                  while (!slotStart.isAfter(rangeEnd)) {
-                                    DateTime slotEnd;
-                                    if (_assignFrequency == 'Weekly') {
-                                      slotEnd = slotStart.add(
-                                        const Duration(days: 6),
-                                      );
-                                    } else if (_assignFrequency == 'Monthly') {
-                                      final nextMonth = DateTime(
-                                        slotStart.month == 12
-                                            ? slotStart.year + 1
-                                            : slotStart.year,
-                                        slotStart.month == 12
-                                            ? 1
-                                            : slotStart.month + 1,
-                                        slotStart.day,
-                                      );
-                                      slotEnd = nextMonth.subtract(
-                                        const Duration(days: 1),
-                                      );
-                                    } else {
-                                      // Yearly
-                                      slotEnd = DateTime(
-                                        slotStart.year + 1,
-                                        slotStart.month,
-                                        slotStart.day,
-                                      ).subtract(const Duration(days: 1));
-                                    }
-                                    if (slotEnd.isAfter(rangeEnd)) {
-                                      slotEnd = rangeEnd;
-                                    }
-                                    allSlots.add((slotStart, slotEnd));
-
-                                    if (_assignFrequency == 'Weekly') {
-                                      slotStart = slotStart.add(
-                                        const Duration(days: 7),
-                                      );
-                                    } else if (_assignFrequency == 'Monthly') {
-                                      slotStart = DateTime(
-                                        slotStart.month == 12
-                                            ? slotStart.year + 1
-                                            : slotStart.year,
-                                        slotStart.month == 12
-                                            ? 1
-                                            : slotStart.month + 1,
-                                        slotStart.day,
-                                      );
-                                    } else {
-                                      slotStart = DateTime(
-                                        slotStart.year + 1,
-                                        slotStart.month,
-                                        slotStart.day,
-                                      );
-                                    }
-                                  }
-                                }
-
-                                // ── Create first slot now ────────────────────
-                                final firstStart = allSlots.isNotEmpty
-                                    ? allSlots.first.$1
-                                    : _assignStartDate;
-                                final firstEnd = allSlots.isNotEmpty
-                                    ? allSlots.first.$2
-                                    : _assignDueDate;
-
-                                final ok = await ApiService.createGlobalTask(
-                                  receiverId: _assignSelectedUserId!,
-                                  taskTitle: _assignTitleCtrl.text.trim(),
-                                  taskDescription: _assignDescCtrl.text.trim(),
-                                  priority: _assignPriority,
-                                  startDate: firstStart?.toIso8601String(),
-                                  dueDate: firstEnd?.toIso8601String(),
-                                );
-
-                                // ── Schedule future slots ────────────────────
-                                if (ok && allSlots.length > 1) {
-                                  await RecurringTaskScheduler
-                                      .addGlobalPendingSlots(
-                                    receiverId: _assignSelectedUserId!,
-                                    taskTitle: _assignTitleCtrl.text.trim(),
-                                    taskDescription:
-                                        _assignDescCtrl.text.trim(),
-                                    priority: _assignPriority,
-                                    futureSlots: allSlots.sublist(1),
-                                  );
-                                }
-
-                                if (!mounted) return;
-                                navigator.pop();
-                                messenger.showSnackBar(
-                                  ok
-                                      ? SnackBar(
-                                          content: Row(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
                                             children: [
                                               const Icon(
-                                                Icons.check_circle,
-                                                color: Colors.white,
-                                                size: 18,
+                                                Icons.event_rounded,
+                                                size: 14,
+                                                color: Color(0xFF7B5EA7),
                                               ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                allSlots.length > 1
-                                                    ? 'Task assigned. ${allSlots.length - 1} future ${_assignFrequency!.toLowerCase()} task(s) scheduled.'
-                                                    : 'Task assigned successfully',
+                                              const SizedBox(width: 5),
+                                              const Text(
+                                                'Due Date',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFF7B5EA7),
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
                                             ],
                                           ),
-                                          backgroundColor:
-                                              const Color(0xFF2E7D32),
-                                          behavior: SnackBarBehavior.floating,
-                                        )
-                                      : const SnackBar(
-                                          content: Text(
-                                            'Failed to assign task',
+                                          const SizedBox(height: 5),
+                                          Text(
+                                            fmtDate(_assignDueDate),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: _assignDueDate != null
+                                                  ? const Color(0xFF2D1B5E)
+                                                  : Colors.grey,
+                                            ),
                                           ),
-                                          backgroundColor: Colors.red,
-                                          behavior: SnackBarBehavior.floating,
-                                        ),
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.send_rounded,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                'Assign Task',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 14,
-                                  color: Colors.white,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                shadowColor: Colors.transparent,
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // ── Action buttons ────────────────────────────────
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
                                 ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
+                                side: const BorderSide(
+                                  color: Color(0xFFD5C5F0),
+                                  width: 1.5,
+                                ),
+                                foregroundColor: const Color(0xFF6A1B9A),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF6A1B9A),
+                                    Color(0xFF9C27B0),
+                                  ],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF6A1B9A,
+                                    ).withOpacity(0.4),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  if (_assignTitleCtrl.text.trim().isEmpty ||
+                                      _assignSelectedUserId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Please fill title and select a user',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  final messenger = ScaffoldMessenger.of(
+                                    context,
+                                  );
+                                  final navigator = Navigator.of(ctx);
+
+                                  // ── Build recurring slots ────────────────────
+                                  final List<(DateTime, DateTime)> allSlots =
+                                      [];
+
+                                  if (_assignFrequency != null &&
+                                      _assignStartDate != null &&
+                                      _assignDueDate != null) {
+                                    DateTime slotStart = _assignStartDate!;
+                                    final rangeEnd = _assignDueDate!;
+
+                                    while (!slotStart.isAfter(rangeEnd)) {
+                                      DateTime slotEnd;
+                                      if (_assignFrequency == 'Weekly') {
+                                        slotEnd = slotStart.add(
+                                          const Duration(days: 6),
+                                        );
+                                      } else if (_assignFrequency ==
+                                          'Monthly') {
+                                        final nextMonth = DateTime(
+                                          slotStart.month == 12
+                                              ? slotStart.year + 1
+                                              : slotStart.year,
+                                          slotStart.month == 12
+                                              ? 1
+                                              : slotStart.month + 1,
+                                          slotStart.day,
+                                        );
+                                        slotEnd = nextMonth.subtract(
+                                          const Duration(days: 1),
+                                        );
+                                      } else {
+                                        // Yearly
+                                        slotEnd = DateTime(
+                                          slotStart.year + 1,
+                                          slotStart.month,
+                                          slotStart.day,
+                                        ).subtract(const Duration(days: 1));
+                                      }
+                                      if (slotEnd.isAfter(rangeEnd)) {
+                                        slotEnd = rangeEnd;
+                                      }
+                                      allSlots.add((slotStart, slotEnd));
+
+                                      if (_assignFrequency == 'Weekly') {
+                                        slotStart = slotStart.add(
+                                          const Duration(days: 7),
+                                        );
+                                      } else if (_assignFrequency ==
+                                          'Monthly') {
+                                        slotStart = DateTime(
+                                          slotStart.month == 12
+                                              ? slotStart.year + 1
+                                              : slotStart.year,
+                                          slotStart.month == 12
+                                              ? 1
+                                              : slotStart.month + 1,
+                                          slotStart.day,
+                                        );
+                                      } else {
+                                        slotStart = DateTime(
+                                          slotStart.year + 1,
+                                          slotStart.month,
+                                          slotStart.day,
+                                        );
+                                      }
+                                    }
+                                  }
+
+                                  // ── Create first slot now ────────────────────
+                                  final firstStart = allSlots.isNotEmpty
+                                      ? allSlots.first.$1
+                                      : _assignStartDate;
+                                  final firstEnd = allSlots.isNotEmpty
+                                      ? allSlots.first.$2
+                                      : _assignDueDate;
+
+                                  final ok = await ApiService.createGlobalTask(
+                                    receiverId: _assignSelectedUserId!,
+                                    taskTitle: _assignTitleCtrl.text.trim(),
+                                    taskDescription: _assignDescCtrl.text
+                                        .trim(),
+                                    priority: _assignPriority,
+                                    startDate: firstStart?.toIso8601String(),
+                                    dueDate: firstEnd?.toIso8601String(),
+                                  );
+
+                                  // ── Schedule future slots ────────────────────
+                                  if (ok && allSlots.length > 1) {
+                                    await RecurringTaskScheduler.addGlobalPendingSlots(
+                                      receiverId: _assignSelectedUserId!,
+                                      taskTitle: _assignTitleCtrl.text.trim(),
+                                      taskDescription: _assignDescCtrl.text
+                                          .trim(),
+                                      priority: _assignPriority,
+                                      futureSlots: allSlots.sublist(1),
+                                    );
+                                  }
+
+                                  if (!mounted) return;
+                                  navigator.pop();
+                                  messenger.showSnackBar(
+                                    ok
+                                        ? SnackBar(
+                                            content: Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.check_circle,
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  allSlots.length > 1
+                                                      ? 'Task assigned. ${allSlots.length - 1} future ${_assignFrequency!.toLowerCase()} task(s) scheduled.'
+                                                      : 'Task assigned successfully',
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: const Color(
+                                              0xFF2E7D32,
+                                            ),
+                                            behavior: SnackBarBehavior.floating,
+                                          )
+                                        : const SnackBar(
+                                            content: Text(
+                                              'Failed to assign task',
+                                            ),
+                                            backgroundColor: Colors.red,
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                  );
+                                },
+                                icon: const Icon(
+                                  Icons.send_rounded,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                                label: const Text(
+                                  'Assign Task',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -3497,14 +3564,8 @@ class _AiGlobeButtonState extends State<_AiGlobeButton>
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
                   shadows: [
-                    Shadow(
-                      color: Color(0xFF00d4ff),
-                      blurRadius: 12,
-                    ),
-                    Shadow(
-                      color: Color(0xFFb040ff),
-                      blurRadius: 18,
-                    ),
+                    Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
+                    Shadow(color: Color(0xFFb040ff), blurRadius: 18),
                   ],
                 ),
               ),
@@ -3522,26 +3583,88 @@ class _GlobePainter extends CustomPainter {
 
   // Fixed node positions on a unit sphere (longitude, latitude) in radians
   static final List<List<double>> _nodes = [
-    [0.0, 0.0], [1.05, 0.52], [2.09, 0.0], [3.14, 0.52], [4.19, 0.0],
-    [5.24, 0.52], [0.52, 1.05], [1.57, 1.05], [2.62, 1.05], [3.67, 1.05],
-    [4.71, 1.05], [0.0, -1.05], [1.05, -0.52], [2.09, -1.05], [3.14, -0.52],
-    [4.19, -1.05], [5.24, -0.52], [0.52, -1.05], [1.57, -1.05], [2.62, -1.05],
-    [3.67, -1.05], [4.71, -1.05], [0.79, 0.0], [1.57, 0.0], [2.36, 0.0],
-    [3.14, 0.0], [3.93, 0.0], [4.71, 0.0], [0.0, 1.57], [3.14, 1.57],
-    [0.0, -1.57], [3.14, -1.57],
+    [0.0, 0.0],
+    [1.05, 0.52],
+    [2.09, 0.0],
+    [3.14, 0.52],
+    [4.19, 0.0],
+    [5.24, 0.52],
+    [0.52, 1.05],
+    [1.57, 1.05],
+    [2.62, 1.05],
+    [3.67, 1.05],
+    [4.71, 1.05],
+    [0.0, -1.05],
+    [1.05, -0.52],
+    [2.09, -1.05],
+    [3.14, -0.52],
+    [4.19, -1.05],
+    [5.24, -0.52],
+    [0.52, -1.05],
+    [1.57, -1.05],
+    [2.62, -1.05],
+    [3.67, -1.05],
+    [4.71, -1.05],
+    [0.79, 0.0],
+    [1.57, 0.0],
+    [2.36, 0.0],
+    [3.14, 0.0],
+    [3.93, 0.0],
+    [4.71, 0.0],
+    [0.0, 1.57],
+    [3.14, 1.57],
+    [0.0, -1.57],
+    [3.14, -1.57],
   ];
 
   // Which nodes connect (indices)
   static final List<List<int>> _edges = [
-    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0],
-    [0, 6], [1, 6], [1, 7], [2, 7], [2, 8], [3, 8],
-    [3, 9], [4, 9], [4, 10], [5, 10], [5, 6],
-    [0, 12], [12, 1], [1, 13], [2, 14], [14, 3], [3, 15],
-    [4, 16], [16, 5], [5, 17],
-    [6, 28], [7, 28], [8, 28], [9, 29], [10, 29],
-    [11, 30], [12, 30], [13, 30], [14, 31], [15, 31],
-    [22, 23], [23, 24], [24, 25], [25, 26], [26, 27],
-    [6, 22], [7, 23], [8, 24], [9, 25], [10, 26],
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 4],
+    [4, 5],
+    [5, 0],
+    [0, 6],
+    [1, 6],
+    [1, 7],
+    [2, 7],
+    [2, 8],
+    [3, 8],
+    [3, 9],
+    [4, 9],
+    [4, 10],
+    [5, 10],
+    [5, 6],
+    [0, 12],
+    [12, 1],
+    [1, 13],
+    [2, 14],
+    [14, 3],
+    [3, 15],
+    [4, 16],
+    [16, 5],
+    [5, 17],
+    [6, 28],
+    [7, 28],
+    [8, 28],
+    [9, 29],
+    [10, 29],
+    [11, 30],
+    [12, 30],
+    [13, 30],
+    [14, 31],
+    [15, 31],
+    [22, 23],
+    [23, 24],
+    [24, 25],
+    [25, 26],
+    [26, 27],
+    [6, 22],
+    [7, 23],
+    [8, 24],
+    [9, 25],
+    [10, 26],
   ];
 
   Offset _project(double lon, double lat, double cx, double cy, double r) {
@@ -3626,4 +3749,199 @@ class _GlobePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GlobePainter old) => old.angle != angle;
+}
+
+// ── Pending Delivery Card ─────────────────────────────────────────────────────
+// ── Pending Delivery Card ─────────────────────────────────────────────────────
+class _PendingDeliveryCard extends StatelessWidget {
+  final int count;
+
+  const _PendingDeliveryCard({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    const gradient = [Color(0xFF4A148C), Color(0xFF6A1B9A), Color(0xFF9C27B0)];
+
+    return Container(
+      height: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4A148C).withOpacity(0.28),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ── Header ────────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.local_shipping_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Pending Delivery',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        height: 1.1,
+                      ),
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Approved · Awaiting Delivery',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          // ── Count ────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.10)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Total Pending',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                ),
+
+                const SizedBox(height: 2),
+
+                AnimatedFlipCounter(
+                  value: count,
+                  duration: const Duration(milliseconds: 700),
+                  textStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 30,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Dot indicator for the stats PageView ──────────────────────────────────────
+class _StatsPageDots extends StatefulWidget {
+  final PageController controller;
+  final int count;
+  const _StatsPageDots({required this.controller, required this.count});
+
+  @override
+  State<_StatsPageDots> createState() => _StatsPageDotsState();
+}
+
+class _StatsPageDotsState extends State<_StatsPageDots> {
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onPage);
+  }
+
+  void _onPage() {
+    final p = widget.controller.page?.round() ?? 0;
+    if (p != _page && mounted) setState(() => _page = p);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onPage);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(widget.count, (i) {
+        final active = i == _page;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: active ? 20 : 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: active
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey.shade400,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        );
+      }),
+    );
+  }
 }

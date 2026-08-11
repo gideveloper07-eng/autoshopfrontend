@@ -33,11 +33,14 @@ class QuoteService {
   static const String _cacheKey = 'daily_quote';
   static const String _dismissedKey = 'daily_quote_dismissed_at';
 
-  /// How long the daily quote is cached (refreshes once per day).
-  static const Duration _cacheTtl = Duration(hours: 24);
-
   /// How long the quote card stays hidden after the user closes it (1 hour).
   static const Duration _dismissTtl = Duration(hours: 1);
+
+  /// Returns "yyyy-MM-dd" for today.
+  static String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
 
   // ── Dismiss helpers ───────────────────────────────────────────────────────
 
@@ -61,23 +64,21 @@ class QuoteService {
 
   // ── Quote fetching ────────────────────────────────────────────────────────
 
-  /// Returns the cached daily quote (refreshed every 24 h).
-  /// Always returns quickly from cache when available.
+  /// Returns today's daily quote.
+  /// Cache is keyed to the calendar date — changes automatically at midnight.
   static Future<Quote?> getDailyQuote() async {
-    // Return cached quote if still fresh
+    final today = _todayKey();
+
+    // Return cached quote only if it was fetched TODAY
     final cached = await CacheService.getMap(_cacheKey);
     if (cached != null) {
-      final cachedAt = cached['cachedAt'] as String?;
-      if (cachedAt != null) {
-        final cacheTime = DateTime.tryParse(cachedAt);
-        if (cacheTime != null &&
-            DateTime.now().difference(cacheTime) < _cacheTtl) {
-          return Quote.fromJson(cached);
-        }
+      final cachedDate = cached['cachedDate'] as String?;
+      if (cachedDate == today) {
+        return Quote.fromJson(cached);
       }
     }
 
-    // Cache is stale / missing — fetch fresh and save
+    // Date changed (or no cache) — fetch fresh quote for today
     return await _fetchAndCache();
   }
 
@@ -89,19 +90,19 @@ class QuoteService {
 
   // ── Internal helpers ──────────────────────────────────────────────────────
 
-  /// Fetch from API and save to the daily cache key.
+  /// Fetch from API and save to the daily cache key with today's date.
   static Future<Quote?> _fetchAndCache() async {
     final quote = await _fetchFromApi();
     if (quote == null) return null;
 
-    // Persist to daily cache with timestamp
     await CacheService.setMap(_cacheKey, {
       'text': quote.text,
       'author': quote.author,
       'category': quote.category,
       'tags': quote.tags,
       'date': quote.date,
-      'cachedAt': DateTime.now().toIso8601String(),
+      // Key by calendar date — cache becomes stale at midnight automatically
+      'cachedDate': _todayKey(),
     });
 
     return quote;

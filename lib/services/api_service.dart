@@ -2269,6 +2269,97 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> getSalesPerformance(String period) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {};
+      final uri = Uri.parse("$baseUrl/api/challan/sales-performance")
+          .replace(queryParameters: {'period': period});
+      final response = await http
+          .get(uri, headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          })
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return {};
+    } catch (e) {
+      print("SALES PERFORMANCE ERROR: $e");
+      return {};
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getPendingDeliveryBranchDetails({
+    required String branchId,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/dashboard-pending-delivery-branch-details",
+      ).replace(queryParameters: {'branchId': branchId.trim()});
+
+      final response = await http
+          .get(uri, headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          })
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print("PENDING DELIVERY BRANCH DETAILS ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> getPendingDeliveryBranchwise() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'branches': <dynamic>[]};
+      }
+      final response = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/dashboard-pending-delivery-branchwise"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'branches': data['branches'] is List ? data['branches'] : <dynamic>[],
+          };
+        }
+      }
+      return {'total': 0, 'branches': <dynamic>[]};
+    } catch (e) {
+      print("PENDING DELIVERY BRANCHWISE ERROR: $e");
+      return {'total': 0, 'branches': <dynamic>[]};
+    }
+  }
+
   static Future<Map<String, dynamic>> getDashboardBranchwise(
     String reportType,
     String period,
@@ -2370,6 +2461,50 @@ class ApiService {
       print("DASHBOARD MODELWISE ERROR: $e");
 
       return {'total': 0, 'models': <dynamic>[]};
+    }
+  }
+
+  /// Fetches SC (Sales Consultant) wise sale counts for today or yesterday.
+  /// [period]: 'today' or 'yesterday'
+  /// Returns { 'total': int, 'scs': List<{scName, count}> }
+  static Future<Map<String, dynamic>> getDashboardSCwise(
+    String period,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'scs': <dynamic>[]};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/dashboard-scwise?period=$period",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("SCWISE STATUS: ${response.statusCode}");
+      print("SCWISE RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'scs': data['scs'] is List ? data['scs'] : <dynamic>[],
+          };
+        }
+      }
+      return {'total': 0, 'scs': <dynamic>[]};
+    } catch (e) {
+      print("DASHBOARD SCWISE ERROR: $e");
+      return {'total': 0, 'scs': <dynamic>[]};
     }
   }
 
@@ -2492,6 +2627,63 @@ class ApiService {
       return [];
     } catch (e) {
       print("BRANCH SALE DETAILS ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Fetches sale detail rows for a specific SC and period.
+  /// Calls GET /api/challan/sc-sale-details
+  /// [period]: 'today' or 'yesterday'
+  /// [scId]: the sp_550 value (SC identifier)
+  /// [scName]: display name for logging
+  static Future<List<Map<String, dynamic>>> getSCSaleDetails({
+    required String period,
+    required String scId,
+    String scName = '',
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/sc-sale-details",
+      ).replace(queryParameters: {
+        'period': period,
+        'scId': scId.trim(),
+        if (scName.trim().isNotEmpty) 'scName': scName.trim(),
+      });
+
+      print("========== SC SALE DETAIL API ==========");
+      print("URI     : $uri");
+      print("Period  : $period");
+      print("SC Id   : $scId");
+      print("SC Name : $scName");
+      print("========================================");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("Status Code : ${response.statusCode}");
+      print("Response    : ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print("SC SALE DETAILS ERROR: $e");
       return [];
     }
   }

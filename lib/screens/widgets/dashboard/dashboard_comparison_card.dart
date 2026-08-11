@@ -21,6 +21,9 @@ class DashboardComparisonCard extends StatelessWidget {
 
   final bool compact;
 
+  /// Optional — if provided, a small performance icon appears in the header
+  final VoidCallback? onPerformanceTap;
+
   const DashboardComparisonCard({
     super.key,
     required this.title,
@@ -33,6 +36,7 @@ class DashboardComparisonCard extends StatelessWidget {
     required this.onTodayTap,
     required this.onYesterdayTap,
     this.compact = false,
+    this.onPerformanceTap,
   });
 
   @override
@@ -43,6 +47,7 @@ class DashboardComparisonCard extends StatelessWidget {
       color: Colors.transparent,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
+        height: compact ? 180 : 240,
         padding: EdgeInsets.all(compact ? 14 : 20),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -69,13 +74,13 @@ class DashboardComparisonCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: compact ? 42 : 48,
-                  height: compact ? 42 : 48,
+                  width: compact ? 36 : 48,
+                  height: compact ? 36 : 48,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: Colors.white),
+                  child: Icon(icon, color: Colors.white, size: compact ? 20 : 24),
                 ),
 
                 const SizedBox(width: 12),
@@ -91,20 +96,44 @@ class DashboardComparisonCard extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: compact ? 18 : 20,
+                          fontSize: compact ? 16 : 20,
                         ),
                       ),
 
-                      const SizedBox(height: 8),
+                      SizedBox(height: compact ? 4 : 8),
 
                       DashboardGrowthChip(growth: growth),
                     ],
                   ),
                 ),
+
+                // ── Performance icon (optional) ──────────────
+                if (onPerformanceTap != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onPerformanceTap,
+                    child: Container(
+                      width: compact ? 32 : 36,
+                      height: compact ? 32 : 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.18),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(.30),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.trending_up_rounded,
+                        color: Colors.white,
+                        size: compact ? 16 : 20,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
 
-            const SizedBox(height: 20),
+            SizedBox(height: compact ? 10 : 20),
 
             //----------------------------------------------------
             // METRICS
@@ -117,6 +146,7 @@ class DashboardComparisonCard extends StatelessWidget {
                     value: today,
                     subtitle: "",
                     onTap: onTodayTap,
+                    compact: compact,
                   ),
                 ),
 
@@ -128,17 +158,18 @@ class DashboardComparisonCard extends StatelessWidget {
                     value: yesterday,
                     subtitle: "",
                     onTap: onYesterdayTap,
+                    compact: compact,
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 18),
+            SizedBox(height: compact ? 0 : 18),
 
             //----------------------------------------------------
             // TREND
             //----------------------------------------------------
-           // SizedBox(height: 55, child: DashboardSparkline(values: trend)),
+            // SizedBox(height: 55, child: DashboardSparkline(values: trend)),
           ],
         ),
       ),
@@ -151,12 +182,14 @@ class _MetricTile extends StatelessWidget {
   final int value;
   final String subtitle;
   final VoidCallback onTap;
+  final bool compact;
 
   const _MetricTile({
     required this.label,
     required this.value,
     required this.subtitle,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -170,7 +203,7 @@ class _MetricTile extends StatelessWidget {
         splashColor: Colors.white24,
         highlightColor: Colors.white10,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: compact ? 6 : 8),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(.08),
             borderRadius: BorderRadius.circular(14),
@@ -211,28 +244,29 @@ class _MetricTile extends StatelessWidget {
               AnimatedFlipCounter(
                 value: value,
                 duration: const Duration(milliseconds: 700),
-                textStyle: const TextStyle(
+                textStyle: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
-                  fontSize: 30,
+                  fontSize: compact ? 24 : 30,
                 ),
               ),
 
-              const SizedBox(height: 4),
+              if (!compact) const SizedBox(height: 4),
 
               //------------------------------------------------
               // SUBTITLE
               //------------------------------------------------
-              Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(.70),
-                  fontSize: 2,
-                  fontWeight: FontWeight.w500,
+              if (!compact)
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(.70),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
             ],
           ),
         ),

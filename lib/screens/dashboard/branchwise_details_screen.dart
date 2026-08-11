@@ -5,6 +5,7 @@ import '../../services/cache_service.dart';
 import 'branch_booking_details_screen.dart';
 import 'BranchSaleDetailsScreen.dart';
 import 'modelwise_summary_screen.dart';
+import 'scwise_summary_screen.dart';
 
 class BranchwiseDetailsScreen extends StatefulWidget {
   final String reportType;
@@ -289,44 +290,96 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
             ),
           ),
 
-          // Right: Model Summary button
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ModelwiseSummaryScreen(
-                    reportType: widget.reportType,
-                    period: widget.period,
+          // Right: Model Summary button + SC Summary button (sale only)
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ModelwiseSummaryScreen(
+                        reportType: widget.reportType,
+                        period: widget.period,
+                      ),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(14),
+                    border:
+                        Border.all(color: Colors.white.withOpacity(0.35)),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.bar_chart_rounded,
+                          color: Colors.white, size: 26),
+                      SizedBox(height: 4),
+                      Text(
+                        "Model\nSummary",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withOpacity(0.35)),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.bar_chart_rounded, color: Colors.white, size: 26),
-                  SizedBox(height: 4),
-                  Text(
-                    "Model\nSummary",
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
+              // SC Summary button — only for sale type
+              if (!_isBooking) ...[
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => SCwiseSummaryScreen(
+                          period: widget.period,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(14),
+                      border:
+                          Border.all(color: Colors.white.withOpacity(0.35)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.person_search_rounded,
+                            color: Colors.white, size: 26),
+                        SizedBox(height: 4),
+                        Text(
+                          "SC\nSummary",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           ),
         ],
       ),

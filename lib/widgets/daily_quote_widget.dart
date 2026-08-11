@@ -13,7 +13,7 @@ class DailyQuoteWidget extends StatefulWidget {
 }
 
 class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _slideController;
   late Animation<Offset> _slideIn;
   late Animation<double> _fadeAnim;
@@ -23,18 +23,25 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
   bool _isLoading = true;
   Timer? _autoSlideTimer;
 
-  // We fetch a few quotes to rotate through
+  // Track the date the quotes were loaded for — reset when date changes
+  String _loadedForDate = '';
+
   static const int _fetchCount = 5;
+
+  String get _todayKey {
+    final now = DateTime.now();
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 500),
       vsync: this,
     );
-
     _slideIn = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
@@ -42,7 +49,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
       parent: _slideController,
       curve: Curves.easeOutCubic,
     ));
-
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _slideController, curve: Curves.easeIn),
     );
@@ -50,10 +56,26 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
     _loadQuotes();
   }
 
+  // Detect when app comes back to foreground — refresh if date changed
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_loadedForDate != _todayKey) {
+        // New day — reload quote
+        _quotes.clear();
+        _currentIndex = 0;
+        _loadQuotes();
+      }
+    }
+  }
+
   Future<void> _loadQuotes() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
-    // Load initial daily quote from cache / backend
+    _loadedForDate = _todayKey;
+
+    // Load today's daily quote (cache keyed to date — auto-fresh each day)
     final first = await QuoteService.getDailyQuote();
     if (first != null && mounted) {
       setState(() {
@@ -107,6 +129,7 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoSlideTimer?.cancel();
     _slideController.dispose();
     super.dispose();
@@ -116,7 +139,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Loading state — slim skeleton
     if (_isLoading) {
       return Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -178,12 +200,11 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: GestureDetector(
-          // Swipe left → next, swipe right → previous
           onHorizontalDragEnd: (details) {
             if (details.primaryVelocity == null) return;
             if (details.primaryVelocity! < -200) {
               _nextQuote();
-              _startAutoSlide(); // reset timer on manual swipe
+              _startAutoSlide();
             } else if (details.primaryVelocity! > 200) {
               _prevQuote();
               _startAutoSlide();
@@ -193,7 +214,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                // Quote icon
                 const Icon(
                   Icons.format_quote_rounded,
                   color: Colors.white70,
@@ -201,7 +221,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
                 ),
                 const SizedBox(width: 8),
 
-                // Sliding quote text + author
                 Expanded(
                   child: AnimatedBuilder(
                     animation: _slideController,
@@ -244,7 +263,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
 
                 const SizedBox(width: 8),
 
-                // Dot indicators (when multiple quotes loaded)
                 if (_quotes.length > 1) ...[
                   Column(
                     mainAxisSize: MainAxisSize.min,
@@ -266,7 +284,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
                   const SizedBox(width: 8),
                 ],
 
-                // Refresh / next arrow
                 GestureDetector(
                   onTap: () {
                     _nextQuote();
@@ -280,7 +297,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
                 ),
                 const SizedBox(width: 4),
 
-                // Close button
                 GestureDetector(
                   onTap: widget.onClose,
                   child: Icon(
