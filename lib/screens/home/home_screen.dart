@@ -883,7 +883,12 @@ class _HomeScreenState extends State<HomeScreen>
           // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                24,
+                16,
+                MediaQuery.of(context).size.width >= 600 ? 140 : 100,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1206,13 +1211,33 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
-      floatingActionButton: _AiGlobeButton(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AIChatScreen()),
-          );
-        },
+      floatingActionButtonLocation: MediaQuery.of(context).size.width >= 600
+          ? FloatingActionButtonLocation.startFloat
+          : FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).size.width >= 600 ? 24 : 0,
+        ),
+        child: Theme(
+        data: Theme.of(context).copyWith(
+          floatingActionButtonTheme: const FloatingActionButtonThemeData(
+            elevation: 0,
+            highlightElevation: 0,
+            backgroundColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            focusColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+          ),
+        ),
+        child: _AiGlobeButton(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AIChatScreen()),
+            );
+          },
+        ),
+      ),
       ),
     );
   }
@@ -1900,20 +1925,34 @@ class _HomeScreenState extends State<HomeScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final screenW = MediaQuery.sizeOf(ctx).width;
+          final screenH = MediaQuery.sizeOf(ctx).height;
           final isNarrow = screenW < 500;
+          final isTabletOrLarge = screenW >= 700;
+
+          // On tablet/large screens: wider dialog, generous padding, centered
+          final dialogWidth = isTabletOrLarge
+              ? (screenW * 0.55).clamp(520.0, 680.0)
+              : isNarrow
+                  ? double.infinity
+                  : 480.0;
 
           return Dialog(
             backgroundColor: Colors.transparent,
+            alignment: Alignment.center,
             insetPadding: EdgeInsets.symmetric(
-              horizontal: isNarrow ? 12 : 40,
-              vertical: 24,
+              horizontal: isTabletOrLarge
+                  ? screenW * 0.18
+                  : isNarrow
+                      ? 12
+                      : 40,
+              vertical: isTabletOrLarge ? screenH * 0.06 : 24,
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(ctx).height * 0.88,
+                maxHeight: screenH * (isTabletOrLarge ? 0.82 : 0.88),
               ),
               child: Container(
-                width: isNarrow ? double.infinity : 480,
+                width: dialogWidth,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -1930,7 +1969,12 @@ class _HomeScreenState extends State<HomeScreen>
                   children: [
                     // ── Gradient header ───────────────────────────────
                     Container(
-                      padding: const EdgeInsets.fromLTRB(24, 22, 20, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        isTabletOrLarge ? 32 : 24,
+                        isTabletOrLarge ? 26 : 22,
+                        isTabletOrLarge ? 28 : 20,
+                        isTabletOrLarge ? 24 : 20,
+                      ),
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
@@ -2008,7 +2052,12 @@ class _HomeScreenState extends State<HomeScreen>
                     // ── Form body ─────────────────────────────────────
                     Expanded(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                        padding: EdgeInsets.fromLTRB(
+                          isTabletOrLarge ? 28 : 20,
+                          isTabletOrLarge ? 24 : 20,
+                          isTabletOrLarge ? 28 : 20,
+                          8,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -2348,7 +2397,12 @@ class _HomeScreenState extends State<HomeScreen>
 
                     // ── Action buttons ────────────────────────────────
                     Container(
-                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      padding: EdgeInsets.fromLTRB(
+                        isTabletOrLarge ? 28 : 20,
+                        12,
+                        isTabletOrLarge ? 28 : 20,
+                        isTabletOrLarge ? 28 : 20,
+                      ),
                       decoration: const BoxDecoration(
                         border: Border(
                           top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
@@ -3526,50 +3580,56 @@ class _AiGlobeButtonState extends State<_AiGlobeButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (_, __) => Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const RadialGradient(
-              center: Alignment(-0.3, -0.3),
-              radius: 0.9,
-              colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
+    return SizedBox(
+      width: 72,
+      height: 72,
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (_, __) => ClipOval(
+            child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                center: Alignment(-0.3, -0.3),
+                radius: 0.9,
+                colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFb040ff).withOpacity(0.55),
+                  blurRadius: 18,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: const Color(0xFF00d4ff).withOpacity(0.35),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFb040ff).withOpacity(0.55),
-                blurRadius: 18,
-                spreadRadius: 2,
-              ),
-              BoxShadow(
-                color: const Color(0xFF00d4ff).withOpacity(0.35),
-                blurRadius: 12,
-                spreadRadius: 1,
-              ),
-            ],
-          ),
-          child: CustomPaint(
-            painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
-            child: const Center(
-              child: Text(
-                'AI',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                  shadows: [
-                    Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
-                    Shadow(color: Color(0xFFb040ff), blurRadius: 18),
-                  ],
+            child: CustomPaint(
+              painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
+              child: const Center(
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    shadows: [
+                      Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
+                      Shadow(color: Color(0xFFb040ff), blurRadius: 18),
+                    ],
+                  ),
                 ),
               ),
             ),
+          ),
           ),
         ),
       ),

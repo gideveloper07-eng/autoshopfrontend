@@ -27,6 +27,12 @@ class AIMessageBubble extends StatelessWidget {
     final codeBgColor  = isDark ? const Color(0xFF0D1117) : const Color(0xffF5F7FA);
     final borderColor  = isDark ? const Color(0xFF37474F) : const Color(0xffE0E0E0);
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    // Cap bubble width: 75% on phones, 55% on tablets/large screens
+    final maxBubbleWidth = screenWidth < 600
+        ? screenWidth * 0.75
+        : screenWidth * 0.55;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       child: Row(
@@ -40,7 +46,8 @@ class AIMessageBubble extends StatelessWidget {
             const SizedBox(width: 10),
           ],
 
-          Flexible(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxBubbleWidth),
             child: GestureDetector(
               onLongPress: () => _showOptions(context),
               child: AnimatedContainer(
