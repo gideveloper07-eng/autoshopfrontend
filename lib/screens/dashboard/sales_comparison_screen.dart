@@ -1,0 +1,568 @@
+import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
+
+class SalesComparisonScreen extends StatefulWidget {
+  const SalesComparisonScreen({super.key});
+
+  @override
+  State<SalesComparisonScreen> createState() => _SalesComparisonScreenState();
+}
+
+class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
+  static const Color _primary = Color(0xFF1B5E20);
+  static const List<Color> _gradient = [
+    Color(0xFF1B5E20),
+    Color(0xFF2E7D32),
+    Color(0xFF43A047),
+  ];
+
+  static const _periods = [
+    {
+      'key': 'today_vs_yesterday',
+      'label': 'Today vs Yesterday',
+      'icon': Icons.today_rounded,
+    },
+    {
+      'key': 'thisweek_vs_lastweek',
+      'label': 'This Week vs Last Week',
+      'icon': Icons.view_week_rounded,
+    },
+    {
+      'key': 'thismonth_vs_lastmonth',
+      'label': 'This Month vs Last Month',
+      'icon': Icons.calendar_month_rounded,
+    },
+    {
+      'key': 'thisquarter_vs_lastquarter',
+      'label': 'This Quarter vs Last Quarter',
+      'icon': Icons.bar_chart_rounded,
+    },
+    {
+      'key': 'thisyear_vs_lastyear',
+      'label': 'This Year vs Last Year',
+      'icon': Icons.account_balance_rounded,
+    },
+  ];
+
+  final Map<String, Map<String, dynamic>> _data = {};
+  final Map<String, bool> _loading = {};
+  final Map<String, String?> _errors = {};
+
+  @override
+  void initState() {
+    super.initState();
+    for (final p in _periods) {
+      _fetch(p['key'] as String);
+    }
+  }
+
+  Future<void> _fetch(String period) async {
+    if (mounted) {
+      setState(() {
+        _loading[period] = true;
+        _errors[period] = null;
+      });
+    }
+    try {
+      final result = await ApiService.getSalesComparison(period);
+      if (!mounted) return;
+      setState(() {
+        _data[period] = result;
+        _loading[period] = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errors[period] = e.toString();
+        _loading[period] = false;
+      });
+    }
+  }
+
+  Future<void> _refreshAll() async {
+    for (final p in _periods) {
+      _fetch(p['key'] as String);
+    }
+  }
+
+  String _formatValue(dynamic v) {
+    if (v == null) return '—';
+    final n = (v as num).toDouble();
+    if (n >= 10000000) return '₹${(n / 10000000).toStringAsFixed(2)} Cr';
+    if (n >= 100000) return '₹${(n / 100000).toStringAsFixed(2)} L';
+    if (n >= 1000) return '₹${(n / 1000).toStringAsFixed(1)} K';
+    return '₹${n.toStringAsFixed(0)}';
+  }
+
+  String _formatGrowth(dynamic v) {
+    if (v == null) return '—';
+    final n = (v as num).toDouble();
+    return '${n >= 0 ? '+' : ''}${n.toStringAsFixed(1)}%';
+  }
+
+  Color _growthColor(dynamic v) {
+    if (v == null) return Colors.grey;
+    return (v as num).toDouble() >= 0
+        ? const Color(0xFF00B894)
+        : const Color(0xFFE17055);
+  }
+
+  Color _periodAccent(String key) {
+    switch (key) {
+      case 'today_vs_yesterday':
+        return const Color(0xFF00B894);
+      case 'thisweek_vs_lastweek':
+        return const Color(0xFF2F80ED);
+      case 'thismonth_vs_lastmonth':
+        return const Color(0xFF7652F8);
+      case 'thisquarter_vs_lastquarter':
+        return const Color(0xFFFF9F1A);
+      case 'thisyear_vs_lastyear':
+        return const Color(0xFF8E44AD);
+      default:
+        return _primary;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        elevation: 0,
+        foregroundColor: Colors.white,
+        backgroundColor: _primary,
+        title: const Text(
+          'Sales Comparison',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _refreshAll,
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _refreshAll,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 24),
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 16),
+            ..._periods.map(
+              (p) => _buildComparisonCard(
+                periodKey: p['key'] as String,
+                label: p['label'] as String,
+                icon: p['icon'] as IconData,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: _gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.compare_arrows_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sales Comparison',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Compare sales across time periods',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withOpacity(0.35)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Live',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonCard({
+    required String periodKey,
+    required String label,
+    required IconData icon,
+  }) {
+    final isLoading = _loading[periodKey] ?? true;
+    final error = _errors[periodKey];
+    final row = _data[periodKey] ?? {};
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = _periodAccent(periodKey);
+
+    final currentCount = (row['CurrentSaleCount'] as num?)?.toInt() ?? 0;
+    final previousCount = (row['PreviousSaleCount'] as num?)?.toInt() ?? 0;
+    final currentValue = (row['CurrentSaleValue'] as num?)?.toDouble() ?? 0.0;
+    final previousValue = (row['PreviousSaleValue'] as num?)?.toDouble() ?? 0.0;
+    final countDiff = (row['SaleCountDifference'] as num?)?.toInt() ?? 0;
+    final valueDiff = (row['SaleValueDifference'] as num?)?.toDouble() ?? 0.0;
+    final growthPct = row['SaleValueGrowthPercent'];
+
+    final currentLabel = _currentLabel(periodKey);
+    final previousLabel = _previousLabel(periodKey);
+
+    final cardFill = isDark
+        ? Color.alphaBlend(accent.withOpacity(0.16), theme.cardColor)
+        : Color.alphaBlend(accent.withOpacity(0.08), theme.cardColor);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [cardFill, theme.cardColor],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: accent.withOpacity(0.35), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withOpacity(isDark ? 0.28 : 0.14),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header row ──────────────────────────────────────────────
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: accent.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: accent.withOpacity(0.25)),
+                  ),
+                  child: Icon(icon, color: accent, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      color: isDark ? Colors.white : const Color(0xFF183C35),
+                    ),
+                  ),
+                ),
+                if (isLoading)
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: accent,
+                    ),
+                  )
+                else if (growthPct != null)
+                  _GrowthBadge(value: growthPct),
+              ],
+            ),
+
+            const SizedBox(height: 14),
+
+            if (error != null)
+              Text(
+                'Failed to load',
+                style: TextStyle(color: Colors.red[400], fontSize: 13),
+              )
+            else if (isLoading)
+              _skeletonRow()
+            else ...[
+              // ── Current vs Previous count row ───────────────────────
+              Row(
+                children: [
+                  Expanded(
+                    child: _metricBox(
+                      label: currentLabel,
+                      topLine: '$currentCount units',
+                      bottomLine: _formatValue(currentValue),
+                      color: accent,
+                      isDark: isDark,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _metricBox(
+                      label: previousLabel,
+                      topLine: '$previousCount units',
+                      bottomLine: _formatValue(previousValue),
+                      color: Colors.grey,
+                      isDark: isDark,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Difference summary row ───────────────────────────────
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(isDark ? 0.12 : 0.07),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: accent.withOpacity(0.20)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.trending_up_rounded, color: accent, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Change: ${countDiff >= 0 ? '+' : ''}$countDiff units  |  ${_formatValueSigned(valueDiff)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _growthColor(valueDiff),
+                        ),
+                      ),
+                    ),
+                    if (growthPct != null)
+                      Text(
+                        _formatGrowth(growthPct),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          color: _growthColor(growthPct),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _currentLabel(String key) {
+    switch (key) {
+      case 'today_vs_yesterday':
+        return 'Today';
+      case 'thisweek_vs_lastweek':
+        return 'This Week';
+      case 'thismonth_vs_lastmonth':
+        return 'This Month';
+      case 'thisquarter_vs_lastquarter':
+        return 'This Quarter';
+      case 'thisyear_vs_lastyear':
+        return 'This Year';
+      default:
+        return 'Current';
+    }
+  }
+
+  String _previousLabel(String key) {
+    switch (key) {
+      case 'today_vs_yesterday':
+        return 'Yesterday';
+      case 'thisweek_vs_lastweek':
+        return 'Last Week';
+      case 'thismonth_vs_lastmonth':
+        return 'Last Month';
+      case 'thisquarter_vs_lastquarter':
+        return 'Last Quarter';
+      case 'thisyear_vs_lastyear':
+        return 'Last Year';
+      default:
+        return 'Previous';
+    }
+  }
+
+  String _formatValueSigned(double v) {
+    final prefix = v >= 0 ? '+' : '';
+    if (v.abs() >= 10000000) {
+      return '$prefix₹${(v / 10000000).toStringAsFixed(2)} Cr';
+    }
+    if (v.abs() >= 100000) return '$prefix₹${(v / 100000).toStringAsFixed(2)} L';
+    if (v.abs() >= 1000) return '$prefix₹${(v / 1000).toStringAsFixed(1)} K';
+    return '$prefix₹${v.toStringAsFixed(0)}';
+  }
+
+  Widget _metricBox({
+    required String label,
+    required String topLine,
+    required String bottomLine,
+    required Color color,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(isDark ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            topLine,
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF183C35),
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            bottomLine,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _skeletonRow() {
+    return Row(
+      children: [
+        Expanded(child: _skeleton(double.infinity, 70)),
+        const SizedBox(width: 10),
+        Expanded(child: _skeleton(double.infinity, 70)),
+      ],
+    );
+  }
+
+  Widget _skeleton(double w, double h) {
+    return Container(
+      width: w,
+      height: h,
+      decoration: BoxDecoration(
+        color: Colors.grey.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+}
+
+// ── Small growth badge ───────────────────────────────────────────────────────
+class _GrowthBadge extends StatelessWidget {
+  final dynamic value;
+  const _GrowthBadge({required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final n = value == null ? 0.0 : (value as num).toDouble();
+    final isPositive = n >= 0;
+    final color =
+        isPositive ? const Color(0xFF00B894) : const Color(0xFFE17055);
+    final bg = color.withOpacity(0.12);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withOpacity(0.30)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPositive
+                ? Icons.arrow_upward_rounded
+                : Icons.arrow_downward_rounded,
+            color: color,
+            size: 12,
+          ),
+          const SizedBox(width: 3),
+          Text(
+            '${isPositive ? '+' : ''}${n.toStringAsFixed(1)}%',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

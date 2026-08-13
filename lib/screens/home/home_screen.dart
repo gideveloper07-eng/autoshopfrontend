@@ -25,6 +25,7 @@ import '../chat/task_dashboard_screen.dart';
 import '../chat/chat_requests_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../dashboard/pending_delivery_branchwise_screen.dart';
+import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
 import '../../widgets/dashboard/dashboard_comparison_card.dart';
 import '../../widgets/dashboard/performance_trends_section.dart';
@@ -1026,6 +1027,14 @@ class _HomeScreenState extends State<HomeScreen>
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => const SalesPerformanceScreen(),
+                                ),
+                              );
+                            },
+                            onComparisonTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SalesComparisonScreen(),
                                 ),
                               );
                             },

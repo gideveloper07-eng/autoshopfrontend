@@ -24,6 +24,9 @@ class DashboardComparisonCard extends StatelessWidget {
   /// Optional — if provided, a small performance icon appears in the header
   final VoidCallback? onPerformanceTap;
 
+  /// Optional — if provided, a small comparison icon appears in the header
+  final VoidCallback? onComparisonTap;
+
   const DashboardComparisonCard({
     super.key,
     required this.title,
@@ -37,6 +40,7 @@ class DashboardComparisonCard extends StatelessWidget {
     required this.onYesterdayTap,
     this.compact = false,
     this.onPerformanceTap,
+    this.onComparisonTap,
   });
 
   @override
@@ -124,6 +128,30 @@ class DashboardComparisonCard extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.trending_up_rounded,
+                        color: Colors.white,
+                        size: compact ? 16 : 20,
+                      ),
+                    ),
+                  ),
+                ],
+
+                // ── Comparison icon (optional) ────────────────
+                if (onComparisonTap != null) ...[
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: onComparisonTap,
+                    child: Container(
+                      width: compact ? 32 : 36,
+                      height: compact ? 32 : 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(.18),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(.30),
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.compare_arrows_rounded,
                         color: Colors.white,
                         size: compact ? 16 : 20,
                       ),

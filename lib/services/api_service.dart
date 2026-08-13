@@ -2294,6 +2294,31 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>> getSalesComparison(String period) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {};
+      final uri = Uri.parse("$baseUrl/api/challan/sales-comparison")
+          .replace(queryParameters: {'period': period});
+      final response = await http
+          .get(uri, headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          })
+          .timeout(const Duration(seconds: 30));
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return {};
+    } catch (e) {
+      print("SALES COMPARISON ERROR: $e");
+      return {};
+    }
+  }
+
   static Future<List<Map<String, dynamic>>> getPendingDeliveryBranchDetails({
     required String branchId,
   }) async {
