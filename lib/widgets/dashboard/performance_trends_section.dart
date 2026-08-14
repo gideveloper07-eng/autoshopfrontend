@@ -26,9 +26,11 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
     with TickerProviderStateMixin {
   bool _expanded = false;
 
-  // ── Period state ────────────────────────────────────────────
-  String _period = '7days';
-  bool _loadingTrend = false;
+  // ── Period state (independent per chart) ────────────────────
+  String _bookingPeriod = '7days';
+  String _salePeriod = '7days';
+  bool _loadingBookingTrend = false;
+  bool _loadingSaleTrend = false;
 
   List<double> _bookingTrend = [];
   List<double> _saleTrend = [];
@@ -45,58 +47,83 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
     super.didUpdateWidget(oldWidget);
     // Only refresh if period is still the default (7days) — avoid overwriting
     // user-selected 6months data when parent rebuilds.
-    if (_period == '7days') {
+    if (_bookingPeriod == '7days') {
       _bookingTrend = widget.bookingTrend;
+    }
+    if (_salePeriod == '7days') {
       _saleTrend = widget.saleTrend;
     }
   }
 
-  Future<void> _switchPeriod(String newPeriod) async {
-    if (newPeriod == _period) return;
+  Future<void> _switchBookingPeriod(String newPeriod) async {
+    if (newPeriod == _bookingPeriod) return;
 
     setState(() {
-      _period = newPeriod;
-      _loadingTrend = true;
+      _bookingPeriod = newPeriod;
+      _loadingBookingTrend = true;
     });
 
     try {
-      print("======================================");
-      print("📊 TREND PERIOD CHANGED: $newPeriod");
-      print("📊 Calling dashboard API...");
-      print("======================================");
+      print("📊 BOOKING PERIOD CHANGED: $newPeriod");
 
       final stats = await ApiService.getDashboardStats(period: newPeriod);
-
-      print("📊 DASHBOARD RESPONSE:");
-      print(stats);
 
       if (!mounted) return;
 
       final bookingData = stats['bookingTrend'];
-      final saleData = stats['saleTrend'];
-
       print("📊 BOOKING TREND RAW: $bookingData");
-      print("📊 SALE TREND RAW: $saleData");
 
       setState(() {
         _bookingTrend = bookingData is List
             ? bookingData.map((e) => (e as num).toDouble()).toList()
             : [];
+      });
 
+      print("📊 BOOKING TREND FINAL: $_bookingTrend");
+    } catch (e, stackTrace) {
+      print("❌ BOOKING TREND SWITCH ERROR: $e");
+      print(stackTrace);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingBookingTrend = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _switchSalePeriod(String newPeriod) async {
+    if (newPeriod == _salePeriod) return;
+
+    setState(() {
+      _salePeriod = newPeriod;
+      _loadingSaleTrend = true;
+    });
+
+    try {
+      print("📊 SALE PERIOD CHANGED: $newPeriod");
+
+      final stats = await ApiService.getDashboardStats(period: newPeriod);
+
+      if (!mounted) return;
+
+      final saleData = stats['saleTrend'];
+      print("📊 SALE TREND RAW: $saleData");
+
+      setState(() {
         _saleTrend = saleData is List
             ? saleData.map((e) => (e as num).toDouble()).toList()
             : [];
       });
 
-      print("📊 BOOKING TREND FINAL: $_bookingTrend");
       print("📊 SALE TREND FINAL: $_saleTrend");
     } catch (e, stackTrace) {
-      print("❌ TREND SWITCH ERROR: $e");
+      print("❌ SALE TREND SWITCH ERROR: $e");
       print(stackTrace);
     } finally {
       if (mounted) {
         setState(() {
-          _loadingTrend = false;
+          _loadingSaleTrend = false;
         });
       }
     }
@@ -223,10 +250,22 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
                   color: Colors.blue,
                   growth: widget.bookingGrowth,
                   trend: _bookingTrend,
-                  period: _period,
-                  onPeriodChanged: _switchPeriod,
+                  period: _bookingPeriod,
+                  onPeriodChanged: _switchBookingPeriod,
                 ),
               ),
+
+              if (_loadingBookingTrend)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: 4),
+                  child: Center(
+                    child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 18),
 
@@ -238,18 +277,18 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
                   color: Colors.green,
                   growth: widget.saleGrowth,
                   trend: _saleTrend,
-                  period: _period,
-                  onPeriodChanged: _switchPeriod,
+                  period: _salePeriod,
+                  onPeriodChanged: _switchSalePeriod,
                 ),
               ),
 
-              if (_loadingTrend)
+              if (_loadingSaleTrend)
                 const Padding(
-                  padding: EdgeInsets.only(top: 8, bottom: 4),
+                  padding: EdgeInsets.only(top: 4, bottom: 4),
                   child: Center(
                     child: SizedBox(
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
