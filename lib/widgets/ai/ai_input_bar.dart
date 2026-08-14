@@ -6,6 +6,7 @@ class AIInputBar extends StatefulWidget {
   final VoidCallback? onVoice;
   final VoidCallback? onAttachment;
   final bool isLoading;
+  final bool isListening;
 
   const AIInputBar({
     super.key,
@@ -14,6 +15,7 @@ class AIInputBar extends StatefulWidget {
     this.onVoice,
     this.onAttachment,
     this.isLoading = false,
+    this.isListening = false,
   });
 
   @override
@@ -97,8 +99,11 @@ class _AIInputBarState extends State<AIInputBar> {
             IconButton(
               onPressed:
                   widget.isLoading ? null : widget.onVoice,
-              icon: const Icon(Icons.mic_none_rounded),
-              tooltip: "Voice",
+              icon: Icon(
+                widget.isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                color: widget.isListening ? Colors.red : null,
+              ),
+              tooltip: widget.isListening ? "Stop listening" : "Voice",
             ),
 
             //----------------------------------------------------------

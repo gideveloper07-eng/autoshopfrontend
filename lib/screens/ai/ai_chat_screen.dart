@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../services/api_service.dart';
 import '../../models/ai_message.dart';
@@ -23,8 +24,72 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
   bool _isTyping = false;
 
+  // ============================================================
+  // SPEECH TO TEXT
+  // ============================================================
+
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
+
+  Future<void> _startListening() async {
+    try {
+      final available = await _speech.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            if (mounted) {
+              setState(() => _isListening = false);
+            }
+          }
+        },
+        onError: (error) {
+          debugPrint('Speech error: $error');
+          if (mounted) {
+            setState(() => _isListening = false);
+          }
+        },
+      );
+
+      if (available) {
+        setState(() => _isListening = true);
+
+        _speech.listen(
+          listenMode: stt.ListenMode.confirmation,
+          onResult: (result) {
+            if (mounted) {
+              setState(() {
+                _controller.text = result.recognizedWords;
+                // Move cursor to end
+                _controller.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _controller.text.length),
+                );
+              });
+            }
+          },
+        );
+      } else {
+        debugPrint('Speech recognition unavailable');
+      }
+    } catch (e) {
+      debugPrint('Speech exception: $e');
+    }
+  }
+
+  Future<void> _stopListening() async {
+    await _speech.stop();
+    if (mounted) {
+      setState(() => _isListening = false);
+    }
+  }
+
   @override
   void dispose() {
+    _speech.stop();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -400,11 +465,16 @@ class _AIChatScreenState extends State<AIChatScreen> {
             AIInputBar(
               controller: _controller,
               isLoading: _isTyping,
+              isListening: _isListening,
 
               onSend: _sendMessage,
 
               onVoice: () {
-                // Voice functionality can be implemented here.
+                if (_isListening) {
+                  _stopListening();
+                } else {
+                  _startListening();
+                }
               },
 
               onAttachment: () {
