@@ -507,7 +507,9 @@ class _MyAppState extends State<MyApp> {
       scaffoldBackgroundColor: const Color(0xFFF5F9FF),
       cardColor: Colors.white,
       dividerColor: const Color(0xFFE0E0E0),
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme),
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme).apply(
+        fontFamilyFallback: ['NotoColorEmoji'],
+      ),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -559,7 +561,9 @@ class _MyAppState extends State<MyApp> {
       scaffoldBackgroundColor: const Color(0xFF0F1923),
       cardColor: const Color(0xFF1A2535),
       dividerColor: const Color(0xFF2A3A4A),
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme),
+      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme).apply(
+        fontFamilyFallback: ['NotoColorEmoji'],
+      ),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
