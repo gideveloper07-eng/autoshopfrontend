@@ -650,7 +650,7 @@ _cachedDatabaseName = null;
     }
   }*/
 
-  static Future<Map<String, dynamic>> getDashboardStats() async {
+  static Future<Map<String, dynamic>> getDashboardStats({String period = '7days'}) async {
     try {
       final token = await getToken();
 
@@ -659,7 +659,7 @@ _cachedDatabaseName = null;
       }
 
       final res = await http.get(
-        Uri.parse("$baseUrl/api/challan/dashboard-stats"),
+        Uri.parse("$baseUrl/api/challan/dashboard-stats?period=$period"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",

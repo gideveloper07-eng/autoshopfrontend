@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/api_service.dart';
 import 'trend_card.dart';
 
 class PerformanceTrendsSection extends StatefulWidget {
@@ -24,6 +25,82 @@ class PerformanceTrendsSection extends StatefulWidget {
 class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
     with TickerProviderStateMixin {
   bool _expanded = false;
+
+  // ── Period state ────────────────────────────────────────────
+  String _period = '7days';
+  bool _loadingTrend = false;
+
+  List<double> _bookingTrend = [];
+  List<double> _saleTrend = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _bookingTrend = widget.bookingTrend;
+    _saleTrend = widget.saleTrend;
+  }
+
+  @override
+  void didUpdateWidget(covariant PerformanceTrendsSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only refresh if period is still the default (7days) — avoid overwriting
+    // user-selected 6months data when parent rebuilds.
+    if (_period == '7days') {
+      _bookingTrend = widget.bookingTrend;
+      _saleTrend = widget.saleTrend;
+    }
+  }
+
+  Future<void> _switchPeriod(String newPeriod) async {
+    if (newPeriod == _period) return;
+
+    setState(() {
+      _period = newPeriod;
+      _loadingTrend = true;
+    });
+
+    try {
+      print("======================================");
+      print("📊 TREND PERIOD CHANGED: $newPeriod");
+      print("📊 Calling dashboard API...");
+      print("======================================");
+
+      final stats = await ApiService.getDashboardStats(period: newPeriod);
+
+      print("📊 DASHBOARD RESPONSE:");
+      print(stats);
+
+      if (!mounted) return;
+
+      final bookingData = stats['bookingTrend'];
+      final saleData = stats['saleTrend'];
+
+      print("📊 BOOKING TREND RAW: $bookingData");
+      print("📊 SALE TREND RAW: $saleData");
+
+      setState(() {
+        _bookingTrend = bookingData is List
+            ? bookingData.map((e) => (e as num).toDouble()).toList()
+            : [];
+
+        _saleTrend = saleData is List
+            ? saleData.map((e) => (e as num).toDouble()).toList()
+            : [];
+      });
+
+      print("📊 BOOKING TREND FINAL: $_bookingTrend");
+      print("📊 SALE TREND FINAL: $_saleTrend");
+    } catch (e, stackTrace) {
+      print("❌ TREND SWITCH ERROR: $e");
+      print(stackTrace);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingTrend = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +169,12 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
 
                           Text(
                             "Booking & Sales Analytics",
-                            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6), fontSize: 13),
+                            style: TextStyle(
+                              color: theme.colorScheme.onSurface.withOpacity(
+                                0.6,
+                              ),
+                              fontSize: 13,
+                            ),
                           ),
                         ],
                       ),
@@ -140,7 +222,9 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
                   icon: Icons.bookmark_added_rounded,
                   color: Colors.blue,
                   growth: widget.bookingGrowth,
-                  trend: widget.bookingTrend,
+                  trend: _bookingTrend,
+                  period: _period,
+                  onPeriodChanged: _switchPeriod,
                 ),
               ),
 
@@ -153,9 +237,23 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
                   icon: Icons.sell_rounded,
                   color: Colors.green,
                   growth: widget.saleGrowth,
-                  trend: widget.saleTrend,
+                  trend: _saleTrend,
+                  period: _period,
+                  onPeriodChanged: _switchPeriod,
                 ),
               ),
+
+              if (_loadingTrend)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8, bottom: 4),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
 
               const SizedBox(height: 18),
             ],
