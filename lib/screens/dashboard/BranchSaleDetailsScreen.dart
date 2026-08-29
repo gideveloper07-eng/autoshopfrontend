@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import '../home/rgb_border_card.dart';
 
 /// Shows all booking detail rows for a given branch & period.
 class BranchSaleDetailsScreen extends StatefulWidget {
@@ -354,26 +355,31 @@ class _BranchSaleDetailsScreenState extends State<BranchSaleDetailsScreen> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(28),
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xff222222), const Color(0xff111111)]
-                  : [Colors.white, const Color(0xffF4F9FF)],
+      child: RgbBorderCard(
+        borderRadius: 28,
+        borderWidth: 2.0,
+        glow: true,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(28),
+          color: Colors.transparent,
+          child: Container(
+            clipBehavior: Clip.hardEdge,
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xff222222), const Color(0xff111111)]
+                    : [Colors.white, const Color(0xffF4F9FF)],
+              ),
             ),
-          ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(22),
-            child: Column(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(22),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 //---------------------------------------------------
@@ -525,7 +531,8 @@ class _BranchSaleDetailsScreenState extends State<BranchSaleDetailsScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _detailGrid(

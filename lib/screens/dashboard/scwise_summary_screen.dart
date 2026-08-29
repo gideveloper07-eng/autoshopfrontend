@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 import 'sc_sale_details_screen.dart';
 
 /// Shows Sales Consultant (SC) wise sale counts for today or yesterday.
@@ -197,133 +198,133 @@ class _SCwiseSummaryScreenState extends State<SCwiseSummaryScreen> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+      child: RgbBorderCard(
+        borderRadius: 18,
+        borderWidth: 2.0,
+        glow: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(18),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => SCSaleDetailsScreen(
-                scId: scId,
-                scName: scName,
-                period: widget.period,
-                saleCount: count,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SCSaleDetailsScreen(
+                    scId: scId,
+                    scName: scName,
+                    period: widget.period,
+                    saleCount: count,
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Rank badge
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: _primaryColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '#${index + 1}',
-                        style: const TextStyle(
-                          color: _primaryColor,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                    Row(
+                      children: [
+                        // Rank badge
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _primaryColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '#${index + 1}',
+                            style: const TextStyle(
+                              color: _primaryColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
                         ),
+                        const SizedBox(width: 14),
+                        // SC avatar initial
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: _primaryColor.withOpacity(0.15),
+                          child: Text(
+                            scName.isNotEmpty ? scName[0].toUpperCase() : 'S',
+                            style: const TextStyle(
+                              color: _primaryColor,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // SC name
+                        Expanded(
+                          child: Text(
+                            scName,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.onSurface,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Count badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _primaryColor.withOpacity(0.10),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            count.toString(),
+                            style: const TextStyle(
+                              color: _primaryColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: _primaryColor.withOpacity(0.5),
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: fraction,
+                        minHeight: 8,
+                        backgroundColor:
+                            isDark ? Colors.white12 : Colors.grey.shade200,
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(_primaryColor),
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    // SC avatar initial
-                    CircleAvatar(
-                      radius: 18,
-                      backgroundColor: _primaryColor.withOpacity(0.15),
-                      child: Text(
-                        scName.isNotEmpty ? scName[0].toUpperCase() : 'S',
-                        style: const TextStyle(
-                          color: _primaryColor,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // SC name
-                    Expanded(
-                      child: Text(
-                        scName,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Count badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _primaryColor.withOpacity(0.10),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        count.toString(),
-                        style: const TextStyle(
-                          color: _primaryColor,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: _primaryColor.withOpacity(0.5),
-                      size: 22,
+                    const SizedBox(height: 6),
+                    Text(
+                      '${(fraction * 100).toStringAsFixed(1)}% of total  ·  '
+                      '$count ${count == 1 ? 'Sale' : 'Sales'}',
+                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                // Progress bar
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: fraction,
-                    minHeight: 8,
-                    backgroundColor:
-                        isDark ? Colors.white12 : Colors.grey.shade200,
-                    valueColor:
-                        const AlwaysStoppedAnimation<Color>(_primaryColor),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '${(fraction * 100).toStringAsFixed(1)}% of total  ·  '
-                  '$count ${count == 1 ? 'Sale' : 'Sales'}',
-                  style: TextStyle(fontSize: 11, color: Colors.grey[500]),
-                ),
-              ],
+              ),
             ),
           ),
         ),

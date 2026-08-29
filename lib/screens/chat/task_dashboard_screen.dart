@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
-import '../../main.dart' show taskCompleteStreamController, pendingTaskCompletions, pendingTaskCompletionCount;
+import '../home/rgb_border_card.dart';
+import '../../main.dart'
+    show
+        taskCompleteStreamController,
+        pendingTaskCompletions,
+        pendingTaskCompletionCount;
 
 class TaskDashboardScreen extends StatefulWidget {
   const TaskDashboardScreen({super.key});
@@ -22,7 +27,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
   StreamSubscription<Map<String, String>>? _completionSub;
   // List of pending completion notifications to show as banners
   final List<Map<String, String>> _completionBanners = [];
-  
+
   // ── Repeating notification system ──────────────────────────────────────────
   // Track tasks that have been marked complete but not yet reviewed by admin
   // Map<taskId, {taskTitle, completedBy, timestamp}>
@@ -72,7 +77,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     if (_isAdmin) {
       // Load any pending notifications that arrived before the dashboard opened
       if (pendingTaskCompletions.isNotEmpty) {
-        for (final item in List<Map<String, String>>.from(pendingTaskCompletions)) {
+        for (final item in List<Map<String, String>>.from(
+          pendingTaskCompletions,
+        )) {
           _addPendingCompletion(item);
         }
         pendingTaskCompletions.clear();
@@ -537,11 +544,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     final entries = byEmployee.entries.toList()
       ..sort((a, b) {
         final avgA =
-            a.value.map(_calcScore).fold(0, (s, v) => s + v) ~/
-            a.value.length;
+            a.value.map(_calcScore).fold(0, (s, v) => s + v) ~/ a.value.length;
         final avgB =
-            b.value.map(_calcScore).fold(0, (s, v) => s + v) ~/
-            b.value.length;
+            b.value.map(_calcScore).fold(0, (s, v) => s + v) ~/ b.value.length;
         return avgB.compareTo(avgA);
       });
 
@@ -550,19 +555,36 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-      child: Material(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(16),
-        elevation: 2,
-        shadowColor: Colors.black.withOpacity(0.07),
-        child: ClipRRect(
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: _rainbowColors,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
           borderRadius: BorderRadius.circular(16),
-          child: Theme(
-            data:
-                Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(1.8), // gradient border thickness
+        child: Material(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14.2),
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(14.2),
+            child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
-              tilePadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              tilePadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 4,
+              ),
               childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               leading: Container(
                 padding: const EdgeInsets.all(7),
@@ -599,8 +621,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                     .where((t) => t['Status'] == 'In Progress')
                     .length;
                 final overdue = empTasks.where((t) {
-                  final due =
-                      DateTime.tryParse(t['DueDate']?.toString() ?? '');
+                  final due = DateTime.tryParse(t['DueDate']?.toString() ?? '');
                   final st = t['Status']?.toString() ?? '';
                   return due != null &&
                       DateTime.now().isAfter(due) &&
@@ -609,8 +630,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                 }).length;
 
                 final avgScore =
-                    empTasks.map(_calcScore).fold(0, (s, v) => s + v) ~/
-                    total;
+                    empTasks.map(_calcScore).fold(0, (s, v) => s + v) ~/ total;
                 final scoreColor = _scoreColor(avgScore);
                 final grade = _scoreGrade(avgScore);
                 final legend = _scoreLegend(avgScore);
@@ -728,7 +748,8 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   bool _matchesTimeFilter(DateTime date) {
@@ -785,7 +806,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
             return Container(
               decoration: BoxDecoration(
                 color: theme.scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: SafeArea(
                 child: Padding(
@@ -853,99 +876,119 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
             elevation: 0,
             iconTheme: const IconThemeData(color: Colors.white),
             title: const Text(
-          'Task Dashboard',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _loadTasks,
-            tooltip: 'Refresh',
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white54,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-          tabs: const [
-            Tab(text: 'All'),
-            Tab(text: 'Group'),
-            Tab(text: 'Individual'),
-          ],
-        ),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                const SizedBox(height: 16),
-                Divider(
-                  height: 1,
-                  thickness: 1,
-                  color: Colors.grey.shade300,
-                ),
-                const SizedBox(height: 16),
-                _buildStatRow(),
-                const SizedBox(height: 10.0),
-
-                if (!isMobile)
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: cardBg,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTimeFilter(null),
-
-                        const Divider(height: 30),
-
-                        _buildStatusFilter(null),
-                      ],
-                    ),
-                  )
-                else
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        ElevatedButton.icon(
-                          icon: const Icon(Icons.filter_alt),
-                          label: const Text("Filters"),
-                          onPressed: _showFilterBottomSheet,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildTaskList(_filtered('All')),
-                      _buildTaskList(_filtered('Group')),
-                      _buildTaskList(_filtered('Individual')),
-                    ],
-                  ),
-                ),
+              'Task Dashboard',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.white),
+                onPressed: _loadTasks,
+                tooltip: 'Refresh',
+              ),
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+              tabs: const [
+                Tab(text: 'All'),
+                Tab(text: 'Group'),
+                Tab(text: 'Individual'),
               ],
             ),
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildStatRow(),
+                    const SizedBox(height: 10.0),
+
+                    if (!isMobile)
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: cardBg,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 15,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildTimeFilter(null),
+
+                            const Divider(height: 30),
+
+                            _buildStatusFilter(null),
+                          ],
+                        ),
+                      )
+                    else
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            RgbBorderCard(
+                              borderRadius: 30,
+                              borderWidth: 1.8,
+                              duration: const Duration(seconds: 4),
+                              glow: false,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: Theme.of(context).brightness == Brightness.dark
+                                      ? const Color(0xFF1A2535)
+                                      : Colors.white,
+                                  foregroundColor: const Color(0xFF1565C0),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                ),
+                                icon: const Icon(Icons.filter_alt),
+                                label: const Text("Filters"),
+                                onPressed: _showFilterBottomSheet,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildTaskList(_filtered('All')),
+                          _buildTaskList(_filtered('Group')),
+                          _buildTaskList(_filtered('Individual')),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
         ),
         // ── Completion notification banners ────────────────────────
         if (_isAdmin && _completionBanners.isNotEmpty)
@@ -988,12 +1031,26 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
           const SizedBox(width: 8),
           _statChip('Completed', _countFiltered('Completed'), Colors.green),
           const SizedBox(width: 8),
-          _statChip('Total', _filtered(_currentSource).length,
-              isDark ? Colors.white54 : Colors.blueGrey),
+          _statChip(
+            'Total',
+            _filtered(_currentSource).length,
+            isDark ? Colors.white54 : Colors.blueGrey,
+          ),
         ],
       ),
     );
   }
+
+  // Rainbow gradient colors used for the stat card border
+  static const List<Color> _rainbowColors = [
+    Color(0xFFFF6B6B), // red
+    Color(0xFFFFAA00), // orange
+    Color(0xFFFFE600), // yellow
+    Color(0xFF4CD964), // green
+    Color(0xFF00BFFF), // cyan/blue
+    Color(0xFF9B59B6), // purple
+    Color(0xFFFF6B6B), // back to red for seamless wrap
+  ];
 
   Widget _statChip(String label, int count, Color color) {
     // "Total" chip resets filter to All; others toggle to that status
@@ -1002,50 +1059,85 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
         ? _statusFilter == 'All'
         : _statusFilter == label;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    const borderRadius = 10.0;
+    const borderWidth = 1.8;
+
+    // Solid opaque background — same tinted look as before but no transparency
+    // so the gradient border doesn't bleed through
+    final Color solidBg = isDark
+        ? Color.alphaBlend(
+            isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
+            const Color(0xFF111B21),
+          )
+        : Color.alphaBlend(
+            isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
+            const Color(0xFFF5F5F5),
+          );
+
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _statusFilter = filterValue),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          // Outer layer: gradient acts as the border
           decoration: BoxDecoration(
-            color: isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isActive ? color : color.withOpacity(0.3),
-              width: isActive ? 1.8 : 1,
+            gradient: const LinearGradient(
+              colors: _rainbowColors,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
+            borderRadius: BorderRadius.circular(borderRadius),
             boxShadow: isActive
-                ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))]
+                ? [
+                    BoxShadow(
+                      color: color.withOpacity(0.25),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
                 : [],
           ),
-          child: Column(
-            children: [
-              Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(fontSize: 10, color: color.withOpacity(0.8), fontWeight: isActive ? FontWeight.w700 : FontWeight.w400),
-              ),
-              if (isActive) ...[
-                const SizedBox(height: 4),
-                Container(
-                  width: 16,
-                  height: 2,
-                  decoration: BoxDecoration(
+          padding: const EdgeInsets.all(borderWidth),
+          child: Container(
+            // Inner layer: solid opaque fill — hides the gradient beneath
+            decoration: BoxDecoration(
+              color: solidBg,
+              borderRadius: BorderRadius.circular(borderRadius - borderWidth),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                     color: color,
-                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color.withOpacity(0.8),
+                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                  ),
+                ),
+                if (isActive) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    width: 16,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1297,21 +1389,19 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1A2535) : Colors.white;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: RgbBorderCard(
+        borderRadius: 14,
+        borderWidth: 1.8,
+        duration: const Duration(seconds: 4),
+        glow: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(14),
           ),
-        ],
-        border: Border(left: BorderSide(color: srcColor, width: 4)),
-      ),
-      child: Padding(
+          child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1378,7 +1468,11 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                 if (createdAt.isNotEmpty)
                   Text(
                     createdAt,
-                    style: const TextStyle(fontSize: 10, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white60 : Colors.blueGrey.shade600,
+                    ),
                   ),
               ],
             ),
@@ -1402,7 +1496,11 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                 desc,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 13, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
+                ),
               ),
             ],
 
@@ -1411,26 +1509,34 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
             // ── Assigned to + due date ─────────────────────────────
             Row(
               children: [
-                const Icon(Icons.person_outline, size: 14, color: Colors.grey),
+                Icon(Icons.person_outline, size: 14, color: isDark ? Colors.lightBlueAccent : const Color(0xFF1565C0)),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
                     assignedTo.isNotEmpty ? assignedTo : '—',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.white70 : const Color(0xFF1A237E),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (dueDate.isNotEmpty) ...[
-                  const Icon(
+                  Icon(
                     Icons.calendar_today_outlined,
                     size: 12,
-                    color: Colors.grey,
+                    color: isDark ? Colors.orangeAccent : Colors.deepOrange.shade400,
                   ),
                   const SizedBox(width: 4),
                   Text(
                     dueDate,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.orangeAccent : Colors.deepOrange.shade600,
+                    ),
                   ),
                 ],
               ],
@@ -1447,10 +1553,8 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                   'Status:',
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white70 : Colors.blueGrey.shade800,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1527,13 +1631,10 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                           context: context,
                           builder: (_) => AlertDialog(
                             title: const Text('Complete Task'),
-                            content: const Text(
-                              'Mark this task as completed?',
-                            ),
+                            content: const Text('Mark this task as completed?'),
                             actions: [
                               TextButton(
-                                onPressed: () =>
-                                    Navigator.pop(context, false),
+                                onPressed: () => Navigator.pop(context, false),
                                 child: const Text('Cancel'),
                               ),
                               ElevatedButton(
@@ -1541,8 +1642,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                                   backgroundColor: Colors.green,
                                   foregroundColor: Colors.white,
                                 ),
-                                onPressed: () =>
-                                    Navigator.pop(context, true),
+                                onPressed: () => Navigator.pop(context, true),
                                 child: const Text('Complete'),
                               ),
                             ],
@@ -1600,11 +1700,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.check_circle, size: 16, color: Colors.green),
                         SizedBox(width: 4),
                         Text(
                           'Done',
@@ -1622,90 +1718,96 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
             ),
 
             // ── Performance score row ──────────────────────────────
-            Builder(builder: (_) {
-              final score = _calcScore(task);
-              final sColor = _scoreColor(score);
-              final grade = _scoreGrade(score);
-              final legend = _scoreLegend(score);
-              return Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.bar_chart_rounded,
-                          size: 13,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(width: 4),
-                        const Text(
-                          'Performance:',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey,
+            Builder(
+              builder: (_) {
+                final score = _calcScore(task);
+                final sColor = _scoreColor(score);
+                final grade = _scoreGrade(score);
+                final legend = _scoreLegend(score);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.bar_chart_rounded,
+                            size: 13,
+                            color: isDark ? Colors.white60 : Colors.blueGrey.shade600,
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$score / 100',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: sColor,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: sColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(5),
-                            border:
-                                Border.all(color: sColor.withOpacity(0.35)),
-                          ),
-                          child: Text(
-                            grade,
+                          const SizedBox(width: 4),
+                          Text(
+                            'Performance:',
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white60 : Colors.blueGrey.shade700,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$score / 100',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                               color: sColor,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          legend,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey,
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: sColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(5),
+                              border: Border.all(
+                                color: sColor.withOpacity(0.5),
+                              ),
+                            ),
+                            child: Text(
+                              grade,
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900,
+                                color: sColor,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: score / 100,
-                        minHeight: 5,
-                        backgroundColor: sColor.withOpacity(0.1),
-                        valueColor: AlwaysStoppedAnimation<Color>(sColor),
+                          const SizedBox(width: 6),
+                          Text(
+                            legend,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white54 : Colors.blueGrey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              );
-            }),
+                      const SizedBox(height: 5),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: score / 100,
+                          minHeight: 5,
+                          backgroundColor: sColor.withOpacity(0.2),
+                          valueColor: AlwaysStoppedAnimation<Color>(sColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
-    );
+    ),
+  ),
+  );
   }
 }
 

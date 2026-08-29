@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 
 class SalesPerformanceScreen extends StatefulWidget {
   const SalesPerformanceScreen({super.key});
@@ -242,23 +243,20 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [cardFill, theme.cardColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withValues(alpha: 0.35), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withValues(alpha: isDark ? 0.36 : 0.18),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+      child: RgbBorderCard(
+        borderRadius: 24,
+        borderWidth: 2.0,
+        glow: true,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [cardFill, theme.cardColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
           ),
-        ],
-      ),
-      child: Padding(
+          child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,7 +377,9 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
           ],
         ),
       ),
-    );
+    ),
+    ),
+  );
   }
 
   Color _periodAccent(String key) {

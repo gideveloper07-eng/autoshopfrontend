@@ -141,7 +141,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
 
     if (_isLoading) {
       return Container(
-        margin: const EdgeInsets.only(bottom: 12),
         height: 52,
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -169,7 +168,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
     final quote = _quotes[_currentIndex];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
@@ -187,15 +185,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: isDark
-                ? const Color(0xFF1E3A5F).withValues(alpha: 0.4)
-                : AppColors.shadowPrimary,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 
 class PendingDeliveryBranchDetailsScreen extends StatefulWidget {
   final String branchName;
@@ -41,7 +42,11 @@ class _PendingDeliveryBranchDetailsScreenState
   }
 
   Future<void> _load() async {
-    if (mounted) setState(() { _isLoading = true; _error = null; });
+    if (mounted)
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
 
     try {
       final data = await ApiService.getPendingDeliveryBranchDetails(
@@ -54,7 +59,10 @@ class _PendingDeliveryBranchDetailsScreenState
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _isLoading = false; });
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -100,9 +108,7 @@ class _PendingDeliveryBranchDetailsScreenState
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: _primary),
-      );
+      return const Center(child: CircularProgressIndicator(color: _primary));
     }
     if (_error != null) return _buildError();
     if (_rows.isEmpty) return _buildEmpty();
@@ -111,7 +117,8 @@ class _PendingDeliveryBranchDetailsScreenState
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
-        Expanded(
+        SizedBox(
+          height: 440,
           child: PageView.builder(
             controller: _pageController,
             itemCount: _rows.length,
@@ -147,7 +154,11 @@ class _PendingDeliveryBranchDetailsScreenState
       ),
       child: Row(
         children: [
-          const Icon(Icons.local_shipping_rounded, color: Colors.white70, size: 30),
+          const Icon(
+            Icons.local_shipping_rounded,
+            color: Colors.white70,
+            size: 30,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -168,7 +179,10 @@ class _PendingDeliveryBranchDetailsScreenState
                 ),
                 const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white24,
                     borderRadius: BorderRadius.circular(25),
@@ -221,94 +235,116 @@ class _PendingDeliveryBranchDetailsScreenState
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(28),
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xff222222), const Color(0xff111111)]
-                  : [Colors.white, const Color(0xffFAF5FF)],
+      child: RgbBorderCard(
+        borderRadius: 28,
+        borderWidth: 2.0,
+        glow: true,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(28),
+          color: Colors.transparent,
+          child: Container(
+            clipBehavior: Clip.hardEdge,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xff222222), const Color(0xff111111)]
+                    : [Colors.white, const Color(0xffFAF5FF)],
+              ),
             ),
-          ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Customer Header ──────────────────────────────
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: _primary,
-                      child: Text(
-                        initial,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Customer Header ──────────────────────────────
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: _primary,
+                        child: Text(
+                          initial,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            customerName,
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customerName,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Record #${index + 1}',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Approved badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
-                      ),
-                      child: const Text(
-                        'Approved',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                            const SizedBox(height: 6),
+                            Text(
+                              'Record #${index + 1}',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                      // Approved badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          'Approved',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
 
-                const SizedBox(height: 28),
+                  const SizedBox(height: 28),
 
-                // ── Detail Tiles ─────────────────────────────────
-                _infoTile(Icons.storefront_rounded,    'Branch',  _val(row, 'branch')),
-                _infoTile(Icons.directions_car_rounded,'Model',   _val(row, 'model')),
-                _infoTile(Icons.category_rounded,      'Variant', _val(row, 'variant')),
-                _infoTile(Icons.palette_rounded,       'Color',   _val(row, 'color')),
+                  // ── Detail Tiles ─────────────────────────────────
+                  _infoTile(
+                    Icons.storefront_rounded,
+                    'Branch',
+                    _val(row, 'branch'),
+                  ),
+                  _infoTile(
+                    Icons.directions_car_rounded,
+                    'Model',
+                    _val(row, 'model'),
+                  ),
+                  _infoTile(
+                    Icons.category_rounded,
+                    'Variant',
+                    _val(row, 'variant'),
+                  ),
+                  _infoTile(Icons.palette_rounded, 'Color', _val(row, 'color')),
 
-                const SizedBox(height: 12),
-              ],
+                  const SizedBox(height: 12),
+                ],
+              ),
             ),
           ),
         ),
@@ -341,7 +377,9 @@ class _PendingDeliveryBranchDetailsScreenState
                   Text(
                     value,
                     style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
@@ -389,7 +427,10 @@ class _PendingDeliveryBranchDetailsScreenState
           child: Text(
             'No pending deliveries found',
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
           ),
         ),
       ],

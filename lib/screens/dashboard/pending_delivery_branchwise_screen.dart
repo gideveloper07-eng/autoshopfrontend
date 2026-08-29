@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 import 'pending_delivery_branch_details_screen.dart';
 
 class PendingDeliveryBranchwiseScreen extends StatefulWidget {
@@ -207,94 +208,92 @@ class _PendingDeliveryBranchwiseScreenState
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+      child: RgbBorderCard(
+        borderRadius: 18,
+        borderWidth: 2.0,
+        glow: true,
+        child: Container(
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(18),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PendingDeliveryBranchDetailsScreen(
-                branchName: branchName,
-                branchId: branchId,
-                count: count,
-              ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            // Branch name + count
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    branchName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PendingDeliveryBranchDetailsScreen(
+                    branchName: branchName,
+                    branchId: branchId,
+                    count: count,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: _gradient),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Branch name + count
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            branchName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: _gradient),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            count.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
+                    const SizedBox(height: 12),
+                    // Progress bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: pct,
+                        minHeight: 6,
+                        backgroundColor: _purple.withOpacity(0.12),
+                        valueColor:
+                            const AlwaysStoppedAnimation<Color>(_purple),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${(pct * 100).toStringAsFixed(1)}% of total',
+                      style: TextStyle(
+                        color: Colors.grey[500],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            // Progress bar
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: pct,
-                minHeight: 6,
-                backgroundColor: _purple.withOpacity(0.12),
-                valueColor: const AlwaysStoppedAnimation<Color>(_purple),
               ),
             ),
-
-            const SizedBox(height: 6),
-
-            Text(
-              '${(pct * 100).toStringAsFixed(1)}% of total',
-              style: TextStyle(
-                color: Colors.grey[500],
-                fontSize: 11,
-              ),
-            ),
-          ],
-        ),
           ),
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 
 class SalesComparisonScreen extends StatefulWidget {
   const SalesComparisonScreen({super.key});
@@ -271,23 +272,20 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [cardFill, theme.cardColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: accent.withOpacity(0.35), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: accent.withOpacity(isDark ? 0.28 : 0.14),
-            blurRadius: 12,
-            offset: const Offset(0, 5),
+      child: RgbBorderCard(
+        borderRadius: 24,
+        borderWidth: 2.0,
+        glow: true,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [cardFill, theme.cardColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24),
           ),
-        ],
-      ),
-      child: Padding(
+          child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -405,7 +403,9 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
           ],
         ),
       ),
-    );
+    ),
+    ),
+  );
   }
 
   String _currentLabel(String key) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../home/rgb_border_card.dart';
 
 /// Shows sale detail cards for a specific SC, swiped one-by-one.
 /// Same swipeable PageView style as BranchSaleDetailsScreen.
@@ -292,25 +293,30 @@ class _SCSaleDetailsScreenState extends State<SCSaleDetailsScreen> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-      child: Material(
-        elevation: 8,
-        borderRadius: BorderRadius.circular(28),
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [const Color(0xFF222222), const Color(0xFF111111)]
-                  : [Colors.white, const Color(0xFFF4FFF6)],
+      child: RgbBorderCard(
+        borderRadius: 28,
+        borderWidth: 2.0,
+        glow: true,
+        child: Material(
+          elevation: 8,
+          borderRadius: BorderRadius.circular(28),
+          color: Colors.transparent,
+          child: Container(
+            clipBehavior: Clip.hardEdge,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(28),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [const Color(0xFF222222), const Color(0xFF111111)]
+                    : [Colors.white, const Color(0xFFF4FFF6)],
+              ),
             ),
-          ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.all(22),
-            child: Column(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(22),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Customer header ───────────────────────────────
@@ -465,7 +471,8 @@ class _SCSaleDetailsScreenState extends State<SCSaleDetailsScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   // ── Empty / Error ──────────────────────────────────────────────────────────

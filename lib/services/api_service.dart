@@ -676,7 +676,9 @@ class ApiService {
     }
   }*/
 
-  static Future<Map<String, dynamic>> getDashboardStats({String period = '7days'}) async {
+  static Future<Map<String, dynamic>> getDashboardStats({
+    String period = '7days',
+  }) async {
     try {
       final token = await getToken();
 
@@ -2273,13 +2275,17 @@ class ApiService {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) return {};
-      final uri = Uri.parse("$baseUrl/api/challan/sales-performance")
-          .replace(queryParameters: {'period': period});
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/sales-performance",
+      ).replace(queryParameters: {'period': period});
       final response = await http
-          .get(uri, headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $token",
-          })
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -2298,13 +2304,17 @@ class ApiService {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) return {};
-      final uri = Uri.parse("$baseUrl/api/challan/sales-comparison")
-          .replace(queryParameters: {'period': period});
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/sales-comparison",
+      ).replace(queryParameters: {'period': period});
       final response = await http
-          .get(uri, headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $token",
-          })
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
           .timeout(const Duration(seconds: 30));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body) as Map<String, dynamic>;
@@ -2331,10 +2341,13 @@ class ApiService {
       ).replace(queryParameters: {'branchId': branchId.trim()});
 
       final response = await http
-          .get(uri, headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer $token",
-          })
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
           .timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
@@ -2360,7 +2373,9 @@ class ApiService {
       }
       final response = await http
           .get(
-            Uri.parse("$baseUrl/api/challan/dashboard-pending-delivery-branchwise"),
+            Uri.parse(
+              "$baseUrl/api/challan/dashboard-pending-delivery-branchwise",
+            ),
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer $token",
@@ -2374,7 +2389,9 @@ class ApiService {
           final data = Map<String, dynamic>.from(body['data']);
           return {
             'total': (data['total'] as num?)?.toInt() ?? 0,
-            'branches': data['branches'] is List ? data['branches'] : <dynamic>[],
+            'branches': data['branches'] is List
+                ? data['branches']
+                : <dynamic>[],
           };
         }
       }
@@ -2492,9 +2509,7 @@ class ApiService {
   /// Fetches SC (Sales Consultant) wise sale counts for today or yesterday.
   /// [period]: 'today' or 'yesterday'
   /// Returns { 'total': int, 'scs': List<{scName, count}> }
-  static Future<Map<String, dynamic>> getDashboardSCwise(
-    String period,
-  ) async {
+  static Future<Map<String, dynamic>> getDashboardSCwise(String period) async {
     try {
       final token = await getToken();
       if (token == null || token.isEmpty) {
@@ -2503,9 +2518,7 @@ class ApiService {
 
       final response = await http
           .get(
-            Uri.parse(
-              "$baseUrl/api/challan/dashboard-scwise?period=$period",
-            ),
+            Uri.parse("$baseUrl/api/challan/dashboard-scwise?period=$period"),
             headers: {
               "Content-Type": "application/json",
               "Authorization": "Bearer $token",
@@ -2595,6 +2608,87 @@ class ApiService {
       return [];
     }
   }
+  // ======================================================
+  // AI MORNING DEALERSHIP BRIEFING
+  // ======================================================
+
+  static Future<Map<String, dynamic>> getMorningBriefing() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final session = await getUserSession();
+
+      final databaseName = session?['databaseName']?.toString() ?? '';
+
+      if (databaseName.isEmpty) {
+        throw Exception("No dealership database selected.");
+      }
+
+      final url =
+          "$baseUrl/api/ai/morning-briefing"
+          "?databaseName=${Uri.encodeComponent(databaseName)}";
+
+      print("");
+      print("==========================================");
+      print("🤖 AI MORNING BRIEFING");
+      print("==========================================");
+      print("Database: $databaseName");
+      print("URL: $url");
+
+      final res = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("📡 AI MORNING BRIEFING STATUS: ${res.statusCode}");
+
+      print("📦 AI MORNING BRIEFING RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        if (body["success"] == true) {
+          print("✅ AI MORNING BRIEFING SUCCESS");
+
+          return body;
+        }
+
+        throw Exception(body["message"] ?? "Morning briefing failed.");
+      }
+
+      if (res.statusCode == 401) {
+        throw Exception("Authentication expired. Please login again.");
+      }
+
+      try {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        throw Exception(
+          body["message"] ??
+              body["error"] ??
+              "Morning briefing request failed.",
+        );
+      } catch (_) {
+        throw Exception(
+          "Morning briefing request failed. "
+          "HTTP ${res.statusCode}",
+        );
+      }
+    } catch (e) {
+      print("❌ AI MORNING BRIEFING ERROR: $e");
+
+      rethrow;
+    }
+  }
 
   static Future<List<Map<String, dynamic>>> getBranchSaleDetails({
     required String period,
@@ -2670,13 +2764,13 @@ class ApiService {
       final token = await getToken();
       if (token == null || token.isEmpty) return [];
 
-      final uri = Uri.parse(
-        "$baseUrl/api/challan/sc-sale-details",
-      ).replace(queryParameters: {
-        'period': period,
-        'scId': scId.trim(),
-        if (scName.trim().isNotEmpty) 'scName': scName.trim(),
-      });
+      final uri = Uri.parse("$baseUrl/api/challan/sc-sale-details").replace(
+        queryParameters: {
+          'period': period,
+          'scId': scId.trim(),
+          if (scName.trim().isNotEmpty) 'scName': scName.trim(),
+        },
+      );
 
       print("========== SC SALE DETAIL API ==========");
       print("URI     : $uri");

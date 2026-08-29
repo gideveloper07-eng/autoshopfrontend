@@ -5,6 +5,7 @@ import '../../l10n/app_localizations.dart';
 import 'challan_edit_details_screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../services/activity_service.dart';
+import '../home/rgb_border_card.dart';
 
 class ChallanScreen extends StatefulWidget {
   const ChallanScreen({super.key});
@@ -675,139 +676,123 @@ class _ChallanScreenState extends State<ChallanScreen>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Container(
-              height: 52,
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-                border: Border.all(color: gridBorder),
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 14),
-
-                  Icon(Icons.search, color: textMid),
-
-                  const SizedBox(width: 10),
-
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _filterSearch,
-                      decoration: InputDecoration(
-                        hintText: _t('searchHint'),
-                        border: InputBorder.none,
+            child: RgbBorderCard(
+              borderRadius: 30,
+              borderWidth: 1.8,
+              duration: const Duration(seconds: 4),
+              glow: false,
+              child: Container(
+                height: 52,
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 14),
+                    Icon(Icons.search, color: textMid),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: _filterSearch,
+                        decoration: InputDecoration(
+                          hintText: _t('searchHint'),
+                          border: InputBorder.none,
+                        ),
                       ),
                     ),
-                  ),
-
-                  GestureDetector(
-                    onTap: () async {
-                      if (_isListening) {
-                        await _stopListening();
-                      } else {
-                        await _startListening();
-                      }
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: _isListening
-                            ? Colors.red
-                            : const Color(0xFF1A56DB),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _isListening ? Icons.mic : Icons.mic_none,
-                        color: Colors.white,
-                        size: 20,
+                    GestureDetector(
+                      onTap: () async {
+                        if (_isListening) {
+                          await _stopListening();
+                        } else {
+                          await _startListening();
+                        }
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 38,
+                        height: 38,
+                        decoration: BoxDecoration(
+                          color: _isListening
+                              ? Colors.red
+                              : const Color(0xFF1A56DB),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          _isListening ? Icons.mic : Icons.mic_none,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
           // ── Date Filter Section ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: gridBorder, width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: _primary.withValues(alpha: 0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.filter_list_rounded,
-                    size: 18,
-                    color: textMid,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.showDate,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: textMid,
+            child: RgbBorderCard(
+              borderRadius: 12,
+              borderWidth: 1.8,
+              duration: const Duration(seconds: 4),
+              glow: false,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.filter_list_rounded, size: 18, color: textMid),
+                    const SizedBox(width: 8),
+                    Text(
+                      l10n.showDate,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: textMid,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: _FilterChip(
-                            label: l10n.challanDate,
-                            isSelected: _dateFilter == 'challan',
-                            onTap: () {
-                              if (_dateFilter != 'challan') {
-                                setState(() {
-                                  _dateFilter = 'challan';
-                                });
-                                _loadData();
-                              }
-                            },
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: _FilterChip(
+                              label: l10n.challanDate,
+                              isSelected: _dateFilter == 'challan',
+                              onTap: () {
+                                if (_dateFilter != 'challan') {
+                                  setState(() { _dateFilter = 'challan'; });
+                                  _loadData();
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: _FilterChip(
-                            label: l10n.expectedDelivery,
-                            isSelected: _dateFilter == 'expected',
-                            onTap: () {
-                              if (_dateFilter != 'expected') {
-                                setState(() {
-                                  _dateFilter = 'expected';
-                                });
-                                _loadData();
-                              }
-                            },
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: _FilterChip(
+                              label: l10n.expectedDelivery,
+                              isSelected: _dateFilter == 'expected',
+                              onTap: () {
+                                if (_dateFilter != 'expected') {
+                                  setState(() { _dateFilter = 'expected'; });
+                                  _loadData();
+                                }
+                              },
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -815,25 +800,23 @@ class _ChallanScreenState extends State<ChallanScreen>
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: gridBorder, width: 1.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _primary.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    _buildTableHeader(l10n, gridBorder),
-                    Expanded(child: _buildTableRows(gridBorder)),
-                  ],
+              child: RgbBorderCard(
+                borderRadius: 16,
+                borderWidth: 1.8,
+                duration: const Duration(seconds: 4),
+                glow: false,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      _buildTableHeader(l10n, gridBorder),
+                      Expanded(child: _buildTableRows(gridBorder)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -945,27 +928,32 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
+    return RgbBorderCard(
+      borderRadius: 20,
+      borderWidth: 1.8,
+      duration: const Duration(seconds: 4),
+      glow: false,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -4,6 +4,7 @@ import '../../services/activity_service.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/chat_list_screen.dart';
 import '../chat/challan_chat_dialog.dart';
+import '../home/rgb_border_card.dart';
 
 class ChallanEditDetailsScreen extends StatefulWidget {
   final String sp462;
@@ -1877,90 +1878,91 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     final textDark = theme.colorScheme.onSurface;
     final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
 
-    return Container(
-      key: _checkboxRowKey,
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _rowBorder, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: _primary.withValues(alpha: 0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: RgbBorderCard(
+        borderRadius: 16,
+        borderWidth: 1.8,
+        duration: const Duration(seconds: 4),
+        glow: false,
+        child: Container(
+          key: _checkboxRowKey,
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(16),
           ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _isRadioSelected = !_isRadioSelected;
-            if (!_isRadioSelected) {
-              _checkedRejectFields.clear();
-              _rejectRemarkController.clear();
-            }
-            _savePageState();
-          });
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-          child: Row(
-            children: [
-              Container(
-                width: 22,
-                height: 22,
-                margin: const EdgeInsets.symmetric(horizontal: 5),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: _isRadioSelected
-                        ? _primary
-                        : textMid.withValues(alpha: 0.4),
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: AnimatedOpacity(
-                    opacity: _isRadioSelected ? 1.0 : 0.0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                _isRadioSelected = !_isRadioSelected;
+                if (!_isRadioSelected) {
+                  _checkedRejectFields.clear();
+                  _rejectRemarkController.clear();
+                }
+                _savePageState();
+              });
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    margin: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: _isRadioSelected
+                            ? _primary
+                            : textMid.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: AnimatedOpacity(
+                        opacity: _isRadioSelected ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _primary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _t('showSelectionCheckboxes'),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: textDark,
-                      ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _t('showSelectionCheckboxes'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: textDark,
+                          ),
+                        ),
+                        Text(
+                          _t('enableCheckboxesHelp'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: textMid,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      _t('enableCheckboxesHelp'),
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: textMid,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1981,28 +1983,26 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
             child: Column(
               children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _rowBorder, width: 1.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _primary.withValues(alpha: 0.08),
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < sections.length; i++)
-                        _buildSection(
-                          section: sections[i],
-                          showDivider: i < sections.length - 1,
-                        ),
-                    ],
+                RgbBorderCard(
+                  borderRadius: 16,
+                  borderWidth: 1.8,
+                  duration: const Duration(seconds: 4),
+                  glow: false,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: cardBg,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < sections.length; i++)
+                          _buildSection(
+                            section: sections[i],
+                            showDivider: i < sections.length - 1,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -2023,21 +2023,20 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final textDark = theme.colorScheme.onSurface;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: isDark
-            ? const Color(0xFF3D1A1A)
-            : const Color(0xFFFFF5F5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isDark
-              ? const Color(0xFFEF5350)
-              : const Color(0xFFFECACA),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: RgbBorderCard(
+        borderRadius: 10,
+        borderWidth: 1.8,
+        duration: const Duration(seconds: 4),
+        glow: false,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF3D1A1A) : const Color(0xFFFFF5F5),
+            borderRadius: BorderRadius.circular(10),
+          ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2074,6 +2073,8 @@ class _ChallanEditDetailsScreenState extends State<ChallanEditDetailsScreen> {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

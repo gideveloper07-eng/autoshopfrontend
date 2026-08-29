@@ -36,6 +36,8 @@ import '../chat/my_contact_requests_screen.dart';
 import 'global_task_screen.dart';
 import '../../services/festival_service.dart';
 import '../../main.dart' show pendingTaskCompletionCount;
+import '../../widgets/dashboard/morning_briefing_card.dart';
+import 'rgb_border_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -104,6 +106,20 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Daily quote state — hidden until dismiss check completes
   bool _showDailyQuote = false;
+
+  // ── Dynamic RGB-border highlight ────────────────────────────────────────
+  // Whichever card id sits here gets the stronger glyph border. Nothing is
+  // hardcoded — long-press any card to move the highlight to it, or set
+  // this from elsewhere (e.g. business logic) via setState.
+  String? _highlightedCardId;
+
+  bool _isHighlighted(String id) => _highlightedCardId == id;
+
+  void _toggleHighlight(String id) {
+    setState(() {
+      _highlightedCardId = _highlightedCardId == id ? null : id;
+    });
+  }
 
   @override
   void initState() {
@@ -949,13 +965,23 @@ class _HomeScreenState extends State<HomeScreen>
 
                   // Daily quote widget
                   if (_showDailyQuote)
-                    DailyQuoteWidget(
-                      onClose: () {
-                        QuoteService.dismiss(); // persist 1-hour hide
-                        setState(() {
-                          _showDailyQuote = false;
-                        });
-                      },
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onLongPress: () => _toggleHighlight('dailyQuote'),
+                        child: RgbBorderCard(
+                          borderRadius: 14,
+                          intense: _isHighlighted('dailyQuote'),
+                          child: DailyQuoteWidget(
+                            onClose: () {
+                              QuoteService.dismiss(); // persist 1-hour hide
+                              setState(() {
+                                _showDailyQuote = false;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
                     ),
 
                   // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
@@ -967,101 +993,121 @@ class _HomeScreenState extends State<HomeScreen>
                         // ── Page 1: Bookings ──────────────────────────────
                         Padding(
                           padding: const EdgeInsets.only(right: 6),
-                          child: DashboardComparisonCard(
-                            compact: true,
-                            title: "Bookings",
-                            icon: Icons.bookmark_added_rounded,
-                            today: _todayBooking,
-                            yesterday: _yesterdayBooking,
-                            growth: _bookingGrowth,
-                            trend: _bookingTrend,
-                            gradient: const [
-                              Color(0xFF0A3D8F),
-                              Color(0xFF1565C0),
-                              Color(0xFF1E88E5),
-                            ],
-                            onTodayTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BranchwiseDetailsScreen(
-                                    reportType: "booking",
-                                    period: "today",
-                                    title: "Today's Booking",
-                                  ),
-                                ),
-                              );
-                            },
-                            onYesterdayTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => BranchwiseDetailsScreen(
-                                    reportType: "booking",
-                                    period: "yesterday",
-                                    title: "Yesterday's Booking",
-                                  ),
-                                ),
-                              );
-                            },
+                          child: GestureDetector(
+                            onLongPress: () => _toggleHighlight('bookings'),
+                            child: RgbBorderCard(
+                              borderRadius: 18,
+                              intense: _isHighlighted('bookings'),
+                              child: DashboardComparisonCard(
+                                compact: true,
+                                title: "Bookings",
+                                icon: Icons.bookmark_added_rounded,
+                                today: _todayBooking,
+                                yesterday: _yesterdayBooking,
+                                growth: _bookingGrowth,
+                                trend: _bookingTrend,
+                                gradient: const [
+                                  Color(0xFF0A3D8F),
+                                  Color(0xFF1565C0),
+                                  Color(0xFF1E88E5),
+                                ],
+                                onTodayTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BranchwiseDetailsScreen(
+                                        reportType: "booking",
+                                        period: "today",
+                                        title: "Today's Booking",
+                                      ),
+                                    ),
+                                  );
+                                },
+
+                                onYesterdayTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => BranchwiseDetailsScreen(
+                                        reportType: "booking",
+                                        period: "yesterday",
+                                        title: "Yesterday's Booking",
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
                         // ── Page 2: Sales ─────────────────────────────────
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: DashboardComparisonCard(
-                            compact: true,
-                            title: "Sales",
-                            icon: Icons.sell_rounded,
-                            today: _todaySale,
-                            yesterday: _yesterdaySale,
-                            growth: _saleGrowth,
-                            trend: _saleTrend,
-                            gradient: const [
-                              Color(0xFF1B5E20),
-                              Color(0xFF2E7D32),
-                              Color(0xFF43A047),
-                            ],
-                            onPerformanceTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SalesPerformanceScreen(),
-                                ),
-                              );
-                            },
-                            onComparisonTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const SalesComparisonScreen(),
-                                ),
-                              );
-                            },
-                            onTodayTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const BranchwiseDetailsScreen(
-                                    reportType: "sale",
-                                    period: "today",
-                                    title: "Today's Sale",
-                                  ),
-                                ),
-                              );
-                            },
-                            onYesterdayTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const BranchwiseDetailsScreen(
-                                    reportType: "sale",
-                                    period: "yesterday",
-                                    title: "Yesterday's Sale",
-                                  ),
-                                ),
-                              );
-                            },
+
+                          child: GestureDetector(
+                            onLongPress: () => _toggleHighlight('sales'),
+                            child: RgbBorderCard(
+                              borderRadius: 18,
+                              intense: _isHighlighted('sales'),
+                              child: DashboardComparisonCard(
+                                compact: true,
+                                title: "Sales",
+                                icon: Icons.sell_rounded,
+                                today: _todaySale,
+                                yesterday: _yesterdaySale,
+                                growth: _saleGrowth,
+                                trend: _saleTrend,
+                                gradient: const [
+                                  Color(0xFF1B5E20),
+                                  Color(0xFF2E7D32),
+                                  Color(0xFF43A047),
+                                ],
+                                onPerformanceTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const SalesPerformanceScreen(),
+                                    ),
+                                  );
+                                },
+                                onComparisonTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const SalesComparisonScreen(),
+                                    ),
+                                  );
+                                },
+                                onTodayTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const BranchwiseDetailsScreen(
+                                            reportType: "sale",
+                                            period: "today",
+                                            title: "Today's Sale",
+                                          ),
+                                    ),
+                                  );
+                                },
+                                onYesterdayTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const BranchwiseDetailsScreen(
+                                            reportType: "sale",
+                                            period: "yesterday",
+                                            title: "Yesterday's Sale",
+                                          ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
                           ),
                         ),
                         // ── Page 3: Pending Delivery ──────────────────────
@@ -1075,7 +1121,15 @@ class _HomeScreenState extends State<HomeScreen>
                                     const PendingDeliveryBranchwiseScreen(),
                               ),
                             ),
-                            child: _PendingDeliveryCard(count: _pendingDelivery),
+                            onLongPressStart: (_) =>
+                                _toggleHighlight('pendingDelivery'),
+                            child: RgbBorderCard(
+                              borderRadius: 18,
+                              intense: _isHighlighted('pendingDelivery'),
+                              child: _PendingDeliveryCard(
+                                count: _pendingDelivery,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -1086,12 +1140,30 @@ class _HomeScreenState extends State<HomeScreen>
 
                   const SizedBox(height: 24),
 
-                  PerformanceTrendsSection(
-                    bookingGrowth: _bookingGrowth,
-                    bookingTrend: _bookingTrend,
+                  GestureDetector(
+                    onLongPress: () => _toggleHighlight('performanceTrends'),
+                    child: RgbBorderCard(
+                      borderRadius: 26,
+                      intense: _isHighlighted('performanceTrends'),
+                      child: PerformanceTrendsSection(
+                        bookingGrowth: _bookingGrowth,
+                        bookingTrend: _bookingTrend,
+                        saleGrowth: _saleGrowth,
+                        saleTrend: _saleTrend,
+                      ),
+                    ),
+                  ),
 
-                    saleGrowth: _saleGrowth,
-                    saleTrend: _saleTrend,
+                  const SizedBox(height: 24),
+
+                  // ── AI MORNING DEALERSHIP BRIEFING ─────────────────────
+                  GestureDetector(
+                    onLongPress: () => _toggleHighlight('morningBriefing'),
+                    child: RgbBorderCard(
+                      borderRadius: 20,
+                      intense: _isHighlighted('morningBriefing'),
+                      child: const MorningBriefingCard(),
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -1103,6 +1175,7 @@ class _HomeScreenState extends State<HomeScreen>
                       children: [
                         // Row 1: Challan full width
                         _dashCard(
+                          cardId: 'challan',
                           icon: Icons.receipt_long_rounded,
                           label: "Challan",
                           subtitle: "View & manage challans",
@@ -1130,6 +1203,7 @@ class _HomeScreenState extends State<HomeScreen>
                               clipBehavior: Clip.none,
                               children: [
                                 _dashCard(
+                                  cardId: 'taskDashboard',
                                   icon: Icons.task_alt,
                                   label: "Task Dashboard Screen",
                                   subtitle: count > 0
@@ -1178,6 +1252,7 @@ class _HomeScreenState extends State<HomeScreen>
                         const SizedBox(height: 12),
                         // Row 3: Assign Task (purple) — admin only
                         _dashCard(
+                          cardId: 'assignTask',
                           icon: Icons.assignment_ind_rounded,
                           label: "Assign Task",
                           subtitle: "Assign and track task",
@@ -1196,6 +1271,7 @@ class _HomeScreenState extends State<HomeScreen>
                   if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
                       !isLoading)
                     _dashCard(
+                      cardId: 'assignedTaskNonAdmin',
                       icon: Icons.assignment_ind_rounded,
                       label: "Assigned task",
                       subtitle: "Assigned Task",
@@ -1228,25 +1304,25 @@ class _HomeScreenState extends State<HomeScreen>
           bottom: MediaQuery.of(context).size.width >= 600 ? 24 : 0,
         ),
         child: Theme(
-        data: Theme.of(context).copyWith(
-          floatingActionButtonTheme: const FloatingActionButtonThemeData(
-            elevation: 0,
-            highlightElevation: 0,
-            backgroundColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            hoverColor: Colors.transparent,
+          data: Theme.of(context).copyWith(
+            floatingActionButtonTheme: const FloatingActionButtonThemeData(
+              elevation: 0,
+              highlightElevation: 0,
+              backgroundColor: Colors.transparent,
+              splashColor: Colors.transparent,
+              focusColor: Colors.transparent,
+              hoverColor: Colors.transparent,
+            ),
+          ),
+          child: _AiGlobeButton(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AIChatScreen()),
+              );
+            },
           ),
         ),
-        child: _AiGlobeButton(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AIChatScreen()),
-            );
-          },
-        ),
-      ),
       ),
     );
   }
@@ -1260,118 +1336,218 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1A2535) : Colors.white;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF075E54).withOpacity(0.15),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+    return GestureDetector(
+      onLongPress: () => _toggleHighlight('chatPreview'),
+      child: RgbBorderCard(
+        borderRadius: 20,
+        intense: _isHighlighted('chatPreview'),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 4),
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF075E54).withOpacity(0.15),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          GestureDetector(
-            onTap: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  settings: const RouteSettings(name: 'ChatListScreen'),
-                  builder: (_) => const ChatListScreen(),
-                ),
-              );
-              _loadChatPreview();
-            },
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF0A3D35), const Color(0xFF0E5D5E)]
-                      : [const Color(0xFF075E54), const Color(0xFF128C7E)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.vertical(
-                  top: const Radius.circular(20),
-                  bottom: Radius.circular(
-                    (isEmpty || _chatPreviewLoading) ? 20 : 0,
+          child: Column(
+            children: [
+              // â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              GestureDetector(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      settings: const RouteSettings(name: 'ChatListScreen'),
+                      builder: (_) => const ChatListScreen(),
+                    ),
+                  );
+                  _loadChatPreview();
+                },
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF0A3D35), const Color(0xFF0E5D5E)]
+                          : [const Color(0xFF075E54), const Color(0xFF128C7E)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.vertical(
+                      top: const Radius.circular(20),
+                      bottom: Radius.circular(
+                        (isEmpty || _chatPreviewLoading) ? 20 : 0,
+                      ),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.chat_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          "Chat",
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      ),
+                      // Search icon
+                      GestureDetector(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              settings: const RouteSettings(
+                                name: 'ChatListScreen',
+                              ),
+                              builder: (_) => const ChatListScreen(),
+                            ),
+                          );
+                          _loadChatPreview();
+                        },
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.search,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      // Three-dot menu
+                      PopupMenuButton<String>(
+                        icon: const Icon(
+                          Icons.more_vert,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        tooltip: "Menu",
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        onSelected: (v) {
+                          if (v == 'open') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                settings: const RouteSettings(
+                                  name: 'ChatListScreen',
+                                ),
+                                builder: (_) => const ChatListScreen(),
+                              ),
+                            ).then((_) => _loadChatPreview());
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'open',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.open_in_new,
+                                  size: 18,
+                                  color: Colors.black87,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  "Open Chat",
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.chat_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      "Chat",
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        letterSpacing: 0.2,
+
+              // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              if (_chatPreviewLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              else if (isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 40,
+                        color: Colors.grey.withOpacity(0.4),
                       ),
-                    ),
-                  ),
-                  // Search icon
-                  GestureDetector(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          settings: const RouteSettings(name: 'ChatListScreen'),
-                          builder: (_) => const ChatListScreen(),
-                        ),
-                      );
-                      _loadChatPreview();
-                    },
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "No chats yet",
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
                       ),
-                      child: const Icon(
-                        Icons.search,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
+                    ],
                   ),
-                  const SizedBox(width: 6),
-                  // Three-dot menu
-                  PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.more_vert,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    tooltip: "Menu",
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    onSelected: (v) {
-                      if (v == 'open') {
-                        Navigator.push(
+                )
+              else ...[
+                // â”€â”€ Individual Chats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                if (hasChallans) ...[
+                  _previewSectionHeader(
+                    icon: Icons.person_outline,
+                    label: "Individual Chats",
+                  ),
+                  ..._previewChallans.map((challan) {
+                    final challanId = challan['sp_462']?.toString() ?? '';
+                    final challanNo = challan['sp_468']?.toString() ?? '';
+                    final customerName = challan['sp_469']?.toString() ?? '';
+                    final meta = _previewMeta[challanId];
+                    final lastMsg = meta?.lastMessage ?? '';
+                    final unread = meta?.unreadCount ?? 0;
+                    final timeLabel = _fmtTime(meta?.lastTime);
+                    final avatarLetter = customerName.isNotEmpty
+                        ? customerName[0].toUpperCase()
+                        : 'C';
+
+                    return _previewChatTile(
+                      avatarLetter: avatarLetter,
+                      avatarColor: const Color(0xFF075E54),
+                      title: customerName.isNotEmpty
+                          ? customerName
+                          : "Challan #$challanNo",
+                      subtitle: lastMsg.isNotEmpty
+                          ? lastMsg
+                          : "Challan #$challanNo",
+                      timeLabel: timeLabel,
+                      unreadCount: unread,
+                      isLast: _previewChallans.last == challan && !hasGroups,
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             settings: const RouteSettings(
@@ -1379,186 +1555,103 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                             builder: (_) => const ChatListScreen(),
                           ),
-                        ).then((_) => _loadChatPreview());
-                      }
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'open',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.open_in_new,
-                              size: 18,
-                              color: Colors.black87,
+                        );
+                        _loadChatPreview();
+                      },
+                    );
+                  }),
+                ],
+
+                // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                if (hasGroups) ...[
+                  _previewSectionHeader(
+                    icon: Icons.groups_outlined,
+                    label: "Groups",
+                  ),
+                  ..._previewGroups.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final group = entry.value;
+                    final groupId = group['GroupId']?.toString() ?? '';
+                    final groupName = group['GroupName']?.toString() ?? 'Group';
+                    final memberCount =
+                        (group['MemberCount'] as num?)?.toInt() ?? 0;
+                    final lastMsgTime =
+                        group['LastMessageTime']?.toString() ?? '';
+                    final lastMsg = group['LastMessage']?.toString() ?? '';
+                    final avatarLetter = groupName.isNotEmpty
+                        ? groupName[0].toUpperCase()
+                        : 'G';
+                    final timeLabel = _fmtTime(
+                      lastMsgTime.isNotEmpty ? lastMsgTime : null,
+                    );
+
+                    return _previewChatTile(
+                      avatarLetter: avatarLetter,
+                      avatarColor: const Color(0xFF1565C0),
+                      title: groupName,
+                      subtitle: lastMsg.isNotEmpty
+                          ? lastMsg
+                          : "$memberCount member${memberCount == 1 ? '' : 's'}",
+                      timeLabel: timeLabel,
+                      unreadCount: 0,
+                      isLast: idx == _previewGroups.length - 1,
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            settings: const RouteSettings(
+                              name: 'ChatListScreen',
                             ),
-                            SizedBox(width: 10),
-                            Text("Open Chat", style: TextStyle(fontSize: 14)),
-                          ],
+                            builder: (_) => const ChatListScreen(),
+                          ),
+                        );
+                        _loadChatPreview();
+                      },
+                    );
+                  }),
+                ],
+
+                // â”€â”€ "View all" footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                GestureDetector(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        settings: const RouteSettings(name: 'ChatListScreen'),
+                        builder: (_) => const ChatListScreen(),
+                      ),
+                    );
+                    _loadChatPreview();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? const Color(0xFF0F1923)
+                          : const Color(0xFFF5F5F5),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(20),
+                      ),
+                      border: Border(
+                        top: BorderSide(color: Colors.grey.withOpacity(0.15)),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "View all chats â†’",
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF075E54),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // â”€â”€ Loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          if (_chatPreviewLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
-          // â”€â”€ Empty state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          else if (isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline_rounded,
-                    size: 40,
-                    color: Colors.grey.withOpacity(0.4),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "No chats yet",
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            // â”€â”€ Individual Chats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if (hasChallans) ...[
-              _previewSectionHeader(
-                icon: Icons.person_outline,
-                label: "Individual Chats",
-              ),
-              ..._previewChallans.map((challan) {
-                final challanId = challan['sp_462']?.toString() ?? '';
-                final challanNo = challan['sp_468']?.toString() ?? '';
-                final customerName = challan['sp_469']?.toString() ?? '';
-                final meta = _previewMeta[challanId];
-                final lastMsg = meta?.lastMessage ?? '';
-                final unread = meta?.unreadCount ?? 0;
-                final timeLabel = _fmtTime(meta?.lastTime);
-                final avatarLetter = customerName.isNotEmpty
-                    ? customerName[0].toUpperCase()
-                    : 'C';
-
-                return _previewChatTile(
-                  avatarLetter: avatarLetter,
-                  avatarColor: const Color(0xFF075E54),
-                  title: customerName.isNotEmpty
-                      ? customerName
-                      : "Challan #$challanNo",
-                  subtitle: lastMsg.isNotEmpty
-                      ? lastMsg
-                      : "Challan #$challanNo",
-                  timeLabel: timeLabel,
-                  unreadCount: unread,
-                  isLast: _previewChallans.last == challan && !hasGroups,
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        settings: const RouteSettings(name: 'ChatListScreen'),
-                        builder: (_) => const ChatListScreen(),
-                      ),
-                    );
-                    _loadChatPreview();
-                  },
-                );
-              }),
-            ],
-
-            // â”€â”€ Groups â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if (hasGroups) ...[
-              _previewSectionHeader(
-                icon: Icons.groups_outlined,
-                label: "Groups",
-              ),
-              ..._previewGroups.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final group = entry.value;
-                final groupId = group['GroupId']?.toString() ?? '';
-                final groupName = group['GroupName']?.toString() ?? 'Group';
-                final memberCount =
-                    (group['MemberCount'] as num?)?.toInt() ?? 0;
-                final lastMsgTime = group['LastMessageTime']?.toString() ?? '';
-                final lastMsg = group['LastMessage']?.toString() ?? '';
-                final avatarLetter = groupName.isNotEmpty
-                    ? groupName[0].toUpperCase()
-                    : 'G';
-                final timeLabel = _fmtTime(
-                  lastMsgTime.isNotEmpty ? lastMsgTime : null,
-                );
-
-                return _previewChatTile(
-                  avatarLetter: avatarLetter,
-                  avatarColor: const Color(0xFF1565C0),
-                  title: groupName,
-                  subtitle: lastMsg.isNotEmpty
-                      ? lastMsg
-                      : "$memberCount member${memberCount == 1 ? '' : 's'}",
-                  timeLabel: timeLabel,
-                  unreadCount: 0,
-                  isLast: idx == _previewGroups.length - 1,
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        settings: const RouteSettings(name: 'ChatListScreen'),
-                        builder: (_) => const ChatListScreen(),
-                      ),
-                    );
-                    _loadChatPreview();
-                  },
-                );
-              }),
-            ],
-
-            // â”€â”€ "View all" footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            GestureDetector(
-              onTap: () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    settings: const RouteSettings(name: 'ChatListScreen'),
-                    builder: (_) => const ChatListScreen(),
-                  ),
-                );
-                _loadChatPreview();
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF0F1923)
-                      : const Color(0xFFF5F5F5),
-                  borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(20),
-                  ),
-                  border: Border(
-                    top: BorderSide(color: Colors.grey.withOpacity(0.15)),
-                  ),
-                ),
-                child: const Center(
-                  child: Text(
-                    "View all chats â†’",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF075E54),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
-        ],
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1736,6 +1829,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _statCard({
+    required String cardId,
     required IconData icon,
     required String label,
     required String value,
@@ -1743,90 +1837,95 @@ class _HomeScreenState extends State<HomeScreen>
     required Color accentColor,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+    return RgbBorderCard(
+      borderRadius: 20,
+      intense: _isHighlighted(cardId),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          onLongPress: () => _toggleHighlight(cardId),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: gradient,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: gradient[0].withOpacity(0.45),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: gradient[0].withOpacity(0.45),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.22),
-                      borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 20),
                     ),
-                    child: Icon(icon, color: Colors.white, size: 20),
-                  ),
 
-                  Row(
-                    children: [
-                      Text(
-                        value,
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          height: 1,
+                    Row(
+                      children: [
+                        Text(
+                          value,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                            height: 1,
+                          ),
                         ),
-                      ),
 
-                      const SizedBox(width: 5),
+                        const SizedBox(width: 5),
 
-                      const Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        color: Colors.white70,
-                        size: 14,
-                      ),
-                    ],
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white70,
+                          size: 14,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 14),
+
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.88),
+                    letterSpacing: 0.2,
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withOpacity(0.88),
-                  letterSpacing: 0.2,
                 ),
-              ),
 
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
 
-              Container(
-                height: 3,
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(4),
+                Container(
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1942,8 +2041,8 @@ class _HomeScreenState extends State<HomeScreen>
           final dialogWidth = isTabletOrLarge
               ? (screenW * 0.55).clamp(520.0, 680.0)
               : isNarrow
-                  ? double.infinity
-                  : 480.0;
+              ? double.infinity
+              : 480.0;
 
           return Dialog(
             backgroundColor: Colors.transparent,
@@ -1952,28 +2051,25 @@ class _HomeScreenState extends State<HomeScreen>
               horizontal: isTabletOrLarge
                   ? screenW * 0.18
                   : isNarrow
-                      ? 12
-                      : 40,
+                  ? 12
+                  : 40,
               vertical: isTabletOrLarge ? screenH * 0.06 : 24,
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxHeight: screenH * (isTabletOrLarge ? 0.82 : 0.88),
               ),
-              child: Container(
-                width: dialogWidth,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF4A148C).withOpacity(0.22),
-                      blurRadius: 40,
-                      offset: const Offset(0, 16),
-                    ),
-                  ],
-                ),
-                child: Column(
+              child: RgbBorderCard(
+                borderRadius: 24,
+                glow: true,
+                intense: false,
+                child: Container(
+                  width: dialogWidth,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // ── Gradient header ───────────────────────────────
@@ -2650,6 +2746,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
               ),
+              ),
             ),
           );
         },
@@ -2658,6 +2755,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _dashCard({
+    required String cardId,
     required IconData icon,
     required String label,
     required String subtitle,
@@ -2667,6 +2765,7 @@ class _HomeScreenState extends State<HomeScreen>
   }) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: () => _toggleHighlight(cardId),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Scale down elements when card is narrow (e.g. three cards on small screen)
@@ -2707,86 +2806,90 @@ class _HomeScreenState extends State<HomeScreen>
               ? 10.0
               : 11.0;
 
-          return Container(
-            padding: EdgeInsets.all(pad),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: gradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          return RgbBorderCard(
+            borderRadius: 22,
+            intense: _isHighlighted(cardId),
+            child: Container(
+              padding: EdgeInsets.all(pad),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(22),
+                boxShadow: [
+                  BoxShadow(
+                    color: gradient[0].withOpacity(0.4),
+                    blurRadius: 18,
+                    offset: const Offset(0, 7),
+                  ),
+                ],
               ),
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: gradient[0].withOpacity(0.4),
-                  blurRadius: 18,
-                  offset: const Offset(0, 7),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Icon bubble
-                    Container(
-                      width: iconSize,
-                      height: iconSize,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Icon bubble
+                      Container(
+                        width: iconSize,
+                        height: iconSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(icon, color: Colors.white, size: iconInner),
                       ),
-                      child: Icon(icon, color: Colors.white, size: iconInner),
+                      // Arrow chip
+                      Container(
+                        width: arrowSize,
+                        height: arrowSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: arrowIconSize,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: w < 100 ? 8 : 18),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: labelSize,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.3,
                     ),
-                    // Arrow chip
-                    Container(
-                      width: arrowSize,
-                      height: arrowSize,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: arrowIconSize,
-                        color: Colors.white,
-                      ),
+                  ),
+                  SizedBox(height: w < 100 ? 2 : 4),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: subSize,
+                      color: Colors.white.withOpacity(0.78),
+                      height: 1.3,
                     ),
-                  ],
-                ),
-                SizedBox(height: w < 100 ? 8 : 18),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: labelSize,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.3,
                   ),
-                ),
-                SizedBox(height: w < 100 ? 2 : 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: subSize,
-                    color: Colors.white.withOpacity(0.78),
-                    height: 1.3,
+                  SizedBox(height: w < 100 ? 8 : 14),
+                  // Bottom accent bar
+                  Container(
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: accentColor.withOpacity(0.6),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
-                ),
-                SizedBox(height: w < 100 ? 8 : 14),
-                // Bottom accent bar
-                Container(
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.6),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },
@@ -3598,47 +3701,47 @@ class _AiGlobeButtonState extends State<_AiGlobeButton>
           animation: _ctrl,
           builder: (_, __) => ClipOval(
             child: Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const RadialGradient(
-                center: Alignment(-0.3, -0.3),
-                radius: 0.9,
-                colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  center: Alignment(-0.3, -0.3),
+                  radius: 0.9,
+                  colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFb040ff).withOpacity(0.55),
+                    blurRadius: 18,
+                    spreadRadius: 0,
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF00d4ff).withOpacity(0.35),
+                    blurRadius: 12,
+                    spreadRadius: 0,
+                  ),
+                ],
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFb040ff).withOpacity(0.55),
-                  blurRadius: 18,
-                  spreadRadius: 0,
-                ),
-                BoxShadow(
-                  color: const Color(0xFF00d4ff).withOpacity(0.35),
-                  blurRadius: 12,
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: CustomPaint(
-              painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
-              child: const Center(
-                child: Text(
-                  'AI',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.5,
-                    shadows: [
-                      Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
-                      Shadow(color: Color(0xFFb040ff), blurRadius: 18),
-                    ],
+              child: CustomPaint(
+                painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
+                child: const Center(
+                  child: Text(
+                    'AI',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.5,
+                      shadows: [
+                        Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
+                        Shadow(color: Color(0xFFb040ff), blurRadius: 18),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
           ),
         ),
       ),

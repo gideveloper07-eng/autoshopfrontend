@@ -6,6 +6,7 @@ import 'branch_booking_details_screen.dart';
 import 'BranchSaleDetailsScreen.dart';
 import 'modelwise_summary_screen.dart';
 import 'scwise_summary_screen.dart';
+import '../home/rgb_border_card.dart';
 
 class BranchwiseDetailsScreen extends StatefulWidget {
   final String reportType;
@@ -391,121 +392,109 @@ class _BranchwiseDetailsScreenState extends State<BranchwiseDetailsScreen> {
     final branchId = branch['branchId']?.toString() ?? "";
     final count = (branch['count'] as num?)?.toInt() ?? 0;
 
-    // Only booking type supports drill-down for now
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+      child: RgbBorderCard(
+        borderRadius: 18,
+        borderWidth: 1.8,
+        duration: const Duration(seconds: 4),
+        glow: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(18),
           ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => _isBooking
-                    ? BranchBookingDetailsScreen(
-                        branchName: branchName,
-                        branchId: branchId,
-                        period: widget.period,
-                        bookingCount: count,
-                      )
-                    : BranchSaleDetailsScreen(
-                        branchName: branchName,
-                        branchId: branchId,
-                        period: widget.period,
-                        saleCount: count,
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => _isBooking
+                        ? BranchBookingDetailsScreen(
+                            branchName: branchName,
+                            branchId: branchId,
+                            period: widget.period,
+                            bookingCount: count,
+                          )
+                        : BranchSaleDetailsScreen(
+                            branchName: branchName,
+                            branchId: branchId,
+                            period: widget.period,
+                            saleCount: count,
+                          ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(15),
                       ),
-              ),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Icon box
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Icon(
-                    _isBooking
-                        ? Icons.bookmark_added_rounded
-                        : Icons.sell_rounded,
-                    color: primaryColor,
-                  ),
-                ),
-
-                const SizedBox(width: 15),
-
-                // Branch name + count label
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        branchName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
+                      child: Icon(
+                        _isBooking
+                            ? Icons.bookmark_added_rounded
+                            : Icons.sell_rounded,
+                        color: primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            branchName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            _isBooking
+                                ? "$count ${count == 1 ? 'Booking' : 'Bookings'}"
+                                : "$count ${count == 1 ? 'Sale' : 'Sales'}",
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        count.toString(),
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontSize: 17,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 7),
-                      Text(
-                        _isBooking
-                            ? "$count ${count == 1 ? 'Booking' : 'Bookings'}"
-                            : "$count ${count == 1 ? 'Sale' : 'Sales'}",
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Count badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: primaryColor.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: TextStyle(
-                      color: primaryColor,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: primaryColor.withOpacity(0.5),
+                      size: 22,
+                    ),
+                  ],
                 ),
-
-                // Chevron — only for booking drill-down
-                const SizedBox(width: 6),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: primaryColor.withOpacity(0.5),
-                  size: 22,
-                ),
-              ],
+              ),
             ),
           ),
         ),

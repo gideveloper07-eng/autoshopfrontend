@@ -138,13 +138,6 @@ class _PerformanceTrendsSectionState extends State<PerformanceTrendsSection>
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: AnimatedSize(
         duration: const Duration(milliseconds: 350),
