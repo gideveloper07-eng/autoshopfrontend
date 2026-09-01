@@ -1058,9 +1058,9 @@ class _HomeScreenState extends State<HomeScreen>
                                 growth: _saleGrowth,
                                 trend: _saleTrend,
                                 gradient: const [
-                                  Color(0xFF1B5E20),
-                                  Color(0xFF2E7D32),
-                                  Color(0xFF43A047),
+                                  Color(0xFF1A237E),
+                                  Color(0xFF283593),
+                                  Color(0xFF3949AB),
                                 ],
                                 onPerformanceTap: () {
                                   Navigator.push(

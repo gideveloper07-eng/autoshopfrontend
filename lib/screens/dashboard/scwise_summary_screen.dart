@@ -23,7 +23,7 @@ class _SCwiseSummaryScreenState extends State<SCwiseSummaryScreen> {
   int _total = 0;
   List<Map<String, dynamic>> _scs = [];
 
-  static const Color _primaryColor = Color(0xFF2E7D32);
+  static const Color _primaryColor = Color(0xFF3949AB);
 
   @override
   void initState() {
@@ -155,8 +155,8 @@ class _SCwiseSummaryScreenState extends State<SCwiseSummaryScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0A3A20), const Color(0xFF2A5A30)]
-              : [const Color(0xFF1B5E20), const Color(0xFF43A047)],
+              ? [const Color(0xFF1A237E), const Color(0xFF283593)]
+              : [const Color(0xFF1A237E), const Color(0xFF3949AB)],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(28),

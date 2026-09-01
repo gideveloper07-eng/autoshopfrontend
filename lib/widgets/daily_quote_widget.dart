@@ -203,13 +203,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
-                const Icon(
-                  Icons.format_quote_rounded,
-                  color: Colors.white70,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-
                 Expanded(
                   child: AnimatedBuilder(
                     animation: _slideController,
@@ -251,27 +244,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
                 ),
 
                 const SizedBox(width: 8),
-
-                if (_quotes.length > 1) ...[
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: List.generate(_quotes.length, (i) {
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        margin: const EdgeInsets.symmetric(vertical: 2),
-                        width: 5,
-                        height: i == _currentIndex ? 12 : 5,
-                        decoration: BoxDecoration(
-                          color: i == _currentIndex
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(width: 8),
-                ],
 
                 GestureDetector(
                   onTap: () {

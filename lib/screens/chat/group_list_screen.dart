@@ -24,31 +24,78 @@ class _GroupListScreenState extends State<GroupListScreen> {
   }
 
   Future<void> _loadGroups() async {
-    // ── Step 1: Show cached groups immediately ────────────────────────────
-    final cached = await CacheService.getList(CacheService.keyGroups);
+    // ============================================================
+    // GET CURRENT LOGIN COMPANY
+    // ============================================================
+
+    final session = await ApiService.getUserSession();
+
+    final companyCode = session?['companyCode']?.toString().trim() ?? '';
+
+    // ============================================================
+    // COMPANY-SPECIFIC CACHE
+    // ============================================================
+    // Example:
+    // Tata  -> groups_TATA
+    // KAN   -> groups_N3201
+    // ============================================================
+
+    final groupCacheKey = '${CacheService.keyGroups}_$companyCode';
+
+    debugPrint("======================================");
+    debugPrint("GROUP LIST");
+    debugPrint("Company Code : $companyCode");
+    debugPrint("Cache Key    : $groupCacheKey");
+    debugPrint("======================================");
+
+    // ============================================================
+    // STEP 1: LOAD CACHE FOR CURRENT COMPANY ONLY
+    // ============================================================
+
+    final cached = await CacheService.getList(groupCacheKey);
+
     if (cached != null && cached.isNotEmpty && mounted) {
       setState(() {
         _groups = cached;
         _loading = false;
       });
     } else {
-      setState(() => _loading = true);
+      if (mounted) {
+        setState(() => _loading = true);
+      }
     }
 
-    // ── Step 2: Fetch fresh from backend ──────────────────────────────────
+    // ============================================================
+    // STEP 2: GET FRESH DATA FROM SERVER
+    // ============================================================
+
     try {
       final data = await ApiService.getMyGroups();
-      if (data.isNotEmpty) {
-        await CacheService.setList(CacheService.keyGroups, data);
-      }
+
+      debugPrint("FRESH GROUP COUNT: ${data.length}");
+
+      // ==========================================================
+      // STEP 3: SAVE TO CURRENT COMPANY CACHE
+      // ==========================================================
+
+      await CacheService.setList(groupCacheKey, data);
+
+      // ==========================================================
+      // STEP 4: DISPLAY FRESH DATA
+      // ==========================================================
+
       if (mounted) {
         setState(() {
           _groups = data;
           _loading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } catch (e) {
+      debugPrint("GET GROUPS ERROR: $e");
+
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

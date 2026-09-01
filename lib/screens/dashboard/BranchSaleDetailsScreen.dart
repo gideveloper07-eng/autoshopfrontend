@@ -31,7 +31,7 @@ class _BranchSaleDetailsScreenState extends State<BranchSaleDetailsScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.94);
 
   int _currentPage = 0;
-  static const Color _primary = Color(0xFF1565C0);
+  static const Color _primary = Color(0xFF3949AB);
   @override
   void dispose() {
     _pageController.dispose();
@@ -127,7 +127,7 @@ class _BranchSaleDetailsScreenState extends State<BranchSaleDetailsScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.colorScheme.primary,
+        backgroundColor: const Color(0xFF3949AB),
         foregroundColor: Colors.white,
         elevation: 0,
         title: Column(
@@ -240,8 +240,8 @@ class _BranchSaleDetailsScreenState extends State<BranchSaleDetailsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0A2A5C), const Color(0xFF1A4A8C)]
-              : [const Color(0xFF0A3D8F), const Color(0xFF1E88E5)],
+              ? [const Color(0xFF1A237E), const Color(0xFF283593)]
+              : [const Color(0xFF1A237E), const Color(0xFF3949AB)],
         ),
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(24),

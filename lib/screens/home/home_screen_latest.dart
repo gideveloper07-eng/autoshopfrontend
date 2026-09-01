@@ -760,9 +760,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           growth: _saleGrowth,
                           trend: _saleTrend, // replace later with API
                           gradient: const [
-                            Color(0xFF1B5E20),
-                            Color(0xFF2E7D32),
-                            Color(0xFF43A047),
+                            Color(0xFF006064),
+                            Color(0xFF0097A7),
+                            Color(0xFF00BCD4),
                           ],
                           onTodayTap: () {
                             Navigator.push(

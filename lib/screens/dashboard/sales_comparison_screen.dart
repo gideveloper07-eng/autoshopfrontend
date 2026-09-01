@@ -10,11 +10,11 @@ class SalesComparisonScreen extends StatefulWidget {
 }
 
 class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
-  static const Color _primary = Color(0xFF1B5E20);
+  static const Color _primary = Color(0xFF3949AB);
   static const List<Color> _gradient = [
-    Color(0xFF1B5E20),
-    Color(0xFF2E7D32),
-    Color(0xFF43A047),
+    Color(0xFF1A237E),
+    Color(0xFF283593),
+    Color(0xFF3949AB),
   ];
 
   static const _periods = [
@@ -109,20 +109,7 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
   }
 
   Color _periodAccent(String key) {
-    switch (key) {
-      case 'today_vs_yesterday':
-        return const Color(0xFF00B894);
-      case 'thisweek_vs_lastweek':
-        return const Color(0xFF2F80ED);
-      case 'thismonth_vs_lastmonth':
-        return const Color(0xFF7652F8);
-      case 'thisquarter_vs_lastquarter':
-        return const Color(0xFFFF9F1A);
-      case 'thisyear_vs_lastyear':
-        return const Color(0xFF8E44AD);
-      default:
-        return _primary;
-    }
+    return _primary;
   }
 
   @override
@@ -253,7 +240,6 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
     final row = _data[periodKey] ?? {};
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final accent = _periodAccent(periodKey);
 
     final currentCount = (row['CurrentSaleCount'] as num?)?.toInt() ?? 0;
     final previousCount = (row['PreviousSaleCount'] as num?)?.toInt() ?? 0;
@@ -266,146 +252,149 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
     final currentLabel = _currentLabel(periodKey);
     final previousLabel = _previousLabel(periodKey);
 
-    final cardFill = isDark
-        ? Color.alphaBlend(accent.withOpacity(0.16), theme.cardColor)
-        : Color.alphaBlend(accent.withOpacity(0.08), theme.cardColor);
-
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: RgbBorderCard(
-        borderRadius: 24,
+        borderRadius: 16,
         borderWidth: 2.0,
         glow: true,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [cardFill, theme.cardColor],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
+            color: isDark ? theme.cardColor : Colors.white,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header row ──────────────────────────────────────────────
-            Row(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: accent.withOpacity(0.14),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: accent.withOpacity(0.25)),
-                  ),
-                  child: Icon(icon, color: accent, size: 20),
+                // ── Header row ──────────────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: _primary.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: _primary, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: isDark ? Colors.white : const Color(0xFF1A1A2E),
+                        ),
+                      ),
+                    ),
+                    if (isLoading)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: _primary,
+                        ),
+                      )
+                    else if (growthPct != null)
+                      _GrowthBadge(value: growthPct),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      color: isDark ? Colors.white : const Color(0xFF183C35),
-                    ),
-                  ),
-                ),
-                if (isLoading)
-                  SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: accent,
-                    ),
-                  )
-                else if (growthPct != null)
-                  _GrowthBadge(value: growthPct),
-              ],
-            ),
 
-            const SizedBox(height: 14),
-
-            if (error != null)
-              Text(
-                'Failed to load',
-                style: TextStyle(color: Colors.red[400], fontSize: 13),
-              )
-            else if (isLoading)
-              _skeletonRow()
-            else ...[
-              // ── Current vs Previous count row ───────────────────────
-              Row(
-                children: [
-                  Expanded(
-                    child: _metricBox(
-                      label: currentLabel,
-                      topLine: '$currentCount units',
-                      bottomLine: _formatValue(currentValue),
-                      color: accent,
-                      isDark: isDark,
-                    ),
+                if (error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Failed to load',
+                    style: TextStyle(color: Colors.red[400], fontSize: 13),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _metricBox(
-                      label: previousLabel,
-                      topLine: '$previousCount units',
-                      bottomLine: _formatValue(previousValue),
-                      color: Colors.grey,
-                      isDark: isDark,
+                ] else if (!isLoading) ...[
+                  const SizedBox(height: 14),
+                  const Divider(height: 1),
+                  const SizedBox(height: 14),
+
+                  // ── Current vs Previous row ──────────────────────────
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _metricBox(
+                          label: currentLabel,
+                          topLine: '$currentCount units',
+                          bottomLine: _formatValue(currentValue),
+                          color: _primary,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _metricBox(
+                          label: previousLabel,
+                          topLine: '$previousCount units',
+                          bottomLine: _formatValue(previousValue),
+                          color: Colors.grey,
+                          isDark: isDark,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // ── Change summary ───────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _growthColor(valueDiff).withOpacity(
+                        isDark ? 0.12 : 0.07,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _growthColor(valueDiff).withOpacity(0.20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.trending_up_rounded,
+                          color: _growthColor(valueDiff),
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Change: ${countDiff >= 0 ? '+' : ''}$countDiff units  |  ${_formatValueSigned(valueDiff)}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _growthColor(valueDiff),
+                            ),
+                          ),
+                        ),
+                        if (growthPct != null)
+                          Text(
+                            _formatGrowth(growthPct),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              color: _growthColor(growthPct),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],
-              ),
-
-              const SizedBox(height: 10),
-
-              // ── Difference summary row ───────────────────────────────
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: accent.withOpacity(isDark ? 0.12 : 0.07),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: accent.withOpacity(0.20)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.trending_up_rounded, color: accent, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Change: ${countDiff >= 0 ? '+' : ''}$countDiff units  |  ${_formatValueSigned(valueDiff)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: _growthColor(valueDiff),
-                        ),
-                      ),
-                    ),
-                    if (growthPct != null)
-                      Text(
-                        _formatGrowth(growthPct),
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w900,
-                          color: _growthColor(growthPct),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ],
+              ],
+            ),
+          ),
         ),
       ),
-    ),
-    ),
-  );
+    );
   }
 
   String _currentLabel(String key) {
@@ -462,9 +451,9 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.14 : 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
+        color: isDark ? color.withOpacity(0.10) : Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,26 +461,25 @@ class _SalesComparisonScreenState extends State<SalesComparisonScreen> {
           Text(
             label,
             style: TextStyle(
-              color: color,
+              color: isDark ? Colors.white54 : Colors.grey.shade500,
               fontSize: 10,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             topLine,
-            style: TextStyle(
-              color: isDark ? Colors.white : const Color(0xFF183C35),
+            style: const TextStyle(
+              color: Color(0xFF3949AB),
               fontSize: 18,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             bottomLine,
-            style: TextStyle(
-              color: color,
+            style: const TextStyle(
+              color: Color(0xFF3949AB),
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),

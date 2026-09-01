@@ -29,7 +29,7 @@ class _SCSaleDetailsScreenState extends State<SCSaleDetailsScreen> {
   int _currentPage = 0;
   late final PageController _pageController;
 
-  static const Color _primary = Color(0xFF2E7D32);
+  static const Color _primary = Color(0xFF3949AB);
 
   @override
   void initState() {
@@ -160,8 +160,8 @@ class _SCSaleDetailsScreenState extends State<SCSaleDetailsScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0A3A20), const Color(0xFF2A5A30)]
-              : [const Color(0xFF1B5E20), const Color(0xFF43A047)],
+              ? [const Color(0xFF1A237E), const Color(0xFF283593)]
+              : [const Color(0xFF1A237E), const Color(0xFF3949AB)],
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(24),
@@ -310,7 +310,7 @@ class _SCSaleDetailsScreenState extends State<SCSaleDetailsScreen> {
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [const Color(0xFF222222), const Color(0xFF111111)]
-                    : [Colors.white, const Color(0xFFF4FFF6)],
+                    : [Colors.white, const Color(0xFFF4FBFF)],
               ),
             ),
             child: SingleChildScrollView(

@@ -30,7 +30,7 @@ class _ModelwiseSummaryScreenState extends State<ModelwiseSummaryScreen> {
   bool get _isBooking => widget.reportType.toLowerCase() == 'booking';
 
   Color get _primaryColor =>
-      _isBooking ? const Color(0xFF1565C0) : const Color(0xFF2E7D32);
+      _isBooking ? const Color(0xFF1565C0) : const Color(0xFF3949AB);
 
   @override
   void initState() {
@@ -178,8 +178,8 @@ class _ModelwiseSummaryScreenState extends State<ModelwiseSummaryScreen> {
                   ? [const Color(0xFF0A2A5C), const Color(0xFF1A4A8C)]
                   : [const Color(0xFF0A3D8F), const Color(0xFF1E88E5)])
               : (isDark
-                  ? [const Color(0xFF0A3A20), const Color(0xFF2A5A30)]
-                  : [const Color(0xFF1B5E20), const Color(0xFF43A047)]),
+                  ? [const Color(0xFF1A237E), const Color(0xFF283593)]
+                  : [const Color(0xFF1A237E), const Color(0xFF3949AB)]),
         ),
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(28),

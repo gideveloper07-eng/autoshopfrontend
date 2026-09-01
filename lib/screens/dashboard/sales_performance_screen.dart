@@ -10,11 +10,12 @@ class SalesPerformanceScreen extends StatefulWidget {
 }
 
 class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
-  static const Color _primary = Color(0xFF1B5E20);
+  static const Color _primary = Color(0xFF1A237E);
+  static const Color _headerColor = Color(0xFF3949AB);
   static const List<Color> _gradient = [
-    Color(0xFF1B5E20),
-    Color(0xFF2E7D32),
-    Color(0xFF43A047),
+    Color(0xFF1A237E),
+    Color(0xFF283593),
+    Color(0xFF3949AB),
   ];
 
   static const _periods = [
@@ -33,11 +34,17 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
     },
   ];
 
-  static const Color _todayColor = Color(0xFF00B894);
-  static const Color _yesterdayColor = Color(0xFFFF9F1A);
-  static const Color _weekColor = Color(0xFF2F80ED);
-  static const Color _monthColor = Color(0xFF7652F8);
-  static const Color _yearColor = Color(0xFF8E44AD);
+  static const Color _todayColor = Color(0xFF4CAF50);
+  static const Color _yesterdayColor = Color(0xFF2196F3);
+  static const Color _weekColor = Color(0xFF9C27B0);
+  static const Color _monthColor = Color(0xFFFF9800);
+  static const Color _yearColor = Color(0xFFE91E63);
+
+  static const Color _todayCardColor = Color(0xFFE8F5E9);
+  static const Color _yesterdayCardColor = Color(0xFFE3F2FD);
+  static const Color _weekCardColor = Color(0xFFF3E5F5);
+  static const Color _monthCardColor = Color(0xFFFFF3E0);
+  static const Color _yearCardColor = Color(0xFFFCE4EC);
 
   // per-period state
   final Map<String, Map<String, dynamic>> _data = {};
@@ -98,7 +105,11 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
       appBar: AppBar(
         elevation: 0,
         foregroundColor: Colors.white,
-        backgroundColor: _primary,
+        backgroundColor: _headerColor,
+        leading: IconButton(
+          icon: const Icon(Icons.menu_rounded),
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
         title: const Text(
           'Sales Performance',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -150,73 +161,18 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.trending_up_rounded,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 14),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Sales Performance',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Units sold & revenue across periods',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 7,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
-                  ),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.auto_awesome_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Live Dashboard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const Text(
+            'Sales Performance',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Units sold & revenue across periods',
+            style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
       ),
@@ -237,149 +193,141 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
     final saleCount = (row['saleCount'] as num?)?.toInt() ?? 0;
     final saleValue = (row['saleValue'] as num?)?.toDouble() ?? 0.0;
     final accent = _periodAccent(key);
-    final cardFill = isDark
-        ? Color.alphaBlend(accent.withValues(alpha: 0.16), theme.cardColor)
-        : Color.alphaBlend(accent.withValues(alpha: 0.08), theme.cardColor);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       child: RgbBorderCard(
-        borderRadius: 24,
+        borderRadius: 16,
         borderWidth: 2.0,
         glow: true,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [cardFill, theme.cardColor],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24),
+            color: isDark ? theme.cardColor : Colors.white,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: accent.withValues(alpha: 0.25)),
-                  ),
-                  child: Icon(icon, color: accent, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF183C35),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _periodSubtitle(key),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: accent,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (isLoading)
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: _primary,
-                    ),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(color: accent.withValues(alpha: 0.25)),
-                    ),
-                    child: Text(
-                      'LIVE',
-                      style: TextStyle(
-                        color: accent,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.7,
-                      ),
-                    ),
-                  ),
-              ],
+            // Icon
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: accent, size: 24),
             ),
+            const SizedBox(width: 14),
 
-            const SizedBox(height: 14),
-
-            if (error != null)
-              Text(
-                'Failed to load',
-                style: TextStyle(color: Colors.red[400], fontSize: 13),
-              )
-            else if (isLoading)
-              Row(
+            // Label + subtitle
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _skeleton(80, 44),
-                  const SizedBox(width: 12),
-                  _skeleton(130, 44),
-                ],
-              )
-            else
-              Row(
-                children: [
-                  Expanded(
-                    child: _metricBox(
-                      icon: Icons.directions_car_rounded,
-                      label: 'Units Sold',
-                      value: saleCount.toString(),
-                      color: accent,
-                      isDark: isDark,
-                      hasBg: true,
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A2E),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _metricBox(
-                      icon: Icons.currency_rupee_rounded,
-                      label: 'Revenue',
-                      value: _formatValue(saleValue),
-                      color: const Color(0xFF3B4CA8),
-                      isDark: isDark,
-                      hasBg: true,
+                  const SizedBox(height: 3),
+                  Text(
+                    _periodSubtitle(key),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark ? Colors.white54 : Colors.grey.shade500,
                     ),
                   ),
                 ],
               ),
+            ),
+
+            // Units Sold
+            if (isLoading)
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2, color: _primary),
+              )
+            else if (error != null)
+              Text('—', style: TextStyle(color: Colors.red[300], fontSize: 13))
+            else ...[
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Units Sold',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark ? Colors.white54 : Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    saleCount.toString(),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF3949AB),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 20),
+
+              // Revenue
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Revenue',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark ? Colors.white54 : Colors.grey.shade500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatValue(saleValue),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF3949AB),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 12),
+
+              // LIVE badge
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: accent.withValues(alpha: 0.30)),
+                ),
+                child: Text(
+                  'LIVE',
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
-    ),
-    ),
-  );
+        ),
+      ),
+    );
   }
 
   Color _periodAccent(String key) {
@@ -396,6 +344,23 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
         return _yearColor;
       default:
         return _primary;
+    }
+  }
+
+  Color _periodCardColor(String key) {
+    switch (key) {
+      case 'today':
+        return _todayCardColor;
+      case 'yesterday':
+        return _yesterdayCardColor;
+      case 'thisweek':
+        return _weekCardColor;
+      case 'thismonth':
+        return _monthCardColor;
+      case 'thisfinancialyear':
+        return _yearCardColor;
+      default:
+        return _todayCardColor;
     }
   }
 
@@ -427,17 +392,9 @@ class _SalesPerformanceScreenState extends State<SalesPerformanceScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        gradient: hasBg
-            ? LinearGradient(
-                colors: [
-                  color.withValues(alpha: isDark ? 0.20 : 0.12),
-                  color.withValues(alpha: isDark ? 0.03 : 0.38),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
-        color: hasBg ? null : color.withValues(alpha: isDark ? 0.15 : 0.07),
+        color: isDark 
+            ? color.withValues(alpha: 0.15)
+            : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.30)),
       ),
