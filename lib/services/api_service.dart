@@ -2750,6 +2750,292 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getCombinedReceipts() async {
+    try {
+      // ==================================================
+      // AUTHENTICATION
+      // ==================================================
+
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        print("❌ COMBINED RECEIPT: NO TOKEN");
+        throw Exception("Authentication token missing");
+      }
+
+      // ==================================================
+      // API URL
+      // ==================================================
+
+      final url = "$baseUrl/api/challan/receipt/combined";
+
+      print("");
+      print("==============================================");
+      print("       COMBINED RECEIPT API DEBUG");
+      print("==============================================");
+      print("URL        : $url");
+      print("TOKEN      : ${token.substring(0, 20)}...");
+      print("==============================================");
+
+      // ==================================================
+      // API REQUEST
+      // ==================================================
+
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      // ==================================================
+      // RESPONSE DEBUG
+      // ==================================================
+
+      print("");
+      print("========== COMBINED RECEIPT RESPONSE ==========");
+      print("STATUS CODE : ${response.statusCode}");
+      print("BODY        : ${response.body}");
+      print("===============================================");
+
+      // ==================================================
+      // HTTP ERROR
+      // ==================================================
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          "Combined Receipt API failed: "
+          "HTTP ${response.statusCode}\n"
+          "${response.body}",
+        );
+      }
+
+      // ==================================================
+      // JSON PARSE
+      // ==================================================
+
+      final body = jsonDecode(response.body);
+
+      print("SUCCESS     : ${body["success"]}");
+      print("DATA TYPE   : ${body["data"].runtimeType}");
+      print("DATA        : ${body["data"]}");
+
+      // ==================================================
+      // API SUCCESS CHECK
+      // ==================================================
+
+      if (body["success"] != true) {
+        throw Exception(
+          body["message"]?.toString() ?? "API returned success=false",
+        );
+      }
+
+      // ==================================================
+      // DATA TYPE CHECK
+      // ==================================================
+
+      if (body["data"] is! List) {
+        throw Exception(
+          "API data is not a List. "
+          "Actual type: ${body["data"].runtimeType}",
+        );
+      }
+
+      // ==================================================
+      // CONVERT API DATA
+      // ==================================================
+
+      final List<dynamic> data = body["data"];
+
+      print("ROW COUNT   : ${data.length}");
+
+      final result = data.map<Map<String, dynamic>>((item) {
+        return Map<String, dynamic>.from(item as Map);
+      }).toList();
+
+      // ==================================================
+      // FINAL DEBUG
+      // ==================================================
+
+      print("PARSED ROWS  : ${result.length}");
+
+      if (result.isNotEmpty) {
+        final first = result.first;
+
+        print("");
+        print("========== FIRST RECEIPT ==========");
+        print("Receipt ID   : ${first["receipt_id"]}");
+        print("Receipt No   : ${first["receipt_no"]}");
+        print("Receipt Date : ${first["receipt_date"]}");
+        print("Customer     : ${first["customer_name"]}");
+        print("Request Date : ${first["request_date"]}");
+        print("Request ID   : ${first["request_id"]}");
+        print("Request Type : ${first["request_type"]}");
+        print("Value From   : ${first["value_from"]}");
+        print("Value To     : ${first["value_to"]}");
+        print("Status       : ${first["Status"]}");
+        print("Reason       : ${first["Reason"]}");
+        print("==================================");
+      }
+
+      return result;
+    } catch (e, stackTrace) {
+      print("");
+      print("❌❌❌ COMBINED RECEIPT ERROR ❌❌❌");
+      print("ERROR: $e");
+      print("");
+      print("STACK TRACE:");
+      print(stackTrace);
+      print("==============================================");
+
+      rethrow;
+    }
+  }
+  // ==========================================================
+  // UPDATE RECEIPT REQUEST
+  // ==========================================================
+
+  static Future<Map<String, dynamic>> updateReceiptRequest({
+    required String requestUnqid,
+    required String recptUnqid,
+    required String reqType,
+    required String valTo,
+  }) async {
+    try {
+      // ==================================================
+      // GET TOKEN
+      // ==================================================
+
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication token missing");
+      }
+
+      // ==================================================
+      // API URL
+      // ==================================================
+
+      final url = "$baseUrl/api/challan/receipt/update";
+
+      // ==================================================
+      // REQUEST BODY
+      // ==================================================
+
+      final body = {
+        // app_receipt_request.unqid
+        "request_unqid": requestUnqid,
+
+        // rh_rcl.rcl_2
+        "recpt_unqid": recptUnqid,
+
+        // Request type
+        "req_type": reqType,
+
+        // New value
+        "val_to": valTo,
+      };
+
+      // ==================================================
+      // DEBUG
+      // ==================================================
+
+      print("");
+      print("==============================================");
+      print("       UPDATE RECEIPT API CALL");
+      print("==============================================");
+      print("URL           : $url");
+      print("request_unqid : $requestUnqid");
+      print("recpt_unqid   : $recptUnqid");
+      print("req_type      : $reqType");
+      print("val_to        : $valTo");
+      print("BODY          : ${jsonEncode(body)}");
+      print("==============================================");
+
+      // ==================================================
+      // API CALL
+      // ==================================================
+
+      final response = await http
+          .post(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      // ==================================================
+      // RESPONSE DEBUG
+      // ==================================================
+
+      print("");
+      print("==============================================");
+      print("       UPDATE RECEIPT API RESPONSE");
+      print("==============================================");
+      print("STATUS : ${response.statusCode}");
+      print("BODY   : ${response.body}");
+      print("==============================================");
+
+      // ==================================================
+      // HTTP ERROR
+      // ==================================================
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          "Update Receipt API failed: "
+          "HTTP ${response.statusCode}\n"
+          "${response.body}",
+        );
+      }
+
+      // ==================================================
+      // DECODE RESPONSE
+      // ==================================================
+
+      final result = jsonDecode(response.body) as Map<String, dynamic>;
+
+      // ==================================================
+      // API SUCCESS CHECK
+      // ==================================================
+
+      if (result["success"] != true) {
+        throw Exception(
+          result["message"]?.toString() ?? "Receipt update failed",
+        );
+      }
+
+      // ==================================================
+      // SUCCESS DEBUG
+      // ==================================================
+
+      print("");
+      print("==============================================");
+      print("       RECEIPT UPDATE SUCCESS");
+      print("==============================================");
+      print("Request Unqid : $requestUnqid");
+      print("Receipt Unqid : $recptUnqid");
+      print("Status        : ${result["request_status"]}");
+      print("==============================================");
+
+      return result;
+    } catch (e) {
+      print("");
+      print("==============================================");
+      print("❌ UPDATE RECEIPT API ERROR");
+      print("==============================================");
+      print(e);
+      print("==============================================");
+
+      rethrow;
+    }
+  }
+
   /// Fetches sale detail rows for a specific SC and period.
   /// Calls GET /api/challan/sc-sale-details
   /// [period]: 'today' or 'yesterday'
@@ -2805,6 +3091,399 @@ class ApiService {
       print("SC SALE DETAILS ERROR: $e");
       return [];
     }
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // VEHICLE ALLOCATION
+  // ═══════════════════════════════════════════════════════════
+
+  /// Fetches the full vehicle allocation list (@what = 'grid').
+  static Future<List<Map<String, dynamic>>> getVehicleAllocationList() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/vehicle-allocation/list"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print("VA LIST ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Searches vehicle allocations by customer name or VIN.
+  static Future<List<Map<String, dynamic>>> searchVehicleAllocation(
+    String query,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final uri = Uri.parse("$baseUrl/api/vehicle-allocation/search")
+          .replace(queryParameters: {"q": query});
+
+      final res = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print("VA SEARCH ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Fetches a single vehicle allocation for editing plus its VIN list.
+  /// Returns a map with keys: [data] (record map) and [vinList] (list).
+  static Future<Map<String, dynamic>?> getVehicleAllocationEdit(
+    String va12,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/vehicle-allocation/edit/$va12"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return {
+            "data": Map<String, dynamic>.from(
+              body['data'] as Map<String, dynamic>,
+            ),
+            "vinList": List<Map<String, dynamic>>.from(
+              ((body['vinList'] ?? []) as List)
+                  .map((e) => Map<String, dynamic>.from(e)),
+            ),
+          };
+        }
+      }
+      return null;
+    } catch (e) {
+      print("VA EDIT ERROR: $e");
+      return null;
+    }
+  }
+
+  /// Fetches all dropdown data: customers, models, variants, colours,
+  /// locations, staff — in a single call.
+  static Future<Map<String, List<Map<String, dynamic>>>>
+  getVehicleAllocationDropdowns() async {
+    final empty = <String, List<Map<String, dynamic>>>{
+      "customers": [],
+      "models": [],
+      "variants": [],
+      "colours": [],
+      "locations": [],
+      "staff": [],
+    };
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return empty;
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/vehicle-allocation/dropdowns"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          final d = body['data'] as Map<String, dynamic>;
+          return {
+            "customers": _toMapList(d['customers']),
+            "models": _toMapList(d['models']),
+            "variants": _toMapList(d['variants']),
+            "colours": _toMapList(d['colours']),
+            "locations": _toMapList(d['locations']),
+            "staff": _toMapList(d['staff']),
+          };
+        }
+      }
+      return empty;
+    } catch (e) {
+      print("VA DROPDOWNS ERROR: $e");
+      return empty;
+    }
+  }
+
+  /// Fetches booking + staff details after a customer is selected.
+  static Future<Map<String, dynamic>?> getVehicleAllocationCustomerDetails(
+    String custUnq,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/vehicle-allocation/customer-details/$custUnq",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] != null) {
+          return Map<String, dynamic>.from(
+            body['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      print("VA CUSTOMER DETAILS ERROR: $e");
+      return null;
+    }
+  }
+
+  /// Fetches available VIN numbers for a model/variant/colour combination.
+  static Future<List<Map<String, dynamic>>> getVehicleAllocationVinList({
+    required String model,
+    required String variant,
+    required String colour,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final uri = Uri.parse("$baseUrl/api/vehicle-allocation/vinno").replace(
+        queryParameters: {
+          "model": model,
+          "variant": variant,
+          "colour": colour,
+        },
+      );
+
+      final res = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return _toMapList(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("VA VINNO ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Fetches the full VIN details grid for a model/variant/colour combo.
+  static Future<List<Map<String, dynamic>>> getVehicleAllocationVinDetails({
+    required String model,
+    required String variant,
+    required String colour,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final uri =
+          Uri.parse("$baseUrl/api/vehicle-allocation/all-vin-details").replace(
+            queryParameters: {
+              "model": model,
+              "variant": variant,
+              "colour": colour,
+            },
+          );
+
+      final res = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return _toMapList(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("VA VIN DETAILS ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Saves a new vehicle allocation record.
+  static Future<Map<String, dynamic>> saveVehicleAllocation(
+    Map<String, dynamic> payload,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/vehicle-allocation/save"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(payload),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+
+      throw Exception(body['message'] ?? "Save failed");
+    } catch (e) {
+      print("VA SAVE ERROR: $e");
+      rethrow;
+    }
+  }
+
+  /// Deletes a vehicle allocation record by its unique ID.
+  static Future<Map<String, dynamic>> deleteVehicleAllocation(
+    String va12,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .delete(
+            Uri.parse("$baseUrl/api/vehicle-allocation/$va12"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+
+      throw Exception(body['message'] ?? "Delete failed");
+    } catch (e) {
+      print("VA DELETE ERROR: $e");
+      rethrow;
+    }
+  }
+
+  /// Cancels a vehicle allocation record with a reason.
+  static Future<Map<String, dynamic>> cancelVehicleAllocation({
+    required String va12,
+    required String reason,
+    required String cancellationDate,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/vehicle-allocation/cancel"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({
+              "va_12": va12,
+              "va_31": reason,
+              "va_32": cancellationDate,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+
+      throw Exception(body['message'] ?? "Cancel failed");
+    } catch (e) {
+      print("VA CANCEL ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ── Private helper: safely cast a dynamic list to List<Map<String,dynamic>> ──
+  static List<Map<String, dynamic>> _toMapList(dynamic raw) {
+    if (raw is! List) return [];
+    return raw.map<Map<String, dynamic>>((e) {
+      if (e is Map<String, dynamic>) return e;
+      if (e is Map) return Map<String, dynamic>.from(e);
+      return <String, dynamic>{};
+    }).toList();
   }
 }
 

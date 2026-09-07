@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../screens/home/rgb_border_card.dart';
 
 class MorningBriefingCard extends StatefulWidget {
   const MorningBriefingCard({super.key});
@@ -484,11 +483,8 @@ class _MorningBriefingCardState extends State<MorningBriefingCard> {
     required String headline,
     required List<dynamic> insights,
   }) {
-    return RgbBorderCard(
+    return _ThinLineBorderCard(
       borderRadius: 16,
-      borderWidth: 1.8,
-      duration: const Duration(seconds: 4),
-      glow: false,
       child: Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -625,11 +621,8 @@ class _MorningBriefingCardState extends State<MorningBriefingCard> {
                 ? Colors.amber.shade800
                 : Colors.orange;
 
-    return RgbBorderCard(
+    return _ThinLineBorderCard(
       borderRadius: 14,
-      borderWidth: 1.8,
-      duration: const Duration(seconds: 4),
-      glow: false,
       child: Container(
       margin: const EdgeInsets.only(bottom: 9),
       padding: const EdgeInsets.all(11),
@@ -912,11 +905,8 @@ class _MorningBriefingCardState extends State<MorningBriefingCard> {
             ? Colors.red
             : Colors.orange;
 
-    return RgbBorderCard(
+    return _ThinLineBorderCard(
       borderRadius: 14,
-      borderWidth: 1.8,
-      duration: const Duration(seconds: 4),
-      glow: false,
       child: Container(
       margin:
           const EdgeInsets.only(bottom: 8),
@@ -1305,4 +1295,86 @@ class _InsightVisual {
     this.icon,
     this.color,
   );
+}
+
+// ── Thin animated bottom-line border card ────────────────────────────────────
+// Shows a clean card with just a thin rainbow gradient line at the bottom edge.
+// Matches the style in the reference screenshot — subtle, professional.
+
+class _ThinLineBorderCard extends StatefulWidget {
+  final Widget child;
+  final double borderRadius;
+
+  const _ThinLineBorderCard({
+    required this.child,
+    this.borderRadius = 14,
+  });
+
+  @override
+  State<_ThinLineBorderCard> createState() => _ThinLineBorderCardState();
+}
+
+class _ThinLineBorderCardState extends State<_ThinLineBorderCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+
+  static const List<Color> _colors = [
+    Color(0xFF00BFFF), // cyan
+    Color(0xFF7B2FFF), // purple
+    Color(0xFFFF3B8B), // pink
+    Color(0xFFFF9500), // orange
+    Color(0xFF00BFFF), // back to cyan for seamless loop
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(widget.borderRadius),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // The card content
+          widget.child,
+          // Thin animated line at the bottom
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedBuilder(
+              animation: _ctrl,
+              builder: (_, __) {
+                final double offset = _ctrl.value;
+                return Container(
+                  height: 2,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _colors,
+                      begin: Alignment(-1.0 + offset * 2, 0),
+                      end: Alignment(1.0 + offset * 2, 0),
+                      tileMode: TileMode.mirror,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

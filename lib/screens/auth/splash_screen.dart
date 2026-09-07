@@ -1,11 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
 import '../home/home_screen.dart';
 import 'login_screen.dart';
 
-/// Shown at app startup.
-/// Checks for a saved session token — if found, goes straight to HomeScreen.
-/// If not found (or token missing), goes to LoginScreen.
+/// Splash screen shown when the application starts.
+///
+/// Checks for a saved session:
+/// - Valid session -> HomeScreen
+/// - No valid session -> LoginScreen
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -15,8 +20,10 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _animCtrl;
-  late Animation<double> _fadeAnim;
+  late final AnimationController _animCtrl;
+  late final Animation<double> _fadeAnim;
+
+  Timer? _sessionTimer;
 
   static const Color kSplashDark = Color(0xFF0D3F8A);
   static const Color kSplashMid = Color(0xFF2C6CE0);
@@ -26,44 +33,70 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Fade-in animation for the logo
+    // ------------------------------------------------------------
+    // Fade animation
+    // ------------------------------------------------------------
     _animCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeIn);
+
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeInOut);
+
     _animCtrl.forward();
 
-    // Check session after a short delay so the splash is visible
-    Future.delayed(const Duration(milliseconds: 1500), _checkSession);
+    // ------------------------------------------------------------
+    // Check session after splash is visible
+    // ------------------------------------------------------------
+    _sessionTimer = Timer(const Duration(milliseconds: 1500), _checkSession);
   }
 
+  // ============================================================
+  // CHECK SESSION
+  // ============================================================
+
   Future<void> _checkSession() async {
-    final session = await ApiService.getUserSession();
+    try {
+      final session = await ApiService.getUserSession();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    // Add small delay before navigation to prevent frame drop
-    await Future.delayed(const Duration(milliseconds: 100));
+      // Let the current frame finish before navigation.
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (session != null && session['token']!.isNotEmpty) {
-      // Valid session found — go directly to HomeScreen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          settings: const RouteSettings(name: 'HomeScreen'),
-          builder: (_) => HomeScreen(
-            userName: session['userName'] ?? session['userId'] ?? 'User',
-            userEmail: session['userEmail'] ?? '',
+      final String token = session?['token']?.toString() ?? '';
+
+      if (token.isNotEmpty) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: 'HomeScreen'),
+            builder: (_) {
+              return HomeScreen(
+                userName:
+                    session?['userName']?.toString() ??
+                    session?['userId']?.toString() ??
+                    'User',
+                userEmail: session?['userEmail']?.toString() ?? '',
+              );
+            },
           ),
-        ),
-      );
-    } else {
-      // No session — show login
-      Navigator.pushReplacement(
-        context,
+        );
+      } else {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            settings: const RouteSettings(name: '/login'),
+            builder: (_) => const LoginScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Splash session check error: $e');
+
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           settings: const RouteSettings(name: '/login'),
           builder: (_) => const LoginScreen(),
@@ -72,81 +105,216 @@ class _SplashScreenState extends State<SplashScreen>
     }
   }
 
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
   @override
   void dispose() {
+    _sessionTimer?.cancel();
     _animCtrl.dispose();
     super.dispose();
   }
 
+  // ============================================================
+  // BUILD
+  // ============================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [kSplashDark, kSplashMid, kSplashLight],
-            stops: [0.0, 0.45, 1.0],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // App icon
-              Container(
-                width: 160,
-                height: 160,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.6),
-                    width: 3,
+      body: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          // Flutter Web can briefly report a tiny viewport
+          // during startup or browser resizing.
+          if (constraints.maxWidth < 20 || constraints.maxHeight < 20) {
+            return const SizedBox.shrink();
+          }
+
+          final double width = constraints.maxWidth;
+          final double height = constraints.maxHeight;
+
+          final bool isMobile = width < 600;
+          final bool isTablet = width >= 600 && width < 1000;
+
+          // ------------------------------------------------------
+          // Responsive values
+          // ------------------------------------------------------
+
+          final double logoSize = isMobile
+              ? 118
+              : isTablet
+              ? 140
+              : 158;
+
+          final double iconSize = isMobile
+              ? 66
+              : isTablet
+              ? 76
+              : 88;
+
+          final double titleSize = isMobile
+              ? 26
+              : isTablet
+              ? 30
+              : 32;
+
+          final double subtitleSize = isMobile ? 14 : 16;
+
+          final double sidePadding = isMobile ? 20 : 32;
+
+          // ------------------------------------------------------
+          // Background
+          // ------------------------------------------------------
+
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [kSplashDark, kSplashMid, kSplashLight],
+                stops: [0.0, 0.45, 1.0],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+
+            child: SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: sidePadding,
+                    vertical: 24,
+                  ),
+
+                  child: SizedBox(
+                    width: width > 600 ? 600 : width,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: height > 48 ? height - 48 : 0,
+                      ),
+
+                      child: Center(
+                        child: FadeTransition(
+                          opacity: _fadeAnim,
+
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+
+                            children: [
+                              // ==================================================
+                              // APP LOGO
+                              // ==================================================
+                              Container(
+                                width: logoSize,
+                                height: logoSize,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.18),
+                                  shape: BoxShape.circle,
+
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.55),
+                                    width: 2.5,
+                                  ),
+
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.15),
+                                      blurRadius: 25,
+                                      spreadRadius: 1,
+                                      offset: const Offset(0, 10),
+                                    ),
+                                  ],
+                                ),
+
+                                child: Icon(
+                                  Icons.directions_car_rounded,
+                                  size: iconSize,
+                                  color: Colors.white,
+                                ),
+                              ),
+
+                              const SizedBox(height: 22),
+
+                              // ==================================================
+                              // APP NAME
+                              // ==================================================
+                              Text(
+                                'MY AUTOSHOP',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 2.5,
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // ==================================================
+                              // SUBTITLE
+                              // ==================================================
+                              //
+                              // IMPORTANT:
+                              // No maxLines / ellipsis here.
+                              // This avoids the TextPainter debugSize
+                              // assertion seen on Flutter Web.
+                              //
+                              SizedBox(
+                                width: isMobile ? 300 : 420,
+
+                                child: Text(
+                                  'A smarter way to manage your car service',
+                                  textAlign: TextAlign.center,
+                                  softWrap: true,
+                                  style: TextStyle(
+                                    fontSize: subtitleSize,
+                                    color: Colors.white70,
+                                    letterSpacing: 0.4,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 42),
+
+                              // ==================================================
+                              // LOADING
+                              // ==================================================
+                              const SizedBox(
+                                width: 30,
+                                height: 30,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              ),
+
+                              const SizedBox(height: 14),
+
+                              const Text(
+                                'Loading...',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Icon(
-                  Icons.directions_car_rounded,
-                  size: 90,
-                  color: Colors.white,
-                ),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                "MY AUTOSHOP",
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "A smarter way to manage your car service",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 48),
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

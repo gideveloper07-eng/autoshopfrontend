@@ -557,12 +557,12 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: _rainbowColors,
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          color: bgColor,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF1565C0).withOpacity(0.25),
+            width: 1.5,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.07),
@@ -571,13 +571,8 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
             ),
           ],
         ),
-        padding: const EdgeInsets.all(1.8), // gradient border thickness
-        child: Material(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14.2),
-          elevation: 0,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14.2),
+        child: ClipRRect(
+            borderRadius: BorderRadius.circular(14.5),
             child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
@@ -748,8 +743,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   bool _matchesTimeFilter(DateTime date) {
@@ -1041,17 +1035,6 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     );
   }
 
-  // Rainbow gradient colors used for the stat card border
-  static const List<Color> _rainbowColors = [
-    Color(0xFFFF6B6B), // red
-    Color(0xFFFFAA00), // orange
-    Color(0xFFFFE600), // yellow
-    Color(0xFF4CD964), // green
-    Color(0xFF00BFFF), // cyan/blue
-    Color(0xFF9B59B6), // purple
-    Color(0xFFFF6B6B), // back to red for seamless wrap
-  ];
-
   Widget _statChip(String label, int count, Color color) {
     // "Total" chip resets filter to All; others toggle to that status
     final filterValue = label == 'Total' ? 'All' : label;
@@ -1061,17 +1044,14 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     const borderRadius = 10.0;
-    const borderWidth = 1.8;
 
-    // Solid opaque background — same tinted look as before but no transparency
-    // so the gradient border doesn't bleed through
-    final Color solidBg = isDark
+    final Color chipBg = isDark
         ? Color.alphaBlend(
             isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
             const Color(0xFF111B21),
           )
         : Color.alphaBlend(
-            isActive ? color.withOpacity(0.22) : color.withOpacity(0.08),
+            isActive ? color.withOpacity(0.18) : color.withOpacity(0.07),
             const Color(0xFFF5F5F5),
           );
 
@@ -1080,64 +1060,55 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
         onTap: () => setState(() => _statusFilter = filterValue),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          // Outer layer: gradient acts as the border
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: _rainbowColors,
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            color: chipBg,
             borderRadius: BorderRadius.circular(borderRadius),
+            border: Border.all(
+              color: isActive ? color.withOpacity(0.8) : color.withOpacity(0.3),
+              width: 1.5,
+            ),
             boxShadow: isActive
                 ? [
                     BoxShadow(
-                      color: color.withOpacity(0.25),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
+                      color: color.withOpacity(0.18),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
                   ]
                 : [],
           ),
-          padding: const EdgeInsets.all(borderWidth),
-          child: Container(
-            // Inner layer: solid opaque fill — hides the gradient beneath
-            decoration: BoxDecoration(
-              color: solidBg,
-              borderRadius: BorderRadius.circular(borderRadius - borderWidth),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Column(
-              children: [
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Column(
+            children: [
+              Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  color: color.withOpacity(0.8),
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
+                ),
+              ),
+              if (isActive) ...[
+                const SizedBox(height: 4),
+                Container(
+                  width: 16,
+                  height: 2,
+                  decoration: BoxDecoration(
                     color: color,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: color.withOpacity(0.8),
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                  ),
-                ),
-                if (isActive) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 16,
-                    height: 2,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ],
               ],
-            ),
+            ],
           ),
         ),
       ),
@@ -1388,6 +1359,9 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
     final statColor = _statusColor(status);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cardBg = isDark ? const Color(0xFF1A2535) : Colors.white;
+    final labelColor = isDark ? Colors.white54 : const Color(0xFF757575);
+    final bodyColor = isDark ? const Color(0xFFE0E0E0) : const Color(0xFF212121);
+    final subColor = isDark ? Colors.white54 : const Color(0xFF616161);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -1396,413 +1370,430 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
         borderWidth: 1.8,
         duration: const Duration(seconds: 4),
         glow: false,
-        child: Container(
-          decoration: BoxDecoration(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Container(
             color: cardBg,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Top row: source badge + priority + status ──────────
-            Row(
-              children: [
-                // Source badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: srcColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: srcColor.withOpacity(0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(_sourceIcon(source), size: 11, color: srcColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        source,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: srcColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Priority badge
-                if (priority.isNotEmpty)
+            child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Top row: source badge + priority + created date ───
+              Row(
+                children: [
+                  // Source badge
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: priColor.withOpacity(0.1),
+                      color: srcColor.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      priority,
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: priColor,
+                      border: Border.all(
+                        color: srcColor.withOpacity(0.25),
+                        width: 1,
                       ),
                     ),
-                  ),
-
-                const Spacer(),
-
-                // Created date
-                if (createdAt.isNotEmpty)
-                  Text(
-                    createdAt,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white60 : Colors.blueGrey.shade600,
-                    ),
-                  ),
-              ],
-            ),
-
-            const SizedBox(height: 10),
-
-            // ── Title ──────────────────────────────────────────────
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
-            ),
-
-            // ── Description ────────────────────────────────────────
-            if (desc.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                desc,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: isDark ? Colors.white70 : Colors.blueGrey.shade700,
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 10),
-
-            // ── Assigned to + due date ─────────────────────────────
-            Row(
-              children: [
-                Icon(Icons.person_outline, size: 14, color: isDark ? Colors.lightBlueAccent : const Color(0xFF1565C0)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    assignedTo.isNotEmpty ? assignedTo : '—',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.white70 : const Color(0xFF1A237E),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                if (dueDate.isNotEmpty) ...[
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 12,
-                    color: isDark ? Colors.orangeAccent : Colors.deepOrange.shade400,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    dueDate,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.orangeAccent : Colors.deepOrange.shade600,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-
-            const SizedBox(height: 10),
-            const Divider(height: 1),
-            const SizedBox(height: 10),
-
-            // ── Status dropdown ────────────────────────────────────
-            Row(
-              children: [
-                Text(
-                  'Status:',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: isDark ? Colors.white70 : Colors.blueGrey.shade800,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: _isAdmin ? 2 : 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statColor.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: statColor.withOpacity(0.3)),
-                    ),
-                    child: _isAdmin
-                        ? DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: status,
-                              isDense: true,
-                              icon: Icon(
-                                Icons.keyboard_arrow_down_rounded,
-                                size: 16,
-                                color: statColor,
-                              ),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: statColor,
-                              ),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'Pending',
-                                  child: Text('Pending'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'In Progress',
-                                  child: Text('In Progress'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Completed',
-                                  child: Text('Completed'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Cancelled',
-                                  child: Text('Cancelled'),
-                                ),
-                              ],
-                              onChanged: (val) {
-                                if (val != null && val != status) {
-                                  _updateStatus(task, val);
-                                }
-                              },
-                            ),
-                          )
-                        : Text(
-                            status,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: statColor,
-                            ),
-                          ),
-                  ),
-                ),
-                // ── Mark Complete button for non-admin ─────────────
-                if (!_isAdmin && status != 'Completed') ...[
-                  const SizedBox(width: 10),
-                  Tooltip(
-                    message: 'Mark as Complete',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8),
-                      onTap: () async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text('Complete Task'),
-                            content: const Text('Mark this task as completed?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context, false),
-                                child: const Text('Cancel'),
-                              ),
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
-                                ),
-                                onPressed: () => Navigator.pop(context, true),
-                                child: const Text('Complete'),
-                              ),
-                            ],
-                          ),
-                        );
-                        if (confirm == true) _notifyTaskComplete(task);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.4),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Complete',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                // ── Already completed badge for non-admin ───────────
-                if (!_isAdmin && status == 'Completed') ...[
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, size: 16, color: Colors.green),
-                        SizedBox(width: 4),
+                        Icon(_sourceIcon(source), size: 11, color: srcColor),
+                        const SizedBox(width: 4),
                         Text(
-                          'Done',
+                          source,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.green,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: srcColor,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ],
-              ],
-            ),
+                  const SizedBox(width: 8),
 
-            // ── Performance score row ──────────────────────────────
-            Builder(
-              builder: (_) {
-                final score = _calcScore(task);
-                final sColor = _scoreColor(score);
-                final grade = _scoreGrade(score);
-                final legend = _scoreLegend(score);
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  // Priority badge — neutral text, tiny colored dot
+                  if (priority.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: priColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          priority,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: subColor,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  const Spacer(),
+
+                  // Created date
+                  if (createdAt.isNotEmpty)
+                    Text(
+                      createdAt,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: subColor,
+                      ),
+                    ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // ── Title ────────────────────────────────────────────
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: bodyColor,
+                ),
+              ),
+
+              // ── Description ──────────────────────────────────────
+              if (desc.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: subColor,
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 10),
+
+              // ── Assigned to + due date ────────────────────────────
+              Row(
+                children: [
+                  Icon(Icons.person_outline, size: 14, color: labelColor),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      assignedTo.isNotEmpty ? assignedTo : '—',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: bodyColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (dueDate.isNotEmpty) ...[
+                    Icon(
+                      Icons.calendar_today_outlined,
+                      size: 12,
+                      color: labelColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      dueDate,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: bodyColor,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+
+              const SizedBox(height: 10),
+              Divider(height: 1, color: isDark ? Colors.white12 : Colors.grey.shade200),
+              const SizedBox(height: 10),
+
+              // ── Status row ────────────────────────────────────────
+              Row(
+                children: [
+                  Text(
+                    'Status:',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: labelColor,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: _isAdmin ? 2 : 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: statColor.withOpacity(0.3)),
+                      ),
+                      child: _isAdmin
+                          ? DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: status,
+                                isDense: true,
+                                icon: Icon(
+                                  Icons.keyboard_arrow_down_rounded,
+                                  size: 16,
+                                  color: statColor,
+                                ),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: statColor,
+                                ),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'Pending',
+                                    child: Text('Pending'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'In Progress',
+                                    child: Text('In Progress'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Completed',
+                                    child: Text('Completed'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Cancelled',
+                                    child: Text('Cancelled'),
+                                  ),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null && val != status) {
+                                    _updateStatus(task, val);
+                                  }
+                                },
+                              ),
+                            )
+                          : Text(
+                              status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: statColor,
+                              ),
+                            ),
+                    ),
+                  ),
+                  // ── Mark Complete button for non-admin ─────────────
+                  if (!_isAdmin && status != 'Completed') ...[
+                    const SizedBox(width: 10),
+                    Tooltip(
+                      message: 'Mark as Complete',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              title: const Text('Complete Task'),
+                              content: const Text(
+                                'Mark this task as completed?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancel'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () =>
+                                      Navigator.pop(context, true),
+                                  child: const Text('Complete'),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) _notifyTaskComplete(task);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.green.withOpacity(0.35),
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                size: 16,
+                                color: Colors.green,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Complete',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  // ── Already completed badge for non-admin ───────────
+                  if (!_isAdmin && status == 'Completed') ...[
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.bar_chart_rounded,
-                            size: 13,
-                            color: isDark ? Colors.white60 : Colors.blueGrey.shade600,
+                            Icons.check_circle,
+                            size: 16,
+                            color: Colors.green,
                           ),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
-                            'Performance:',
+                            'Done',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white60 : Colors.blueGrey.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$score / 100',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              color: sColor,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: sColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(
-                                color: sColor.withOpacity(0.5),
-                              ),
-                            ),
-                            child: Text(
-                              grade,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900,
-                                color: sColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            legend,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white54 : Colors.blueGrey.shade600,
+                              color: Colors.green,
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 5),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: score / 100,
-                          minHeight: 5,
-                          backgroundColor: sColor.withOpacity(0.2),
-                          valueColor: AlwaysStoppedAnimation<Color>(sColor),
+                    ),
+                  ],
+                ],
+              ),
+
+              // ── Performance score row — plain/neutral ─────────────
+              Builder(
+                builder: (_) {
+                  final score = _calcScore(task);
+                  final grade = _scoreGrade(score);
+                  final legend = _scoreLegend(score);
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.bar_chart_rounded,
+                              size: 13,
+                              color: labelColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Performance:',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: labelColor,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$score / 100',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: bodyColor,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white10
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(5),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white24
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Text(
+                                grade,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  color: bodyColor,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              legend,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: subColor,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
+                        const SizedBox(height: 5),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: score / 100,
+                            minHeight: 4,
+                            backgroundColor: isDark
+                                ? Colors.white10
+                                : Colors.grey.shade200,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              isDark
+                                  ? Colors.white38
+                                  : Colors.grey.shade400,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     ),

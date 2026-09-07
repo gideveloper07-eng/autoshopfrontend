@@ -2322,6 +2322,42 @@ static Future<List<dynamic>> getMyDirectChats({bool allChats = false}) async {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/challan/receipt/combined
+  // Returns combined receipt + receipt request data
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getCombinedReceipts() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/receipt/combined"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map(
+              (e) => Map<String, dynamic>.from(e as Map),
+            ),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print("COMBINED RECEIPT ERROR: $e");
+      return [];
+    }
+  }
+
 
 }
 

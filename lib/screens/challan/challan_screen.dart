@@ -5,7 +5,6 @@ import '../../l10n/app_localizations.dart';
 import 'challan_edit_details_screen.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../services/activity_service.dart';
-import '../home/rgb_border_card.dart';
 
 class ChallanScreen extends StatefulWidget {
   const ChallanScreen({super.key});
@@ -676,79 +675,83 @@ class _ChallanScreenState extends State<ChallanScreen>
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: RgbBorderCard(
-              borderRadius: 30,
-              borderWidth: 1.8,
-              duration: const Duration(seconds: 4),
-              glow: false,
-              child: Container(
-                height: 52,
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(30),
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF0D3F8A).withValues(alpha: 0.2),
+                  width: 1.2,
                 ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 14),
-                    Icon(Icons.search, color: textMid),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: _filterSearch,
-                        decoration: InputDecoration(
-                          hintText: _t('searchHint'),
-                          border: InputBorder.none,
-                        ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 14),
+                  Icon(Icons.search, color: textMid),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterSearch,
+                      decoration: InputDecoration(
+                        hintText: _t('searchHint'),
+                        border: InputBorder.none,
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () async {
-                        if (_isListening) {
-                          await _stopListening();
-                        } else {
-                          await _startListening();
-                        }
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: _isListening
-                              ? Colors.red
-                              : const Color(0xFF1A56DB),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isListening ? Icons.mic : Icons.mic_none,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      if (_isListening) {
+                        await _stopListening();
+                      } else {
+                        await _startListening();
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: _isListening
+                            ? Colors.red
+                            : const Color(0xFF1A56DB),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isListening ? Icons.mic : Icons.mic_none,
+                        color: Colors.white,
+                        size: 20,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
           // ── Date Filter Section ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: RgbBorderCard(
-              borderRadius: 12,
-              borderWidth: 1.8,
-              duration: const Duration(seconds: 4),
-              glow: false,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: cardBg,
-                  borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF0D3F8A).withValues(alpha: 0.15),
+                  width: 1.2,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.filter_list_rounded, size: 18, color: textMid),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.filter_list_rounded, size: 18, color: textMid),
                     const SizedBox(width: 8),
                     Text(
                       l10n.showDate,
@@ -795,28 +798,32 @@ class _ChallanScreenState extends State<ChallanScreen>
                 ),
               ),
             ),
-          ),
 
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: RgbBorderCard(
-                borderRadius: 16,
-                borderWidth: 1.8,
-                duration: const Duration(seconds: 4),
-                glow: false,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(16),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: cardBg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF0D3F8A).withValues(alpha: 0.2),
+                    width: 1.2,
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                    children: [
-                      _buildTableHeader(l10n, gridBorder),
-                      Expanded(child: _buildTableRows(gridBorder)),
-                    ],
-                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    _buildTableHeader(l10n, gridBorder),
+                    Expanded(child: _buildTableRows(gridBorder)),
+                  ],
                 ),
               ),
             ),
@@ -928,32 +935,26 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RgbBorderCard(
-      borderRadius: 20,
-      borderWidth: 1.8,
-      duration: const Duration(seconds: 4),
-      glow: false,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color,
-              ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D3F8A),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1015,29 +1016,14 @@ class _DataRow extends StatelessWidget {
                     vertical: 12,
                   ),
                   child: isChallanNo
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? const Color(0xFF1A56DB).withValues(alpha: 0.15)
-                                : const Color(0xFF1A56DB).withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(
-                              color: isDark
-                                  ? const Color(0xFF3B82F6).withValues(alpha: 0.3)
-                                  : const Color(0xFFBFDBFE),
-                            ),
-                          ),
-                          child: Text(
-                            value,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark ? Colors.white : const Color(0xFF1A56DB),
-                              fontWeight: FontWeight.w800,
-                            ),
+                      ? Text(
+                          value,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
                           ),
                         )
                       : Text(

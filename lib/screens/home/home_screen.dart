@@ -38,6 +38,8 @@ import '../../services/festival_service.dart';
 import '../../main.dart' show pendingTaskCompletionCount;
 import '../../widgets/dashboard/morning_briefing_card.dart';
 import 'rgb_border_card.dart';
+import '../receipt/combined_receipt_screen.dart';
+import '../vehicle_allocation/vehicle_allocation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -427,10 +429,13 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> loadSecurity() async {
     utg = await ApiService.getUTG() ?? "";
+    final adminFlag = await ApiService.isAdmin();
 
     print("USER GROUP : $utg");
+    print("IS ADMIN   : $adminFlag");
 
     setState(() {
+      _isAdmin = adminFlag;
       isLoading = false;
     });
   }
@@ -697,604 +702,707 @@ class _HomeScreenState extends State<HomeScreen>
     final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      body: Column(
-        children: [
-          // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Container(
-            decoration: BoxDecoration(
-              gradient: AppColors.vibrantGradientAdaptive(context),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.shadowPrimary,
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // â”€â”€ Single Row: car icon | app name | notification â”€â”€â”€â”€â”€â”€
-                    Row(
-                      children: [
-                        // Car icon â€” opens account dropdown
-                        GestureDetector(
-                          onTap: _showAccountSheet,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                            child: const Icon(
-                              Icons.directions_car_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        // App name + company subtitle
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(
-                                "MyAutoShop",
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  letterSpacing: 0.5,
-                                  height: 1.1,
-                                ),
-                              ),
-                              if (_currentCompanyName.isNotEmpty)
-                                Text(
-                                  _currentCompanyName,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white.withOpacity(0.75),
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.2,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        // Switch pill (if multiple companies)
-                        if (_accessibleDatabases.length > 1) ...[
-                          GestureDetector(
-                            onTap: _switchCompany,
-                            child: Container(
-                              margin: const EdgeInsets.only(right: 8),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.4),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Icon(
-                                    Icons.swap_horiz_rounded,
-                                    color: Colors.white,
-                                    size: 13,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    "Switch",
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                        GestureDetector(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const MyContactRequestsScreen(),
-                              ),
-                            );
-                          },
-                          child: _headerIconBtn(
-                            Icons.people_alt_outlined,
-                            margin: const EdgeInsets.only(right: 8),
-                          ),
-                        ),
-                        // Chat request icon (non-admin only)
-                        if (!_isAdmin)
-                          _ChatRequestIconButton(
-                            pendingCount: _pendingRequestCount,
-                            animation: _requestBlinkAnim,
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ChatRequestsScreen(),
-                                ),
-                              );
-                              _loadRequestInfo();
-                            },
-                          ),
-                        // Notification bell
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              onTap: () async {
-                                if (kIsWeb && !_webPermissionRequested) {
-                                  _webPermissionRequested = true;
-                                  await requestNotificationPermission();
-                                }
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'NotificationScreen',
-                                    ),
-                                    builder: (_) => const NotificationScreen(),
-                                  ),
-                                );
-                                await loadUnreadCount();
-                              },
-                              child: _headerIconBtn(Icons.notifications),
-                            ),
-                            if (unreadCount > 0)
-                              Positioned(
-                                right: 4,
-                                top: 2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(3),
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 16,
-                                    minHeight: 16,
-                                  ),
-                                  child: Text(
-                                    unreadCount > 99
-                                        ? "99+"
-                                        : unreadCount.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ],
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // Flutter Web can briefly report a tiny 1x1 viewport
+          // while the browser is initializing/resizing.
+          if (constraints.maxWidth < 100 || constraints.maxHeight < 100) {
+            return const SizedBox.shrink();
+          }
+
+          return Column(
+            children: [
+              // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              Container(
+                decoration: BoxDecoration(
+                  gradient: AppColors.vibrantGradientAdaptive(context),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.shadowPrimary,
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-
-          // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                16,
-                24,
-                16,
-                MediaQuery.of(context).size.width >= 600 ? 140 : 100,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Welcome banner — visible for 5 s after login
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 500),
-                    transitionBuilder: (child, anim) =>
-                        FadeTransition(opacity: anim, child: child),
-                    child: _showWelcome
-                        ? Column(
-                            key: const ValueKey('welcome'),
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                child: SafeArea(
+                  bottom: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // â”€â”€ Single Row: car icon | app name | notification â”€â”€â”€â”€â”€â”€
+                        Row(
+                          children: [
+                            // Car icon â€” opens account dropdown
+                            GestureDetector(
+                              onTap: _showAccountSheet,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: const Icon(
+                                  Icons.directions_car_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            // App name + company subtitle
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   const Text(
-                                    "👋 ",
-                                    style: TextStyle(fontSize: 22),
+                                    "MyAutoShop",
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: 0.5,
+                                      height: 1.1,
+                                    ),
                                   ),
-                                  RichText(
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        color: AppColors.textPrimary,
+                                  if (_currentCompanyName.isNotEmpty)
+                                    Text(
+                                      _currentCompanyName,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.white.withOpacity(0.75),
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.2,
                                       ),
-                                      children: [
-                                        const TextSpan(text: "Welcome, "),
-                                        TextSpan(
-                                          text: widget.userName
-                                              .split(' ')
-                                              .first,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.primary,
-                                          ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Switch pill (if multiple companies)
+                            if (_accessibleDatabases.length > 1) ...[
+                              GestureDetector(
+                                onTap: _switchCompany,
+                                child: Container(
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(
+                                        Icons.swap_horiz_rounded,
+                                        color: Colors.white,
+                                        size: 13,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        "Switch",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
                               ),
-                              const SizedBox(height: 24),
                             ],
-                          )
-                        : const SizedBox.shrink(key: ValueKey('hidden')),
-                  ),
-
-                  // Festival banner — shows on festival days
-                  if (_showFestivalBanner && FestivalService.isTodayFestival())
-                    FestivalBanner(
-                      onClose: () {
-                        setState(() {
-                          _showFestivalBanner = false;
-                        });
-                      },
-                    ),
-
-                  // Daily quote widget
-                  if (_showDailyQuote)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: GestureDetector(
-                        onLongPress: () => _toggleHighlight('dailyQuote'),
-                        child: RgbBorderCard(
-                          borderRadius: 14,
-                          intense: _isHighlighted('dailyQuote'),
-                          child: DailyQuoteWidget(
-                            onClose: () {
-                              QuoteService.dismiss(); // persist 1-hour hide
-                              setState(() {
-                                _showDailyQuote = false;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
-                  SizedBox(
-                    height: 170,
-                    child: PageView(
-                      controller: _statsPageController,
-                      children: [
-                        // ── Page 1: Bookings ──────────────────────────────
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: GestureDetector(
-                            onLongPress: () => _toggleHighlight('bookings'),
-                            child: RgbBorderCard(
-                              borderRadius: 18,
-                              intense: _isHighlighted('bookings'),
-                              child: DashboardComparisonCard(
-                                compact: true,
-                                title: "Bookings",
-                                icon: Icons.bookmark_added_rounded,
-                                today: _todayBooking,
-                                yesterday: _yesterdayBooking,
-                                growth: _bookingGrowth,
-                                trend: _bookingTrend,
-                                gradient: const [
-                                  Color(0xFF0A3D8F),
-                                  Color(0xFF1565C0),
-                                  Color(0xFF1E88E5),
-                                ],
-                                onTodayTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => BranchwiseDetailsScreen(
-                                        reportType: "booking",
-                                        period: "today",
-                                        title: "Today's Booking",
-                                      ),
-                                    ),
-                                  );
-                                },
-
-                                onYesterdayTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => BranchwiseDetailsScreen(
-                                        reportType: "booking",
-                                        period: "yesterday",
-                                        title: "Yesterday's Booking",
-                                      ),
-                                    ),
-                                  );
-                                },
+                            GestureDetector(
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const MyContactRequestsScreen(),
+                                  ),
+                                );
+                              },
+                              child: _headerIconBtn(
+                                Icons.people_alt_outlined,
+                                margin: const EdgeInsets.only(right: 8),
                               ),
                             ),
-                          ),
-                        ),
-                        // ── Page 2: Sales ─────────────────────────────────
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-
-                          child: GestureDetector(
-                            onLongPress: () => _toggleHighlight('sales'),
-                            child: RgbBorderCard(
-                              borderRadius: 18,
-                              intense: _isHighlighted('sales'),
-                              child: DashboardComparisonCard(
-                                compact: true,
-                                title: "Sales",
-                                icon: Icons.sell_rounded,
-                                today: _todaySale,
-                                yesterday: _yesterdaySale,
-                                growth: _saleGrowth,
-                                trend: _saleTrend,
-                                gradient: const [
-                                  Color(0xFF1A237E),
-                                  Color(0xFF283593),
-                                  Color(0xFF3949AB),
-                                ],
-                                onPerformanceTap: () {
-                                  Navigator.push(
+                            // Chat request icon (non-admin only)
+                            if (!_isAdmin)
+                              _ChatRequestIconButton(
+                                pendingCount: _pendingRequestCount,
+                                animation: _requestBlinkAnim,
+                                onTap: () async {
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (_) =>
-                                          const SalesPerformanceScreen(),
+                                          const ChatRequestsScreen(),
                                     ),
                                   );
-                                },
-                                onComparisonTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const SalesComparisonScreen(),
-                                    ),
-                                  );
-                                },
-                                onTodayTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const BranchwiseDetailsScreen(
-                                            reportType: "sale",
-                                            period: "today",
-                                            title: "Today's Sale",
-                                          ),
-                                    ),
-                                  );
-                                },
-                                onYesterdayTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const BranchwiseDetailsScreen(
-                                            reportType: "sale",
-                                            period: "yesterday",
-                                            title: "Yesterday's Sale",
-                                          ),
-                                    ),
-                                  );
+                                  _loadRequestInfo();
                                 },
                               ),
-                            ),
-                          ),
-                        ),
-                        // ── Page 3: Pending Delivery ──────────────────────
-                        Padding(
-                          padding: const EdgeInsets.only(left: 6),
-                          child: GestureDetector(
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const PendingDeliveryBranchwiseScreen(),
-                              ),
-                            ),
-                            onLongPressStart: (_) =>
-                                _toggleHighlight('pendingDelivery'),
-                            child: RgbBorderCard(
-                              borderRadius: 18,
-                              intense: _isHighlighted('pendingDelivery'),
-                              child: _PendingDeliveryCard(
-                                count: _pendingDelivery,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _StatsPageDots(controller: _statsPageController, count: 3),
-
-                  const SizedBox(height: 24),
-
-                  GestureDetector(
-                    onLongPress: () => _toggleHighlight('performanceTrends'),
-                    child: RgbBorderCard(
-                      borderRadius: 26,
-                      intense: _isHighlighted('performanceTrends'),
-                      child: PerformanceTrendsSection(
-                        bookingGrowth: _bookingGrowth,
-                        bookingTrend: _bookingTrend,
-                        saleGrowth: _saleGrowth,
-                        saleTrend: _saleTrend,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── AI MORNING DEALERSHIP BRIEFING ─────────────────────
-                  GestureDetector(
-                    onLongPress: () => _toggleHighlight('morningBriefing'),
-                    child: RgbBorderCard(
-                      borderRadius: 20,
-                      intense: _isHighlighted('morningBriefing'),
-                      child: const MorningBriefingCard(),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                  // Admin: Challan + Tasks (assign & view all)
-                  if (utg == "4848C835-2A09-4A80-A7E2-383C95926C54")
-                    Column(
-                      children: [
-                        // Row 1: Challan full width
-                        _dashCard(
-                          cardId: 'challan',
-                          icon: Icons.receipt_long_rounded,
-                          label: "Challan",
-                          subtitle: "View & manage challans",
-                          gradient: const [
-                            Color(0xFF0A2E5C),
-                            Color(0xFF3B2A96),
-                            Color(0xFF6A4BD8),
-                          ],
-                          accentColor: AppColors.secondary,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const ChallanScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // Row 2: Task Dashboard (green) — admin only
-                        ValueListenableBuilder<int>(
-                          valueListenable: pendingTaskCompletionCount,
-                          builder: (context, count, _) {
-                            return Stack(
-                              clipBehavior: Clip.none,
+                            // Notification bell
+                            Stack(
                               children: [
-                                _dashCard(
-                                  cardId: 'taskDashboard',
-                                  icon: Icons.task_alt,
-                                  label: "Task Dashboard Screen",
-                                  subtitle: count > 0
-                                      ? "$count task${count > 1 ? 's' : ''} completed by user"
-                                      : "View assigned tasks",
-                                  gradient: const [
-                                    Color(0xFF00695C),
-                                    Color(0xFF00897B),
-                                    Color(0xFF26A69A),
-                                  ],
-                                  accentColor: Colors.tealAccent,
-                                  onTap: () {
-                                    Navigator.push(
+                                GestureDetector(
+                                  onTap: () async {
+                                    if (kIsWeb && !_webPermissionRequested) {
+                                      _webPermissionRequested = true;
+                                      await requestNotificationPermission();
+                                    }
+                                    await Navigator.push(
                                       context,
                                       MaterialPageRoute(
+                                        settings: const RouteSettings(
+                                          name: 'NotificationScreen',
+                                        ),
                                         builder: (_) =>
-                                            const TaskDashboardScreen(),
+                                            const NotificationScreen(),
                                       ),
                                     );
+                                    await loadUnreadCount();
                                   },
+                                  child: _headerIconBtn(Icons.notifications),
                                 ),
-                                if (count > 0)
+                                if (unreadCount > 0)
                                   Positioned(
-                                    top: -6,
-                                    right: -6,
+                                    right: 4,
+                                    top: 2,
                                     child: Container(
-                                      padding: const EdgeInsets.all(5),
+                                      padding: const EdgeInsets.all(3),
                                       decoration: const BoxDecoration(
                                         color: Colors.red,
                                         shape: BoxShape.circle,
                                       ),
+                                      constraints: const BoxConstraints(
+                                        minWidth: 16,
+                                        minHeight: 16,
+                                      ),
                                       child: Text(
-                                        '$count',
+                                        unreadCount > 99
+                                            ? "99+"
+                                            : unreadCount.toString(),
                                         style: const TextStyle(
                                           color: Colors.white,
-                                          fontSize: 11,
+                                          fontSize: 9,
                                           fontWeight: FontWeight.bold,
                                         ),
+                                        textAlign: TextAlign.center,
                                       ),
                                     ),
                                   ),
                               ],
-                            );
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    24,
+                    16,
+                    MediaQuery.of(context).size.width >= 600 ? 140 : 100,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Welcome banner — visible for 5 s after login
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 500),
+                        transitionBuilder: (child, anim) =>
+                            FadeTransition(opacity: anim, child: child),
+                        child: _showWelcome
+                            ? Column(
+                                key: const ValueKey('welcome'),
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        "👋 ",
+                                        style: TextStyle(fontSize: 22),
+                                      ),
+                                      RichText(
+                                        text: TextSpan(
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                          children: [
+                                            const TextSpan(text: "Welcome, "),
+                                            TextSpan(
+                                              text: widget.userName
+                                                  .split(' ')
+                                                  .first,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              )
+                            : const SizedBox.shrink(key: ValueKey('hidden')),
+                      ),
+
+                      // Festival banner — shows on festival days
+                      if (_showFestivalBanner &&
+                          FestivalService.isTodayFestival())
+                        FestivalBanner(
+                          onClose: () {
+                            setState(() {
+                              _showFestivalBanner = false;
+                            });
                           },
                         ),
-                        const SizedBox(height: 12),
-                        // Row 3: Assign Task (purple) — admin only
-                        _dashCard(
-                          cardId: 'assignTask',
-                          icon: Icons.assignment_ind_rounded,
-                          label: "Assign Task",
-                          subtitle: "Assign and track task",
-                          gradient: const [
-                            Color(0xFF4A148C),
-                            Color(0xFF6A1B9A),
-                            Color(0xFF8E24AA),
-                          ],
-                          accentColor: Colors.purpleAccent,
-                          onTap: () => _showAssignTaskDialog(),
-                        ),
-                      ],
-                    ),
 
-                  // Assign Task card — non-admin only
-                  if (utg != "4848C835-2A09-4A80-A7E2-383C95926C54" &&
-                      !isLoading)
-                    _dashCard(
-                      cardId: 'assignedTaskNonAdmin',
-                      icon: Icons.assignment_ind_rounded,
-                      label: "Assigned task",
-                      subtitle: "Assigned Task",
-                      gradient: const [
-                        Color(0xFF4A148C),
-                        Color(0xFF6A1B9A),
-                        Color(0xFF8E24AA),
-                      ],
-                      accentColor: Colors.purpleAccent,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const GlobalTaskScreen(),
+                      // Daily quote widget
+                      if (_showDailyQuote)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: GestureDetector(
+                            onLongPress: () => _toggleHighlight('dailyQuote'),
+                            child: RgbBorderCard(
+                              borderRadius: 14,
+                              intense: _isHighlighted('dailyQuote'),
+                              child: DailyQuoteWidget(
+                                onClose: () {
+                                  QuoteService.dismiss(); // persist 1-hour hide
+                                  setState(() {
+                                    _showDailyQuote = false;
+                                  });
+                                },
+                              ),
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                ],
+                        ),
+
+                      // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
+                      SizedBox(
+                        height: 170,
+                        child: PageView(
+                          controller: _statsPageController,
+                          children: [
+                            // ── Page 1: Bookings ──────────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: GestureDetector(
+                                onLongPress: () => _toggleHighlight('bookings'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('bookings'),
+                                  child: DashboardComparisonCard(
+                                    compact: true,
+                                    title: "Bookings",
+                                    icon: Icons.bookmark_added_rounded,
+                                    today: _todayBooking,
+                                    yesterday: _yesterdayBooking,
+                                    growth: _bookingGrowth,
+                                    trend: _bookingTrend,
+                                    gradient: const [
+                                      Color(0xFF0A3D8F),
+                                      Color(0xFF1565C0),
+                                      Color(0xFF1E88E5),
+                                    ],
+                                    onTodayTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              BranchwiseDetailsScreen(
+                                                reportType: "booking",
+                                                period: "today",
+                                                title: "Today's Booking",
+                                              ),
+                                        ),
+                                      );
+                                    },
+
+                                    onYesterdayTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              BranchwiseDetailsScreen(
+                                                reportType: "booking",
+                                                period: "yesterday",
+                                                title: "Yesterday's Booking",
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // ── Page 2: Sales ─────────────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+
+                              child: GestureDetector(
+                                onLongPress: () => _toggleHighlight('sales'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('sales'),
+                                  child: DashboardComparisonCard(
+                                    compact: true,
+                                    title: "Sales",
+                                    icon: Icons.sell_rounded,
+                                    today: _todaySale,
+                                    yesterday: _yesterdaySale,
+                                    growth: _saleGrowth,
+                                    trend: _saleTrend,
+                                    gradient: const [
+                                      Color(0xFF1A237E),
+                                      Color(0xFF283593),
+                                      Color(0xFF3949AB),
+                                    ],
+                                    onPerformanceTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const SalesPerformanceScreen(),
+                                        ),
+                                      );
+                                    },
+                                    onComparisonTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const SalesComparisonScreen(),
+                                        ),
+                                      );
+                                    },
+                                    onTodayTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const BranchwiseDetailsScreen(
+                                                reportType: "sale",
+                                                period: "today",
+                                                title: "Today's Sale",
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                    onYesterdayTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const BranchwiseDetailsScreen(
+                                                reportType: "sale",
+                                                period: "yesterday",
+                                                title: "Yesterday's Sale",
+                                              ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // ── Page 3: Pending Delivery ──────────────────────
+                            Padding(
+                              padding: const EdgeInsets.only(left: 6),
+                              child: GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const PendingDeliveryBranchwiseScreen(),
+                                  ),
+                                ),
+                                onLongPressStart: (_) =>
+                                    _toggleHighlight('pendingDelivery'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('pendingDelivery'),
+                                  child: _PendingDeliveryCard(
+                                    count: _pendingDelivery,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _StatsPageDots(
+                        controller: _statsPageController,
+                        count: 3,
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      GestureDetector(
+                        onLongPress: () =>
+                            _toggleHighlight('performanceTrends'),
+                        child: RgbBorderCard(
+                          borderRadius: 26,
+                          intense: _isHighlighted('performanceTrends'),
+                          child: PerformanceTrendsSection(
+                            bookingGrowth: _bookingGrowth,
+                            bookingTrend: _bookingTrend,
+                            saleGrowth: _saleGrowth,
+                            saleTrend: _saleTrend,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // ── AI MORNING DEALERSHIP BRIEFING ─────────────────────
+                      GestureDetector(
+                        onLongPress: () => _toggleHighlight('morningBriefing'),
+                        child: RgbBorderCard(
+                          borderRadius: 20,
+                          intense: _isHighlighted('morningBriefing'),
+                          child: const MorningBriefingCard(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                      // Admin: Challan + Tasks (assign & view all)
+                      if (_isAdmin && !isLoading)
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio:
+                              MediaQuery.of(context).size.width < 600
+                              ? 1.05
+                              : MediaQuery.of(context).size.width < 1000
+                              ? 2.7
+                              : 4.0,
+                          children: [
+                            _dashCard(
+                              cardId: 'combinedReceipt',
+                              icon: Icons.receipt_long_rounded,
+                              label: "Receipt",
+                              subtitle: "View receipt requests and receipts",
+                              gradient: const [
+                                Color(0xFF1565C0),
+                                Color(0xFF1976D2),
+                                Color(0xFF42A5F5),
+                              ],
+                              accentColor: Colors.lightBlueAccent,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const CombinedReceiptScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _dashCard(
+                              cardId: 'vehicleAllocation',
+                              icon: Icons.car_rental_rounded,
+                              label: "Vehicle Allocation",
+                              subtitle: "View vehicle allocations",
+                              gradient: const [
+                                Color(0xFF1A237E),
+                                Color(0xFF283593),
+                                Color(0xFF3F51B5),
+                              ],
+                              accentColor: Colors.indigoAccent,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'VehicleAllocationScreen',
+                                    ),
+                                    builder: (_) =>
+                                        const VehicleAllocationScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _dashCard(
+                              cardId: 'challan',
+                              icon: Icons.receipt_long_rounded,
+                              label: "Challan",
+                              subtitle: "View & manage challans",
+                              gradient: const [
+                                Color(0xFF0A2E5C),
+                                Color(0xFF3B2A96),
+                                Color(0xFF6A4BD8),
+                              ],
+                              accentColor: AppColors.secondary,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ChallanScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _dashCard(
+                              cardId: 'assignTask',
+                              icon: Icons.assignment_ind_rounded,
+                              label: "Assign Task",
+                              subtitle: "Assign and track task",
+                              gradient: const [
+                                Color(0xFF4A148C),
+                                Color(0xFF6A1B9A),
+                                Color(0xFF8E24AA),
+                              ],
+                              accentColor: Colors.purpleAccent,
+                              onTap: () => _showAssignTaskDialog(),
+                            ),
+                            ValueListenableBuilder<int>(
+                              valueListenable: pendingTaskCompletionCount,
+                              builder: (context, count, _) {
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    _dashCard(
+                                      cardId: 'taskDashboard',
+                                      icon: Icons.task_alt,
+                                      label: "Task Dashboard Screen",
+                                      subtitle: count > 0
+                                          ? "$count task${count > 1 ? 's' : ''} completed by user"
+                                          : "View assigned tasks",
+                                      gradient: const [
+                                        Color(0xFF0D47A1),
+                                        Color(0xFF1565C0),
+                                        Color(0xFF1E88E5),
+                                      ],
+                                      accentColor: Colors.lightBlueAccent,
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const TaskDashboardScreen(),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    if (count > 0)
+                                      Positioned(
+                                        top: -6,
+                                        right: -6,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(5),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Text(
+                                            '$count',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+
+                      // Assign Task card — non-admin only
+                      if (!_isAdmin && !isLoading)
+                        Column(
+                          children: [
+                            // Vehicle Allocation — view only for non-admin
+                            _dashCard(
+                              cardId: 'vehicleAllocationNonAdmin',
+                              icon: Icons.car_rental_rounded,
+                              label: "Vehicle Allocation",
+                              subtitle: "View vehicle allocations",
+                              gradient: const [
+                                Color(0xFF1A237E),
+                                Color(0xFF283593),
+                                Color(0xFF3F51B5),
+                              ],
+                              accentColor: Colors.indigoAccent,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'VehicleAllocationScreen',
+                                    ),
+                                    builder: (_) =>
+                                        const VehicleAllocationScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 24),
+                            // Assigned Task card
+                            _dashCard(
+                              cardId: 'assignedTaskNonAdmin',
+                              icon: Icons.assignment_ind_rounded,
+                              label: "Assigned task",
+                              subtitle: "Assigned Task",
+                              gradient: const [
+                                Color(0xFF4A148C),
+                                Color(0xFF6A1B9A),
+                                Color(0xFF8E24AA),
+                              ],
+                              accentColor: Colors.purpleAccent,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const GlobalTaskScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
       floatingActionButtonLocation: MediaQuery.of(context).size.width >= 600
           ? FloatingActionButtonLocation.startFloat
@@ -2070,235 +2178,357 @@ class _HomeScreenState extends State<HomeScreen>
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── Gradient header ───────────────────────────────
-                    Container(
-                      padding: EdgeInsets.fromLTRB(
-                        isTabletOrLarge ? 32 : 24,
-                        isTabletOrLarge ? 26 : 22,
-                        isTabletOrLarge ? 28 : 20,
-                        isTabletOrLarge ? 24 : 20,
-                      ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Color(0xFF4A148C),
-                            Color(0xFF6A1B9A),
-                            Color(0xFF9C27B0),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.assignment_ind_rounded,
-                              color: Colors.white,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Assign Task',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Create & assign a new task',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => Navigator.pop(ctx),
-                            child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.18),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.close_rounded,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // ── Form body ─────────────────────────────────────
-                    Expanded(
-                      child: SingleChildScrollView(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ── Gradient header ───────────────────────────────
+                      Container(
                         padding: EdgeInsets.fromLTRB(
+                          isTabletOrLarge ? 32 : 24,
+                          isTabletOrLarge ? 26 : 22,
                           isTabletOrLarge ? 28 : 20,
                           isTabletOrLarge ? 24 : 20,
-                          isTabletOrLarge ? 28 : 20,
-                          8,
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Color(0xFF4A148C),
+                              Color(0xFF6A1B9A),
+                              Color(0xFF9C27B0),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
+                        ),
+                        child: Row(
                           children: [
-                            // Task Title
-                            TextField(
-                              controller: _assignTitleCtrl,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
+                            Container(
+                              width: 42,
+                              height: 42,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              decoration: _fieldDecor(
-                                label: 'Task Title',
-                                icon: Icons.title_rounded,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Description
-                            TextField(
-                              controller: _assignDescCtrl,
-                              maxLines: 3,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: _fieldDecor(
-                                label: 'Description',
-                                icon: Icons.notes_rounded,
+                              child: const Icon(
+                                Icons.assignment_ind_rounded,
+                                color: Colors.white,
+                                size: 22,
                               ),
                             ),
-                            const SizedBox(height: 14),
-
-                            // Assign To
-                            DropdownButtonFormField<String>(
-                              value: _assignSelectedUserId,
-                              isExpanded: true,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              decoration: _fieldDecor(
-                                label: 'Assign To',
-                                icon: Icons.person_outline_rounded,
-                              ),
-                              dropdownColor: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              items: _assignUsers.map((u) {
-                                final id =
-                                    u['UserId']?.toString() ??
-                                    u['id']?.toString() ??
-                                    '';
-                                final name =
-                                    u['UserName']?.toString() ??
-                                    u['name']?.toString() ??
-                                    id;
-                                return DropdownMenuItem<String>(
-                                  value: id,
-                                  child: Text(
-                                    name,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 14),
+                            const SizedBox(width: 14),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Assign Task',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.3,
+                                    ),
                                   ),
-                                );
-                              }).toList(),
-                              onChanged: (v) =>
-                                  setDlg(() => _assignSelectedUserId = v),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Priority — chip row
-                            const Text(
-                              'Priority',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF7B5EA7),
-                                letterSpacing: 0.5,
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Create & assign a new task',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: ['Low', 'Medium', 'High'].map((p) {
-                                final selected = _assignPriority == p;
-                                final c = priorityColor(p);
-                                return Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          setDlg(() => _assignPriority = p),
-                                      child: AnimatedContainer(
-                                        duration: const Duration(
-                                          milliseconds: 200,
+                            GestureDetector(
+                              onTap: () => Navigator.pop(ctx),
+                              child: Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.18),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // ── Form body ─────────────────────────────────────
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.fromLTRB(
+                            isTabletOrLarge ? 28 : 20,
+                            isTabletOrLarge ? 24 : 20,
+                            isTabletOrLarge ? 28 : 20,
+                            8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Task Title
+                              TextField(
+                                controller: _assignTitleCtrl,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                decoration: _fieldDecor(
+                                  label: 'Task Title',
+                                  icon: Icons.title_rounded,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Description
+                              TextField(
+                                controller: _assignDescCtrl,
+                                maxLines: 3,
+                                style: const TextStyle(fontSize: 14),
+                                decoration: _fieldDecor(
+                                  label: 'Description',
+                                  icon: Icons.notes_rounded,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Assign To
+                              DropdownButtonFormField<String>(
+                                value: _assignSelectedUserId,
+                                isExpanded: true,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                decoration: _fieldDecor(
+                                  label: 'Assign To',
+                                  icon: Icons.person_outline_rounded,
+                                ),
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                items: _assignUsers.map((u) {
+                                  final id =
+                                      u['UserId']?.toString() ??
+                                      u['id']?.toString() ??
+                                      '';
+                                  final name =
+                                      u['UserName']?.toString() ??
+                                      u['name']?.toString() ??
+                                      id;
+                                  return DropdownMenuItem<String>(
+                                    value: id,
+                                    child: Text(
+                                      name,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (v) =>
+                                    setDlg(() => _assignSelectedUserId = v),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Priority — chip row
+                              const Text(
+                                'Priority',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF7B5EA7),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: ['Low', 'Medium', 'High'].map((p) {
+                                  final selected = _assignPriority == p;
+                                  final c = priorityColor(p);
+                                  return Expanded(
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: GestureDetector(
+                                        onTap: () =>
+                                            setDlg(() => _assignPriority = p),
+                                        child: AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: selected
+                                                ? c
+                                                : c.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            border: Border.all(
+                                              color: selected
+                                                  ? c
+                                                  : c.withOpacity(0.3),
+                                              width: selected ? 2 : 1,
+                                            ),
+                                            boxShadow: selected
+                                                ? [
+                                                    BoxShadow(
+                                                      color: c.withOpacity(0.3),
+                                                      blurRadius: 8,
+                                                      offset: const Offset(
+                                                        0,
+                                                        3,
+                                                      ),
+                                                    ),
+                                                  ]
+                                                : [],
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Icon(
+                                                priorityIcon(p),
+                                                size: 18,
+                                                color: selected
+                                                    ? Colors.white
+                                                    : c,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                p,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: selected
+                                                      ? Colors.white
+                                                      : c,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Frequency
+                              DropdownButtonFormField<String?>(
+                                value: _assignFrequency,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                decoration: _fieldDecor(
+                                  label: 'Frequency',
+                                  icon: Icons.repeat_rounded,
+                                ),
+                                dropdownColor: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: null,
+                                    child: Text('One-time'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Weekly',
+                                    child: Text('Weekly'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Monthly',
+                                    child: Text('Monthly'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'Yearly',
+                                    child: Text('Yearly'),
+                                  ),
+                                ],
+                                onChanged: (v) =>
+                                    setDlg(() => _assignFrequency = v),
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Date row
+                              Row(
+                                children: [
+                                  // Start Date
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        final picked = await showDatePicker(
+                                          context: ctx,
+                                          initialDate:
+                                              _assignStartDate ??
+                                              DateTime.now(),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+                                        if (picked != null)
+                                          setDlg(
+                                            () => _assignStartDate = picked,
+                                          );
+                                      },
+                                      child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                          vertical: 10,
+                                          horizontal: 12,
+                                          vertical: 13,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: selected
-                                              ? c
-                                              : c.withOpacity(0.08),
+                                          color: const Color(0xFFF5F0FF),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                           border: Border.all(
-                                            color: selected
-                                                ? c
-                                                : c.withOpacity(0.3),
-                                            width: selected ? 2 : 1,
+                                            color: _assignStartDate != null
+                                                ? const Color(0xFF7B5EA7)
+                                                : const Color(0xFFD5C5F0),
+                                            width: _assignStartDate != null
+                                                ? 1.8
+                                                : 1.2,
                                           ),
-                                          boxShadow: selected
-                                              ? [
-                                                  BoxShadow(
-                                                    color: c.withOpacity(0.3),
-                                                    blurRadius: 8,
-                                                    offset: const Offset(0, 3),
-                                                  ),
-                                                ]
-                                              : [],
                                         ),
                                         child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Icon(
-                                              priorityIcon(p),
-                                              size: 18,
-                                              color: selected
-                                                  ? Colors.white
-                                                  : c,
+                                            Row(
+                                              children: [
+                                                const Icon(
+                                                  Icons.calendar_month_rounded,
+                                                  size: 14,
+                                                  color: Color(0xFF7B5EA7),
+                                                ),
+                                                const SizedBox(width: 5),
+                                                const Text(
+                                                  'Start Date',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xFF7B5EA7),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 5),
                                             Text(
-                                              p,
+                                              fmtDate(_assignStartDate),
                                               style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w700,
-                                                color: selected
-                                                    ? Colors.white
-                                                    : c,
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: _assignStartDate != null
+                                                    ? const Color(0xFF2D1B5E)
+                                                    : Colors.grey,
                                               ),
                                             ),
                                           ],
@@ -2306,446 +2536,341 @@ class _HomeScreenState extends State<HomeScreen>
                                       ),
                                     ),
                                   ),
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Frequency
-                            DropdownButtonFormField<String?>(
-                              value: _assignFrequency,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              decoration: _fieldDecor(
-                                label: 'Frequency',
-                                icon: Icons.repeat_rounded,
-                              ),
-                              dropdownColor: Colors.white,
-                              borderRadius: BorderRadius.circular(14),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: null,
-                                  child: Text('One-time'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Weekly',
-                                  child: Text('Weekly'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Monthly',
-                                  child: Text('Monthly'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'Yearly',
-                                  child: Text('Yearly'),
-                                ),
-                              ],
-                              onChanged: (v) =>
-                                  setDlg(() => _assignFrequency = v),
-                            ),
-                            const SizedBox(height: 14),
-
-                            // Date row
-                            Row(
-                              children: [
-                                // Start Date
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final picked = await showDatePicker(
-                                        context: ctx,
-                                        initialDate:
-                                            _assignStartDate ?? DateTime.now(),
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (picked != null)
-                                        setDlg(() => _assignStartDate = picked);
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 13,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF5F0FF),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: _assignStartDate != null
-                                              ? const Color(0xFF7B5EA7)
-                                              : const Color(0xFFD5C5F0),
-                                          width: _assignStartDate != null
-                                              ? 1.8
-                                              : 1.2,
+                                  const SizedBox(width: 10),
+                                  // Due Date
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        final picked = await showDatePicker(
+                                          context: ctx,
+                                          initialDate:
+                                              _assignDueDate ??
+                                              (_assignStartDate ??
+                                                  DateTime.now()),
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                        );
+                                        if (picked != null)
+                                          setDlg(() => _assignDueDate = picked);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 13,
                                         ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.calendar_month_rounded,
-                                                size: 14,
-                                                color: Color(0xFF7B5EA7),
-                                              ),
-                                              const SizedBox(width: 5),
-                                              const Text(
-                                                'Start Date',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Color(0xFF7B5EA7),
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF5F0FF),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
                                           ),
-                                          const SizedBox(height: 5),
-                                          Text(
-                                            fmtDate(_assignStartDate),
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: _assignStartDate != null
-                                                  ? const Color(0xFF2D1B5E)
-                                                  : Colors.grey,
-                                            ),
+                                          border: Border.all(
+                                            color: _assignDueDate != null
+                                                ? const Color(0xFF7B5EA7)
+                                                : const Color(0xFFD5C5F0),
+                                            width: _assignDueDate != null
+                                                ? 1.8
+                                                : 1.2,
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                // Due Date
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () async {
-                                      final picked = await showDatePicker(
-                                        context: ctx,
-                                        initialDate:
-                                            _assignDueDate ??
-                                            (_assignStartDate ??
-                                                DateTime.now()),
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (picked != null)
-                                        setDlg(() => _assignDueDate = picked);
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 13,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF5F0FF),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: _assignDueDate != null
-                                              ? const Color(0xFF7B5EA7)
-                                              : const Color(0xFFD5C5F0),
-                                          width: _assignDueDate != null
-                                              ? 1.8
-                                              : 1.2,
                                         ),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.event_rounded,
-                                                size: 14,
-                                                color: Color(0xFF7B5EA7),
-                                              ),
-                                              const SizedBox(width: 5),
-                                              const Text(
-                                                'Due Date',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Color(0xFF7B5EA7),
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 5),
-                                          Text(
-                                            fmtDate(_assignDueDate),
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              color: _assignDueDate != null
-                                                  ? const Color(0xFF2D1B5E)
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // ── Action buttons ────────────────────────────────
-                    Container(
-                      padding: EdgeInsets.fromLTRB(
-                        isTabletOrLarge ? 28 : 20,
-                        12,
-                        isTabletOrLarge ? 28 : 20,
-                        isTabletOrLarge ? 28 : 20,
-                      ),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                side: const BorderSide(
-                                  color: Color(0xFFD5C5F0),
-                                  width: 1.5,
-                                ),
-                                foregroundColor: const Color(0xFF6A1B9A),
-                              ),
-                              child: const Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [
-                                    Color(0xFF6A1B9A),
-                                    Color(0xFF9C27B0),
-                                  ],
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF6A1B9A,
-                                    ).withOpacity(0.4),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton.icon(
-                                onPressed: () async {
-                                  if (_assignTitleCtrl.text.trim().isEmpty ||
-                                      _assignSelectedUserId == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Please fill title and select a user',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  final messenger = ScaffoldMessenger.of(
-                                    context,
-                                  );
-                                  final navigator = Navigator.of(ctx);
-
-                                  // ── Build recurring slots ────────────────────
-                                  final List<(DateTime, DateTime)> allSlots =
-                                      [];
-
-                                  if (_assignFrequency != null &&
-                                      _assignStartDate != null &&
-                                      _assignDueDate != null) {
-                                    DateTime slotStart = _assignStartDate!;
-                                    final rangeEnd = _assignDueDate!;
-
-                                    while (!slotStart.isAfter(rangeEnd)) {
-                                      DateTime slotEnd;
-                                      if (_assignFrequency == 'Weekly') {
-                                        slotEnd = slotStart.add(
-                                          const Duration(days: 6),
-                                        );
-                                      } else if (_assignFrequency ==
-                                          'Monthly') {
-                                        final nextMonth = DateTime(
-                                          slotStart.month == 12
-                                              ? slotStart.year + 1
-                                              : slotStart.year,
-                                          slotStart.month == 12
-                                              ? 1
-                                              : slotStart.month + 1,
-                                          slotStart.day,
-                                        );
-                                        slotEnd = nextMonth.subtract(
-                                          const Duration(days: 1),
-                                        );
-                                      } else {
-                                        // Yearly
-                                        slotEnd = DateTime(
-                                          slotStart.year + 1,
-                                          slotStart.month,
-                                          slotStart.day,
-                                        ).subtract(const Duration(days: 1));
-                                      }
-                                      if (slotEnd.isAfter(rangeEnd)) {
-                                        slotEnd = rangeEnd;
-                                      }
-                                      allSlots.add((slotStart, slotEnd));
-
-                                      if (_assignFrequency == 'Weekly') {
-                                        slotStart = slotStart.add(
-                                          const Duration(days: 7),
-                                        );
-                                      } else if (_assignFrequency ==
-                                          'Monthly') {
-                                        slotStart = DateTime(
-                                          slotStart.month == 12
-                                              ? slotStart.year + 1
-                                              : slotStart.year,
-                                          slotStart.month == 12
-                                              ? 1
-                                              : slotStart.month + 1,
-                                          slotStart.day,
-                                        );
-                                      } else {
-                                        slotStart = DateTime(
-                                          slotStart.year + 1,
-                                          slotStart.month,
-                                          slotStart.day,
-                                        );
-                                      }
-                                    }
-                                  }
-
-                                  // ── Create first slot now ────────────────────
-                                  final firstStart = allSlots.isNotEmpty
-                                      ? allSlots.first.$1
-                                      : _assignStartDate;
-                                  final firstEnd = allSlots.isNotEmpty
-                                      ? allSlots.first.$2
-                                      : _assignDueDate;
-
-                                  final ok = await ApiService.createGlobalTask(
-                                    receiverId: _assignSelectedUserId!,
-                                    taskTitle: _assignTitleCtrl.text.trim(),
-                                    taskDescription: _assignDescCtrl.text
-                                        .trim(),
-                                    priority: _assignPriority,
-                                    startDate: firstStart?.toIso8601String(),
-                                    dueDate: firstEnd?.toIso8601String(),
-                                  );
-
-                                  // ── Schedule future slots ────────────────────
-                                  if (ok && allSlots.length > 1) {
-                                    await RecurringTaskScheduler.addGlobalPendingSlots(
-                                      receiverId: _assignSelectedUserId!,
-                                      taskTitle: _assignTitleCtrl.text.trim(),
-                                      taskDescription: _assignDescCtrl.text
-                                          .trim(),
-                                      priority: _assignPriority,
-                                      futureSlots: allSlots.sublist(1),
-                                    );
-                                  }
-
-                                  if (!mounted) return;
-                                  navigator.pop();
-                                  messenger.showSnackBar(
-                                    ok
-                                        ? SnackBar(
-                                            content: Row(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
                                               children: [
                                                 const Icon(
-                                                  Icons.check_circle,
-                                                  color: Colors.white,
-                                                  size: 18,
+                                                  Icons.event_rounded,
+                                                  size: 14,
+                                                  color: Color(0xFF7B5EA7),
                                                 ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  allSlots.length > 1
-                                                      ? 'Task assigned. ${allSlots.length - 1} future ${_assignFrequency!.toLowerCase()} task(s) scheduled.'
-                                                      : 'Task assigned successfully',
+                                                const SizedBox(width: 5),
+                                                const Text(
+                                                  'Due Date',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xFF7B5EA7),
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                            backgroundColor: const Color(
-                                              0xFF2E7D32,
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              fmtDate(_assignDueDate),
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: _assignDueDate != null
+                                                    ? const Color(0xFF2D1B5E)
+                                                    : Colors.grey,
+                                              ),
                                             ),
-                                            behavior: SnackBarBehavior.floating,
-                                          )
-                                        : const SnackBar(
-                                            content: Text(
-                                              'Failed to assign task',
-                                            ),
-                                            backgroundColor: Colors.red,
-                                            behavior: SnackBarBehavior.floating,
-                                          ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.send_rounded,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
-                                label: const Text(
-                                  'Assign Task',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14,
-                                    color: Colors.white,
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // ── Action buttons ────────────────────────────────
+                      Container(
+                        padding: EdgeInsets.fromLTRB(
+                          isTabletOrLarge ? 28 : 20,
+                          12,
+                          isTabletOrLarge ? 28 : 20,
+                          isTabletOrLarge ? 28 : 20,
+                        ),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Color(0xFFF0E6FF), width: 1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 14,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
+                                  side: const BorderSide(
+                                    color: Color(0xFFD5C5F0),
+                                    width: 1.5,
+                                  ),
+                                  foregroundColor: const Color(0xFF6A1B9A),
+                                ),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 12),
+                            Expanded(
+                              flex: 2,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF6A1B9A),
+                                      Color(0xFF9C27B0),
+                                    ],
+                                    begin: Alignment.centerLeft,
+                                    end: Alignment.centerRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFF6A1B9A,
+                                      ).withOpacity(0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    if (_assignTitleCtrl.text.trim().isEmpty ||
+                                        _assignSelectedUserId == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please fill title and select a user',
+                                          ),
+                                        ),
+                                      );
+                                      return;
+                                    }
+                                    final messenger = ScaffoldMessenger.of(
+                                      context,
+                                    );
+                                    final navigator = Navigator.of(ctx);
+
+                                    // ── Build recurring slots ────────────────────
+                                    final List<(DateTime, DateTime)> allSlots =
+                                        [];
+
+                                    if (_assignFrequency != null &&
+                                        _assignStartDate != null &&
+                                        _assignDueDate != null) {
+                                      DateTime slotStart = _assignStartDate!;
+                                      final rangeEnd = _assignDueDate!;
+
+                                      while (!slotStart.isAfter(rangeEnd)) {
+                                        DateTime slotEnd;
+                                        if (_assignFrequency == 'Weekly') {
+                                          slotEnd = slotStart.add(
+                                            const Duration(days: 6),
+                                          );
+                                        } else if (_assignFrequency ==
+                                            'Monthly') {
+                                          final nextMonth = DateTime(
+                                            slotStart.month == 12
+                                                ? slotStart.year + 1
+                                                : slotStart.year,
+                                            slotStart.month == 12
+                                                ? 1
+                                                : slotStart.month + 1,
+                                            slotStart.day,
+                                          );
+                                          slotEnd = nextMonth.subtract(
+                                            const Duration(days: 1),
+                                          );
+                                        } else {
+                                          // Yearly
+                                          slotEnd = DateTime(
+                                            slotStart.year + 1,
+                                            slotStart.month,
+                                            slotStart.day,
+                                          ).subtract(const Duration(days: 1));
+                                        }
+                                        if (slotEnd.isAfter(rangeEnd)) {
+                                          slotEnd = rangeEnd;
+                                        }
+                                        allSlots.add((slotStart, slotEnd));
+
+                                        if (_assignFrequency == 'Weekly') {
+                                          slotStart = slotStart.add(
+                                            const Duration(days: 7),
+                                          );
+                                        } else if (_assignFrequency ==
+                                            'Monthly') {
+                                          slotStart = DateTime(
+                                            slotStart.month == 12
+                                                ? slotStart.year + 1
+                                                : slotStart.year,
+                                            slotStart.month == 12
+                                                ? 1
+                                                : slotStart.month + 1,
+                                            slotStart.day,
+                                          );
+                                        } else {
+                                          slotStart = DateTime(
+                                            slotStart.year + 1,
+                                            slotStart.month,
+                                            slotStart.day,
+                                          );
+                                        }
+                                      }
+                                    }
+
+                                    // ── Create first slot now ────────────────────
+                                    final firstStart = allSlots.isNotEmpty
+                                        ? allSlots.first.$1
+                                        : _assignStartDate;
+                                    final firstEnd = allSlots.isNotEmpty
+                                        ? allSlots.first.$2
+                                        : _assignDueDate;
+
+                                    final ok =
+                                        await ApiService.createGlobalTask(
+                                          receiverId: _assignSelectedUserId!,
+                                          taskTitle: _assignTitleCtrl.text
+                                              .trim(),
+                                          taskDescription: _assignDescCtrl.text
+                                              .trim(),
+                                          priority: _assignPriority,
+                                          startDate: firstStart
+                                              ?.toIso8601String(),
+                                          dueDate: firstEnd?.toIso8601String(),
+                                        );
+
+                                    // ── Schedule future slots ────────────────────
+                                    if (ok && allSlots.length > 1) {
+                                      await RecurringTaskScheduler.addGlobalPendingSlots(
+                                        receiverId: _assignSelectedUserId!,
+                                        taskTitle: _assignTitleCtrl.text.trim(),
+                                        taskDescription: _assignDescCtrl.text
+                                            .trim(),
+                                        priority: _assignPriority,
+                                        futureSlots: allSlots.sublist(1),
+                                      );
+                                    }
+
+                                    if (!mounted) return;
+                                    navigator.pop();
+                                    messenger.showSnackBar(
+                                      ok
+                                          ? SnackBar(
+                                              content: Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.check_circle,
+                                                    color: Colors.white,
+                                                    size: 18,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    allSlots.length > 1
+                                                        ? 'Task assigned. ${allSlots.length - 1} future ${_assignFrequency!.toLowerCase()} task(s) scheduled.'
+                                                        : 'Task assigned successfully',
+                                                  ),
+                                                ],
+                                              ),
+                                              backgroundColor: const Color(
+                                                0xFF2E7D32,
+                                              ),
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            )
+                                          : const SnackBar(
+                                              content: Text(
+                                                'Failed to assign task',
+                                              ),
+                                              backgroundColor: Colors.red,
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                            ),
+                                    );
+                                  },
+                                  icon: const Icon(
+                                    Icons.send_rounded,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                  label: const Text(
+                                    'Assign Task',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.transparent,
+                                    shadowColor: Colors.transparent,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               ),
             ),
           );
@@ -2768,43 +2893,62 @@ class _HomeScreenState extends State<HomeScreen>
       onLongPress: () => _toggleHighlight(cardId),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Scale down elements when card is narrow (e.g. three cards on small screen)
           final w = constraints.maxWidth;
-          final pad = w < 100
+          final h = constraints.maxHeight;
+
+          // ----------------------------------------------------------
+          // Responsive sizing
+          // The old layout was based mainly on width, which caused
+          // overflow when the GridView made the card height smaller.
+          // ----------------------------------------------------------
+
+          final bool compact = h < 220 || w < 145;
+
+          final double pad = compact
               ? 10.0
-              : w < 130
+              : w < 180
               ? 14.0
               : 20.0;
-          final iconSize = w < 100
-              ? 30.0
-              : w < 130
-              ? 38.0
+
+          final double iconSize = compact
+              ? 36.0
+              : w < 180
+              ? 42.0
               : 48.0;
-          final iconInner = w < 100
-              ? 16.0
-              : w < 130
-              ? 20.0
+
+          final double iconInner = compact
+              ? 19.0
+              : w < 180
+              ? 22.0
               : 26.0;
-          final arrowSize = w < 100
-              ? 20.0
-              : w < 130
+
+          final double arrowSize = compact
               ? 24.0
+              : w < 180
+              ? 26.0
               : 28.0;
-          final arrowIconSize = w < 100
-              ? 9.0
-              : w < 130
+
+          final double arrowIconSize = compact
+              ? 10.0
+              : w < 180
               ? 11.0
               : 13.0;
-          final labelSize = w < 100
-              ? 12.0
-              : w < 130
-              ? 14.0
+
+          final double labelSize = compact
+              ? 15.0
+              : w < 180
+              ? 16.0
               : 17.0;
-          final subSize = w < 100
+
+          final double subSize = compact
               ? 9.0
-              : w < 130
+              : w < 180
               ? 10.0
               : 11.0;
+
+          final double topGap = compact ? 7.0 : 12.0;
+          final double labelGap = compact ? 2.0 : 4.0;
+          final double bottomGap = compact ? 6.0 : 10.0;
 
           return RgbBorderCard(
             borderRadius: 22,
@@ -2829,20 +2973,22 @@ class _HomeScreenState extends State<HomeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // --------------------------------------------------
+                  // TOP ROW
+                  // --------------------------------------------------
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Icon bubble
                       Container(
                         width: iconSize,
                         height: iconSize,
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(icon, color: Colors.white, size: iconInner),
                       ),
-                      // Arrow chip
+
                       Container(
                         width: arrowSize,
                         height: arrowSize,
@@ -2858,30 +3004,53 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ],
                   ),
-                  SizedBox(height: w < 100 ? 8 : 18),
+
+                  SizedBox(height: topGap),
+
+                  // --------------------------------------------------
+                  // TITLE
+                  // --------------------------------------------------
                   Text(
                     label,
+                    maxLines: compact ? 2 : 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: labelSize,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,
-                      letterSpacing: 0.3,
+                      letterSpacing: 0.2,
+                      height: 1.15,
                     ),
                   ),
-                  SizedBox(height: w < 100 ? 2 : 4),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: subSize,
-                      color: Colors.white.withOpacity(0.78),
-                      height: 1.3,
+
+                  SizedBox(height: labelGap),
+
+                  // --------------------------------------------------
+                  // SUBTITLE
+                  // --------------------------------------------------
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        subtitle,
+                        maxLines: compact ? 2 : 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: subSize,
+                          color: Colors.white.withOpacity(0.78),
+                          height: 1.2,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: w < 100 ? 8 : 14),
-                  // Bottom accent bar
+
+                  SizedBox(height: bottomGap),
+
+                  // --------------------------------------------------
+                  // BOTTOM ACCENT BAR
+                  // --------------------------------------------------
                   Container(
+                    width: double.infinity,
                     height: 3,
                     decoration: BoxDecoration(
                       color: accentColor.withOpacity(0.6),

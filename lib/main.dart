@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +25,7 @@ import 'screens/chat/task_dashboard_screen.dart';
 import 'package:college_app/database/chat_database.dart';
 import 'package:college_app/chat/services/connectivity_service.dart';
 import 'services/festival_service.dart';
+import 'screens/receipt/combined_receipt_screen.dart';
 
 // ── Global navigator key — lets us navigate from outside widget tree ──────────
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -51,9 +53,21 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  // Show a local notification so it appears in the system tray
-  await _showLocalChatNotification(message);
+
+  // When Node.js sends an FCM message with a `notification` payload,
+  // Android/iOS displays the system notification automatically while
+  // the app is in the background or terminated.
+  //
+  // Do not call flutterLocalNotificationsPlugin.show() here because
+  // that plugin is initialized in the main Flutter isolate.
+  print("======================================");
+  print("FCM BACKGROUND MESSAGE RECEIVED");
+  print("TITLE: ${message.notification?.title}");
+  print("BODY: ${message.notification?.body}");
+  print("DATA: ${message.data}");
+  print("======================================");
 }
+
 /// Shows a local notification for any incoming FCM message.
 /// Routes to the correct notification channel based on message type.
 Future<void> _showLocalChatNotification(RemoteMessage message) async {
@@ -71,17 +85,37 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
   final type = message.data['type'] ?? '';
   final challanId = message.data['challanId'] ?? '';
   final challanNo = message.data['challanNo'] ?? '';
+  final requestId = message.data['requestId']?.toString() ?? '';
+  final receiptNo = message.data['receiptNo']?.toString() ?? '';
+  final requestType = message.data['requestType']?.toString() ?? '';
 
-  // Challan status notifications use their own channel
+  // Use a separate channel for each notification category.
   final bool isChallanStatus =
       type == 'CHALLAN_APPROVED' || type == 'CHALLAN_REJECTED';
+  final bool isReceiptChange = type == 'receipt_change_request';
+
+  final String channelId;
+  final String channelName;
+  final String channelDescription;
+
+  if (isReceiptChange) {
+    channelId = 'receipt_change_requests';
+    channelName = 'Receipt Change Requests';
+    channelDescription = 'Notifications for new receipt change requests';
+  } else if (isChallanStatus) {
+    channelId = 'challan_notifications';
+    channelName = 'Challan Notifications';
+    channelDescription = 'Notifications for challan approval and rejection';
+  } else {
+    channelId = 'chat_messages';
+    channelName = 'Chat Messages';
+    channelDescription = 'Push notifications for challan chat messages';
+  }
 
   final androidDetails = AndroidNotificationDetails(
-    isChallanStatus ? 'challan_notifications' : 'chat_messages',
-    isChallanStatus ? 'Challan Notifications' : 'Chat Messages',
-    channelDescription: isChallanStatus
-        ? 'Notifications for challan approval and rejection'
-        : 'Push notifications for challan chat messages',
+    channelId,
+    channelName,
+    channelDescription: channelDescription,
     importance: Importance.max,
     priority: Priority.high,
     enableVibration: true,
@@ -94,8 +128,15 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
     iOS: const DarwinNotificationDetails(sound: 'default'),
   );
 
-  // Encode full data as payload so tap handler knows what to open
-  final payload = '$type|$challanId|$challanNo';
+  // Encode receipt notification data so its tap can be routed correctly.
+  final payload = type == 'receipt_change_request'
+      ? jsonEncode({
+          'type': type,
+          'requestId': requestId,
+          'receiptNo': receiptNo,
+          'requestType': requestType,
+        })
+      : '$type|$challanId|$challanNo';
   final notifId = (type + challanId).hashCode.abs() % 100000;
 
   await flutterLocalNotificationsPlugin.show(
@@ -109,9 +150,11 @@ Future<void> _showLocalChatNotification(RemoteMessage message) async {
 
 /// Routes a notification tap to the correct screen based on type.
 void _handleNotificationData(Map<String, dynamic> data) {
-  final type = data['type'] ?? '';
-  final challanId = data['challanId'] ?? '';
-  final challanNo = data['challanNo'] ?? '';
+  final type = data['type']?.toString() ?? '';
+  final challanId = data['challanId']?.toString() ?? '';
+  final challanNo = data['challanNo']?.toString() ?? '';
+  final requestId = data['requestId']?.toString() ?? '';
+  final receiptNo = data['receiptNo']?.toString() ?? '';
 
   if (type == 'CHALLAN_APPROVED' || type == 'CHALLAN_REJECTED') {
     // Navigate to notification screen so user sees the approval/rejection
@@ -126,6 +169,10 @@ void _handleNotificationData(Map<String, dynamic> data) {
       taskTitle: data['taskTitle'] ?? '',
       completedBy: data['completedBy'] ?? '',
     );
+  } else if (type == 'receipt_change_request') {
+    // Receipt change request -> open Combined Receipt and show
+    // the exact receipt associated with this notification.
+    _openCombinedReceiptScreen(receiptNo: receiptNo, requestId: requestId);
   } else if (challanId.isNotEmpty) {
     // Chat message — open the challan chat
     _openChatFromNotification(challanId, challanNo: challanNo);
@@ -154,6 +201,29 @@ void _openNotificationScreen() {
     MaterialPageRoute(
       settings: const RouteSettings(name: 'NotificationScreen'),
       builder: (_) => const NotificationScreen(),
+    ),
+  );
+}
+
+/// Opens the Combined Receipt screen when a receipt-change notification is tapped.
+void _openCombinedReceiptScreen({
+  String receiptNo = '',
+  String requestId = '',
+}) {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+
+  print("==============================================");
+  print("OPEN COMBINED RECEIPT FROM PUSH");
+  print("Receipt No : $receiptNo");
+  print("Request ID : $requestId");
+  print("==============================================");
+
+  navigatorKey.currentState?.push(
+    MaterialPageRoute(
+      settings: const RouteSettings(name: 'CombinedReceiptScreen'),
+      builder: (_) =>
+          CombinedReceiptScreen(receiptNo: receiptNo, requestId: requestId),
     ),
   );
 }
@@ -275,11 +345,27 @@ void main() {
           const InitializationSettings(android: androidInit, iOS: iosInit),
           onDidReceiveNotificationResponse: (NotificationResponse response) {
             final payload = response.payload ?? '';
+
+            // Receipt-change local notification payload is JSON.
+            if (payload.trimLeft().startsWith('{')) {
+              try {
+                final decoded = jsonDecode(payload);
+                if (decoded is Map) {
+                  _handleNotificationData(Map<String, dynamic>.from(decoded));
+                  return;
+                }
+              } catch (e) {
+                debugPrint('Notification payload JSON parse error: $e');
+              }
+            }
+
+            // Existing chat/challan payload format:
+            // 'TYPE|challanId|challanNo'
             final parts = payload.split('|');
-            // payload format: 'TYPE|challanId|challanNo'
             final type = parts.isNotEmpty ? parts[0] : '';
             final challanId = parts.length > 1 ? parts[1] : '';
             final challanNo = parts.length > 2 ? parts[2] : '';
+
             _handleNotificationData({
               'type': type,
               'challanId': challanId,
@@ -313,6 +399,22 @@ void main() {
                 'Challan Notifications',
                 description:
                     'Notifications for challan approval and rejection status',
+                importance: Importance.max,
+                playSound: true,
+              ),
+            );
+        // ============================================================
+        // RECEIPT CHANGE REQUEST NOTIFICATION CHANNEL
+        // ============================================================
+        await flutterLocalNotificationsPlugin
+            .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin
+            >()
+            ?.createNotificationChannel(
+              const AndroidNotificationChannel(
+                'receipt_change_requests',
+                'Receipt Change Requests',
+                description: 'Notifications for new receipt change requests',
                 importance: Importance.max,
                 playSound: true,
               ),
@@ -391,8 +493,13 @@ class _MyAppState extends State<MyApp> {
         final taskId = message.data['taskId']?.toString() ?? '';
         final taskTitle = message.data['taskTitle']?.toString() ?? '';
         final completedBy = message.data['completedBy']?.toString() ?? '';
+        final requestId = message.data['requestId']?.toString() ?? '';
+        final receiptNo = message.data['receiptNo']?.toString() ?? '';
+        final requestType = message.data['requestType']?.toString() ?? '';
         print(
-          "NOTIFICATION TAPPED (background): type=$type challanId=$challanId",
+          "NOTIFICATION TAPPED (background): "
+          "type=$type challanId=$challanId "
+          "requestId=$requestId receiptNo=$receiptNo",
         );
         _handleNotificationData({
           'type': type,
@@ -401,6 +508,9 @@ class _MyAppState extends State<MyApp> {
           'taskId': taskId,
           'taskTitle': taskTitle,
           'completedBy': completedBy,
+          'requestId': requestId,
+          'receiptNo': receiptNo,
+          'requestType': requestType,
         });
       });
 
@@ -413,8 +523,13 @@ class _MyAppState extends State<MyApp> {
           final taskId = message.data['taskId']?.toString() ?? '';
           final taskTitle = message.data['taskTitle']?.toString() ?? '';
           final completedBy = message.data['completedBy']?.toString() ?? '';
+          final requestId = message.data['requestId']?.toString() ?? '';
+          final receiptNo = message.data['receiptNo']?.toString() ?? '';
+          final requestType = message.data['requestType']?.toString() ?? '';
           print(
-            "NOTIFICATION TAPPED (terminated): type=$type challanId=$challanId",
+            "NOTIFICATION TAPPED (terminated): "
+            "type=$type challanId=$challanId "
+            "requestId=$requestId receiptNo=$receiptNo",
           );
           Future.delayed(const Duration(milliseconds: 500), () {
             _handleNotificationData({
@@ -424,6 +539,9 @@ class _MyAppState extends State<MyApp> {
               'taskId': taskId,
               'taskTitle': taskTitle,
               'completedBy': completedBy,
+              'requestId': requestId,
+              'receiptNo': receiptNo,
+              'requestType': requestType,
             });
           });
         }
@@ -507,9 +625,9 @@ class _MyAppState extends State<MyApp> {
       scaffoldBackgroundColor: const Color(0xFFF5F9FF),
       cardColor: Colors.white,
       dividerColor: const Color(0xFFE0E0E0),
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme).apply(
-        fontFamilyFallback: ['NotoColorEmoji'],
-      ),
+      textTheme: GoogleFonts.poppinsTextTheme(
+        ThemeData.light().textTheme,
+      ).apply(fontFamilyFallback: ['NotoColorEmoji']),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -561,9 +679,9 @@ class _MyAppState extends State<MyApp> {
       scaffoldBackgroundColor: const Color(0xFF0F1923),
       cardColor: const Color(0xFF1A2535),
       dividerColor: const Color(0xFF2A3A4A),
-      textTheme: GoogleFonts.poppinsTextTheme(ThemeData.dark().textTheme).apply(
-        fontFamilyFallback: ['NotoColorEmoji'],
-      ),
+      textTheme: GoogleFonts.poppinsTextTheme(
+        ThemeData.dark().textTheme,
+      ).apply(fontFamilyFallback: ['NotoColorEmoji']),
       appBarTheme: const AppBarTheme(
         elevation: 0,
         centerTitle: true,
@@ -684,14 +802,13 @@ class ChatBubbleOverlay extends StatelessWidget {
             final isCompact = MediaQuery.sizeOf(context).width < 600;
             final isChallanDetails =
                 routeObserver.currentRouteName == 'ChallanEditDetailsScreen';
-            final isHomeScreen =
-                routeObserver.currentRouteName == 'HomeScreen';
+            final isHomeScreen = routeObserver.currentRouteName == 'HomeScreen';
             final bubbleSize = isCompact ? 56.0 : 64.0;
             final bottomOffset = isChallanDetails
                 ? 92.0
                 : isHomeScreen && isCompact
-                    ? 90.0
-                    : 18.0;
+                ? 90.0
+                : 18.0;
 
             return Positioned(
               left: isCompact && !isChallanDetails ? 18 : null,
@@ -897,7 +1014,11 @@ class _TaskCompletionBannerState extends State<_TaskCompletionBanner>
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                    icon: const Icon(
+                      Icons.close,
+                      color: Colors.white70,
+                      size: 18,
+                    ),
                     onPressed: _dismiss,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
