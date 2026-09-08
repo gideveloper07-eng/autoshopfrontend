@@ -65,7 +65,10 @@ class _HomeScreenState extends State<HomeScreen>
   double _saleGrowth = 0;
 
   int _pendingDelivery = 0; // pending delivery count
-
+  // New dashboard statistics
+  int _liveBooking = 0;
+  int _mtdBooking = 0;
+  int _mtdSale = 0;
   List<double> _bookingTrend = [];
   List<double> _saleTrend = [];
 
@@ -269,6 +272,9 @@ class _HomeScreenState extends State<HomeScreen>
           : [];
 
       _pendingDelivery = (stats['pendingDelivery'] as num? ?? 0).toInt();
+      _liveBooking = (stats["liveBooking"] as num? ?? 0).toInt();
+      _mtdBooking = (stats["mtdBooking"] as num? ?? 0).toInt();
+      _mtdSale = (stats["mtdSale"] as num? ?? 0).toInt();
     });
   }
 
@@ -1153,13 +1159,89 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                               ),
                             ),
+                            // ── Page 4: Live Booking ──────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: GestureDetector(
+                                onLongPress: () =>
+                                    _toggleHighlight('liveBooking'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('liveBooking'),
+                                  child: _SimpleStatsCard(
+                                    title: "Live Booking",
+                                    subtitle: "Currently Live",
+                                    count: _liveBooking,
+                                    icon: Icons.event_available_rounded,
+                                    gradient: const [
+                                      Color(0xFF0A2E5C),
+                                      Color(0xFF123F7A),
+                                      Color(0xFF1976D2),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // ── Page 5: Monthly Booking ──────────────────────
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: GestureDetector(
+                                onLongPress: () =>
+                                    _toggleHighlight('mtdBooking'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('mtdBooking'),
+                                  child: _SimpleStatsCard(
+                                    title: "Monthly Booking",
+                                    subtitle: "This Month",
+                                    count: _mtdBooking,
+                                    icon: Icons.calendar_month_rounded,
+                                    gradient: const [
+                                      Color(0xFF4527A0),
+                                      Color(0xFF5E35B1),
+                                      Color(0xFF7E57C2),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // ── Page 6: Monthly Sale ─────────────────────────
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                              ),
+                              child: GestureDetector(
+                                onLongPress: () => _toggleHighlight('mtdSale'),
+                                child: RgbBorderCard(
+                                  borderRadius: 18,
+                                  intense: _isHighlighted('mtdSale'),
+                                  child: _SimpleStatsCard(
+                                    title: "Monthly Sale",
+                                    subtitle: "This Month",
+                                    count: _mtdSale,
+                                    icon: Icons.trending_up_rounded,
+                                    gradient: const [
+                                      Color(0xFF1565C0),
+                                      Color(0xFF1976D2),
+                                      Color(0xFF42A5F5),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 8),
                       _StatsPageDots(
                         controller: _statsPageController,
-                        count: 3,
+                        count: 6,
                       ),
 
                       const SizedBox(height: 24),
@@ -4215,6 +4297,133 @@ class _PendingDeliveryCard extends StatelessWidget {
 
                 const SizedBox(height: 2),
 
+                AnimatedFlipCounter(
+                  value: count,
+                  duration: const Duration(milliseconds: 700),
+                  textStyle: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 30,
+                    height: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Simple Stats Card ─────────────────────────────────────────────
+class _SimpleStatsCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final int count;
+  final IconData icon;
+  final List<Color> gradient;
+
+  const _SimpleStatsCard({
+    required this.title,
+    required this.subtitle,
+    required this.count,
+    required this.icon,
+    required this.gradient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: double.infinity,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withOpacity(0.28),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withOpacity(0.10)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Total $title',
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
                 AnimatedFlipCounter(
                   value: count,
                   duration: const Duration(milliseconds: 700),

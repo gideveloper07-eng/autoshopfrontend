@@ -701,7 +701,6 @@ class ApiService {
           return Map<String, dynamic>.from(body["data"]);
         }
       }
-
       return {};
     } catch (e) {
       print(e);
@@ -3136,8 +3135,9 @@ class ApiService {
       final token = await getToken();
       if (token == null || token.isEmpty) return [];
 
-      final uri = Uri.parse("$baseUrl/api/vehicle-allocation/search")
-          .replace(queryParameters: {"q": query});
+      final uri = Uri.parse(
+        "$baseUrl/api/vehicle-allocation/search",
+      ).replace(queryParameters: {"q": query});
 
       final res = await http
           .get(
@@ -3191,8 +3191,9 @@ class ApiService {
               body['data'] as Map<String, dynamic>,
             ),
             "vinList": List<Map<String, dynamic>>.from(
-              ((body['vinList'] ?? []) as List)
-                  .map((e) => Map<String, dynamic>.from(e)),
+              ((body['vinList'] ?? []) as List).map(
+                (e) => Map<String, dynamic>.from(e),
+              ),
             ),
           };
         }
@@ -3297,11 +3298,7 @@ class ApiService {
       if (token == null || token.isEmpty) return [];
 
       final uri = Uri.parse("$baseUrl/api/vehicle-allocation/vinno").replace(
-        queryParameters: {
-          "model": model,
-          "variant": variant,
-          "colour": colour,
-        },
+        queryParameters: {"model": model, "variant": variant, "colour": colour},
       );
 
       final res = await http
@@ -3337,8 +3334,8 @@ class ApiService {
       final token = await getToken();
       if (token == null || token.isEmpty) return [];
 
-      final uri =
-          Uri.parse("$baseUrl/api/vehicle-allocation/all-vin-details").replace(
+      final uri = Uri.parse("$baseUrl/api/vehicle-allocation/all-vin-details")
+          .replace(
             queryParameters: {
               "model": model,
               "variant": variant,

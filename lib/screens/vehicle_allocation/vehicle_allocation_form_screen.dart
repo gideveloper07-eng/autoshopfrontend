@@ -1355,7 +1355,7 @@ class _VehicleAllocationFormScreenState
   }
 
   Widget _buildVehicleSection(bool isDark) {
-    // Build VIN list from vinDetails — only populated after customer selected
+    // Build VIN list from vinDetails
     final vinItems = _vinDetails
         .map(
           (r) => {
@@ -1374,187 +1374,182 @@ class _VehicleAllocationFormScreenState
       icon: Icons.directions_car_rounded,
       isDark: isDark,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdown(
-                label: 'Model',
-                value: _inList(_models, 'sp_202', _selModel) ? _selModel : null,
-                items: _models,
-                valueKey: 'sp_202',
-                labelKey: 'sp_207',
-                enabled: false, // always locked — filled from booking
-                onChanged: (_) {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildDropdown(
-                label: 'Variant',
-                value: _inList(_variants, 'sp_20_2', _selVariant)
-                    ? _selVariant
-                    : null,
-                items: _variants,
-                valueKey: 'sp_20_2',
-                labelKey: 'sp_20_3',
-                enabled: false,
-                onChanged: (_) {},
-              ),
-            ),
-          ],
+        // ─────────────────────────────────────
+        // MODEL - FULL WIDTH
+        // ─────────────────────────────────────
+        _buildDropdown(
+          label: 'Model',
+          value: _inList(_models, 'sp_202', _selModel) ? _selModel : null,
+          items: _models,
+          valueKey: 'sp_202',
+          labelKey: 'sp_207',
+          enabled: false,
+          onChanged: (_) {},
         ),
+
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdown(
-                label: 'Colour',
-                value: _inList(_colours, 'sp_142', _selColour)
-                    ? _selColour
-                    : null,
-                items: _colours,
-                valueKey: 'sp_142',
-                labelKey: 'sp_147',
-                enabled: false,
-                onChanged: (_) {},
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              // VIN — editable for admin after customer selection.
-              // Read-only for non-admin, but still displayed in bold.
-              child: AbsorbPointer(
-                absorbing: !vinEnabled,
-                child: DropdownButtonFormField<String>(
-                  value: vinItems.any((m) => m['data'] == _selVin)
-                      ? _selVin
-                      : null,
-                  decoration: _fieldDecor('VIN *', enabled: true),
-                  isExpanded: true,
-                  iconEnabledColor: _accent,
-                  hint: Text(
-                    vinEnabled ? 'Select VIN' : (_selVin ?? '-'),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  items: vinItems.isNotEmpty
-                      ? vinItems.map((m) {
-                          return DropdownMenuItem<String>(
-                            value: m['data'],
-                            child: Text(
-                              m['label']!,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: Color(0xFF0F172A),
-                              ),
-                            ),
-                          );
-                        }).toList()
-                      : null,
-                  onChanged: _onVinChanged,
-                ),
-              ),
-            ),
-          ],
+
+        // ─────────────────────────────────────
+        // VARIANT - FULL WIDTH
+        // ─────────────────────────────────────
+        _buildDropdown(
+          label: 'Variant',
+          value: _inList(_variants, 'sp_20_2', _selVariant)
+              ? _selVariant
+              : null,
+          items: _variants,
+          valueKey: 'sp_20_2',
+          labelKey: 'sp_20_3',
+          enabled: false,
+          onChanged: (_) {},
         ),
+
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                controller: _mfgYearCtrl,
+
+        // ─────────────────────────────────────
+        // COLOUR - FULL WIDTH
+        // ─────────────────────────────────────
+        _buildDropdown(
+          label: 'Colour',
+          value: _inList(_colours, 'sp_142', _selColour) ? _selColour : null,
+          items: _colours,
+          valueKey: 'sp_142',
+          labelKey: 'sp_147',
+          enabled: false,
+          onChanged: (_) {},
+        ),
+
+        const SizedBox(height: 12),
+
+        // ─────────────────────────────────────
+        // VIN - FULL WIDTH
+        // ─────────────────────────────────────
+        AbsorbPointer(
+          absorbing: !vinEnabled,
+          child: DropdownButtonFormField<String>(
+            value: vinItems.any((m) => m['data'] == _selVin) ? _selVin : null,
+            decoration: _fieldDecor('VIN *', enabled: true),
+            isExpanded: true,
+            iconEnabledColor: _accent,
+            hint: Text(
+              vinEnabled ? 'Select VIN' : (_selVin ?? '-'),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+            items: vinItems.isNotEmpty
+                ? vinItems.map((m) {
+                    return DropdownMenuItem<String>(
+                      value: m['data'],
+                      child: Text(
+                        m['label']!,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                    );
+                  }).toList()
+                : null,
+            onChanged: _onVinChanged,
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ─────────────────────────────────────
+        // MFG YEAR - FULL WIDTH
+        // ─────────────────────────────────────
+        TextFormField(
+          controller: _mfgYearCtrl,
+          readOnly: true,
+          decoration: _fieldDecor('Mfg. Year', readOnly: true, enabled: true),
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ─────────────────────────────────────
+        // FSC CODE - FULL WIDTH
+        // ─────────────────────────────────────
+        vinEnabled
+            ? _buildDropdown(
+                label: 'FSC Code',
+                value: _selFscCode,
+                items: _vinDetails
+                    .where((r) => (r['sp_38']?.toString() ?? '').isNotEmpty)
+                    .map(
+                      (r) => {
+                        'sp_71': r['sp_38']?.toString() ?? '',
+                        'label': r['sp_38']?.toString() ?? '',
+                      },
+                    )
+                    .toSet()
+                    .toList(),
+                valueKey: 'sp_71',
+                labelKey: 'label',
+                enabled: vinEnabled,
+                onChanged: (v) {
+                  setState(() => _selFscCode = v);
+                },
+              )
+            : TextFormField(
                 readOnly: true,
-                decoration: _fieldDecor(
-                  'Mfg. Year',
-                  readOnly: true,
-                  enabled: true,
-                ),
+                controller: TextEditingController(text: _selFscCode ?? ''),
+                decoration: _fieldDecor('FSC Code', readOnly: true),
                 style: const TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFF0F172A),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            // FSC Code — editable for admin (after customer), locked for non-admin
-            Expanded(
-              child: vinEnabled
-                  ? _buildDropdown(
-                      label: 'FSC Code',
-                      value: _selFscCode,
-                      items: _vinDetails
-                          .where(
-                            (r) => (r['sp_38']?.toString() ?? '').isNotEmpty,
-                          )
-                          .map(
-                            (r) => {
-                              'sp_71': r['sp_38']?.toString() ?? '',
-                              'label': r['sp_38']?.toString() ?? '',
-                            },
-                          )
-                          .toSet()
-                          .toList(),
-                      valueKey: 'sp_71',
-                      labelKey: 'label',
-                      enabled: vinEnabled,
-                      onChanged: (v) => setState(() => _selFscCode = v),
-                    )
-                  : TextFormField(
-                      readOnly: true,
-                      controller: TextEditingController(
-                        text: _selFscCode ?? '',
-                      ),
-                      decoration: _fieldDecor('FSC Code', readOnly: true),
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: Color(0xFF0F172A),
-                      ),
-                    ),
-            ),
-          ],
-        ),
+
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdown(
-                label: 'Location',
-                value: _inList(_locations, 'sp_152', _selLocation)
-                    ? _selLocation
-                    : null,
-                items: _locations,
-                valueKey: 'sp_152',
-                labelKey: 'sp_157',
-                enabled: false,
-                onChanged: (_) {},
-              ),
+
+        // ─────────────────────────────────────
+        // LOCATION - FULL WIDTH
+        // ─────────────────────────────────────
+        _buildDropdown(
+          label: 'Location',
+          value: _inList(_locations, 'sp_152', _selLocation)
+              ? _selLocation
+              : null,
+          items: _locations,
+          valueKey: 'sp_152',
+          labelKey: 'sp_157',
+          enabled: false,
+          onChanged: (_) {},
+        ),
+
+        const SizedBox(height: 12),
+
+        // ─────────────────────────────────────
+        // DELIVERY DATE - FULL WIDTH
+        // ─────────────────────────────────────
+        AbsorbPointer(
+          child: TextFormField(
+            controller: _deliveryDateCtrl,
+            readOnly: true,
+            decoration: _fieldDecor(
+              'Delivery Date',
+              suffix: Icons.calendar_today_rounded,
+              readOnly: true,
+              enabled: true,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: AbsorbPointer(
-                child: TextFormField(
-                  controller: _deliveryDateCtrl,
-                  readOnly: true,
-                  decoration: _fieldDecor(
-                    'Delivery Date',
-                    suffix: Icons.calendar_today_rounded,
-                    readOnly: true,
-                    enabled: true,
-                  ),
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF0F172A),
             ),
-          ],
+          ),
         ),
       ],
     );
