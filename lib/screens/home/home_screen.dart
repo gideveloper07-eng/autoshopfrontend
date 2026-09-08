@@ -82,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen>
       true; // hides after 5 s // â† request once on first web tap
   // Chat request badge (non-admin only)
   bool _isAdmin = false;
+  final String _adminUtg = "4848C835-2A09-4A80-A7E2-383C95926C54";
   int _pendingRequestCount = 0;
   late AnimationController _requestBlink;
   late Animation<double> _requestBlinkAnim;
@@ -434,14 +435,27 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> loadSecurity() async {
-    utg = await ApiService.getUTG() ?? "";
+    final savedUtg = (await ApiService.getUTG() ?? "").trim();
     final adminFlag = await ApiService.isAdmin();
 
-    print("USER GROUP : $utg");
-    print("IS ADMIN   : $adminFlag");
+    final utgAdminAccess =
+        savedUtg.toUpperCase() == "4848C835-2A09-4A80-A7E2-383C95926C54";
+
+    final hasAdminAccess = adminFlag || utgAdminAccess;
+
+    print("========================================");
+    print("HOME SECURITY");
+    print("USER UTG    : [$savedUtg]");
+    print("IS ADMIN    : $adminFlag");
+    print("UTG ADMIN   : $utgAdminAccess");
+    print("FINAL ADMIN : $hasAdminAccess");
+    print("========================================");
+
+    if (!mounted) return;
 
     setState(() {
-      _isAdmin = adminFlag;
+      utg = savedUtg;
+      _isAdmin = hasAdminAccess;
       isLoading = false;
     });
   }
@@ -485,30 +499,41 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Chat request info (non-admin only) ──────────────────────────────────
   Future<void> _loadRequestInfo() async {
-    final adminFlag = await ApiService.isAdmin();
-    if (!adminFlag) {
-      final requests = await ApiService.getChatRequests();
-      if (mounted) {
-        final hasPending = requests.isNotEmpty;
-        setState(() {
-          _isAdmin = false;
-          _pendingRequestCount = requests.length;
-        });
-        // Start blinking when there are pending requests, stop when none
-        if (hasPending) {
-          if (!_requestBlink.isAnimating) _requestBlink.repeat(reverse: false);
-        } else {
-          _requestBlink.stop();
-          _requestBlink.value = 1.0;
-        }
-      }
-    } else {
+    // IMPORTANT:
+    // Do NOT recalculate or modify _isAdmin here.
+    // loadSecurity() has already calculated admin access
+    // using both the real admin flag and matching UTG.
+
+    if (_isAdmin) {
       if (mounted) {
         setState(() {
-          _isAdmin = true;
           _pendingRequestCount = 0;
         });
       }
+
+      _requestBlink.stop();
+      _requestBlink.value = 1.0;
+      return;
+    }
+
+    // Only non-admin users should load chat requests.
+    final requests = await ApiService.getChatRequests();
+
+    if (!mounted) return;
+
+    final hasPending = requests.isNotEmpty;
+
+    setState(() {
+      _pendingRequestCount = requests.length;
+    });
+
+    if (hasPending) {
+      if (!_requestBlink.isAnimating) {
+        _requestBlink.repeat(reverse: false);
+      }
+    } else {
+      _requestBlink.stop();
+      _requestBlink.value = 1.0;
     }
   }
 
@@ -3110,22 +3135,19 @@ class _HomeScreenState extends State<HomeScreen>
                   // --------------------------------------------------
                   // SUBTITLE
                   // --------------------------------------------------
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.topLeft,
-                      child: Text(
-                        subtitle,
-                        maxLines: compact ? 2 : 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: subSize,
-                          color: Colors.white.withOpacity(0.78),
-                          height: 1.2,
-                        ),
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      subtitle,
+                      maxLines: compact ? 2 : 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: subSize,
+                        color: Colors.white.withOpacity(0.78),
+                        height: 1.2,
                       ),
                     ),
                   ),
-
                   SizedBox(height: bottomGap),
 
                   // --------------------------------------------------
