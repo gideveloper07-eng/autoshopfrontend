@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:754396208118:android:2cceca796f7289504545d7",
+        "mobilesdk_app_id": "1:754396208118:android:5e4ae8a3da956c354545d7",
         "android_client_info": {
-          "package_name": "com.example.car_app_flutter"
+          "package_name": "com.guljaginfotech.carapp"
         }
       },
       "oauth_client": [],

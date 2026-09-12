@@ -861,6 +861,28 @@ static Future<String> askAI(String message) async {
     }
   }
 
+  static Future<bool> clearAllNotifications() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final res = await http.delete(
+        Uri.parse("$baseUrl/api/notifications/clear-all"),
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      return res.statusCode == 200;
+    } catch (e) {
+      print("CLEAR ALL NOTIFICATIONS ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<void> saveFCMToken(String fcmToken) async {
     try {
       final token = await getToken();

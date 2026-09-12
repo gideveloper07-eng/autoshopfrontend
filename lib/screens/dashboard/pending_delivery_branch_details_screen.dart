@@ -117,8 +117,7 @@ class _PendingDeliveryBranchDetailsScreenState
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 440,
+        Expanded(
           child: PageView.builder(
             controller: _pageController,
             itemCount: _rows.length,

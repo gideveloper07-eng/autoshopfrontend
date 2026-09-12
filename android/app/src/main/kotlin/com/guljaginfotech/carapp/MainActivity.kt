@@ -1,4 +1,4 @@
-package com.example.car_app_flutter
+package com.guljaginfotech.carapp
 
 import android.os.Bundle
 import android.view.WindowManager

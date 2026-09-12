@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 
 class CombinedReceiptScreen extends StatefulWidget {
   // These are supplied when the screen is opened from a receipt-change
@@ -16,6 +17,8 @@ class CombinedReceiptScreen extends StatefulWidget {
 class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   bool loading = true;
 
+  List<Map<String, dynamic>> pendingReceipts = [];
+  List<Map<String, dynamic>> todayCompletedReceipts = [];
   List<Map<String, dynamic>> receipts = [];
 
   final PageController _pageController = PageController();
@@ -44,75 +47,100 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
       });
     }
 
+    // Keep the two API calls independent.
+    // If Today Complete API has an error, pending Receipts must still show.
+    List<Map<String, dynamic>> pendingData = [];
+    List<Map<String, dynamic>> completedData = [];
+
     try {
-      final data = await ApiService.getCombinedReceipts();
-
-      if (!mounted) return;
-
-      // When opened from a push notification, find the requested receipt.
-      // Receipt number is preferred; request ID is used as a fallback.
-      int targetIndex = 0;
-
-      final notificationReceiptNo = widget.receiptNo?.trim() ?? '';
-      final notificationRequestId = widget.requestId?.trim() ?? '';
-
-      if (notificationReceiptNo.isNotEmpty) {
-        final index = data.indexWhere((item) {
-          final no = item["receipt_no"]?.toString().trim() ?? '';
-          return no.isNotEmpty &&
-              no.toLowerCase() == notificationReceiptNo.toLowerCase();
-        });
-
-        if (index >= 0) {
-          targetIndex = index;
-        }
-      }
-
-      if (targetIndex == 0 && notificationRequestId.isNotEmpty) {
-        final index = data.indexWhere((item) {
-          final id = item["request_id"]?.toString().trim() ?? '';
-          return id.isNotEmpty &&
-              id.toLowerCase() == notificationRequestId.toLowerCase();
-        });
-
-        if (index >= 0) {
-          targetIndex = index;
-        }
-      }
-
-      setState(() {
-        receipts = data;
-        currentPage = targetIndex;
-        loading = false;
-      });
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_pageController.hasClients || receipts.isEmpty) return;
-
-        final safeIndex = targetIndex.clamp(0, receipts.length - 1);
-        _pageController.jumpToPage(safeIndex);
-
-        if (notificationReceiptNo.isNotEmpty ||
-            notificationRequestId.isNotEmpty) {
-          print("==============================================");
-          print("RECEIPT NOTIFICATION OPENED");
-          print("Receipt No : $notificationReceiptNo");
-          print("Request ID : $notificationRequestId");
-          print("Target Page: $safeIndex");
-          print("==============================================");
-        }
-      });
-
-      print("COMBINED RECEIPT SCREEN ROWS: ${receipts.length}");
-    } catch (e) {
-      print("COMBINED RECEIPT SCREEN ERROR: $e");
-
-      if (!mounted) return;
-
-      setState(() {
-        loading = false;
-      });
+      pendingData = await ApiService.getCombinedReceipts();
+      print("SCREEN: PENDING API ROWS = ${pendingData.length}");
+    } catch (e, stackTrace) {
+      print("❌ PENDING RECEIPT API ERROR: $e");
+      print(stackTrace);
     }
+
+    try {
+      completedData = await ApiService.getTodayCompletedReceipts();
+      print("SCREEN: TODAY COMPLETE API ROWS = ${completedData.length}");
+    } catch (e, stackTrace) {
+      print("❌ TODAY COMPLETE API ERROR: $e");
+      print(stackTrace);
+    }
+
+    if (!mounted) return;
+
+    // /receipt/combined already returns pending rows from the backend.
+    // /receipt/today-complete already returns today's completed rows.
+    // Do not filter them again here; this also avoids status-key/case issues.
+    final data = pendingData;
+    final completed = completedData;
+
+    // When opened from a push notification, find the requested receipt.
+    // Receipt number is preferred; request ID is used as a fallback.
+    int targetIndex = 0;
+
+    final notificationReceiptNo = widget.receiptNo?.trim() ?? '';
+    final notificationRequestId = widget.requestId?.trim() ?? '';
+
+    if (notificationReceiptNo.isNotEmpty) {
+      final index = data.indexWhere((item) {
+        final no = item["receipt_no"]?.toString().trim() ?? '';
+        return no.isNotEmpty &&
+            no.toLowerCase() == notificationReceiptNo.toLowerCase();
+      });
+
+      if (index >= 0) {
+        targetIndex = index;
+      }
+    }
+
+    if (targetIndex == 0 && notificationRequestId.isNotEmpty) {
+      final index = data.indexWhere((item) {
+        final id = item["request_id"]?.toString().trim() ?? '';
+        return id.isNotEmpty &&
+            id.toLowerCase() == notificationRequestId.toLowerCase();
+      });
+
+      if (index >= 0) {
+        targetIndex = index;
+      }
+    }
+
+    // Preserve the currently selected tab when refreshing.
+    final tabReceipts = selectedTab == 2 ? completed : data;
+    final safeTargetIndex = tabReceipts.isEmpty
+        ? 0
+        : targetIndex.clamp(0, tabReceipts.length - 1);
+
+    setState(() {
+      pendingReceipts = data;
+      todayCompletedReceipts = completed;
+      receipts = tabReceipts;
+      currentPage = safeTargetIndex;
+      loading = false;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_pageController.hasClients || receipts.isEmpty) return;
+
+      final safeIndex = currentPage.clamp(0, receipts.length - 1);
+      _pageController.jumpToPage(safeIndex);
+
+      if (notificationReceiptNo.isNotEmpty ||
+          notificationRequestId.isNotEmpty) {
+        print("==============================================");
+        print("RECEIPT NOTIFICATION OPENED");
+        print("Receipt No : $notificationReceiptNo");
+        print("Request ID : $notificationRequestId");
+        print("Target Page: $safeIndex");
+        print("==============================================");
+      }
+    });
+
+    print("SCREEN: PENDING RECEIPTS = ${pendingReceipts.length}");
+    print("SCREEN: TODAY COMPLETE RECEIPTS = ${todayCompletedReceipts.length}");
+    print("SCREEN: DISPLAYED RECEIPTS = ${receipts.length}");
   }
 
   // ==========================================================
@@ -169,8 +197,10 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xffF4F7FC),
+      backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xffF4F7FC),
 
       appBar: AppBar(
         backgroundColor: const Color(0xff1769D5),
@@ -191,7 +221,20 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
             child: Row(
               children: [
-                Expanded(child: _tabTitle(title: "Receipts", index: 1)),
+                Expanded(
+                  child: _tabTitle(
+                    title: "Pending Receipts",
+                    index: 1,
+                    count: pendingReceipts.length,
+                  ),
+                ),
+                Expanded(
+                  child: _tabTitle(
+                    title: "Today Complete",
+                    index: 2,
+                    count: todayCompletedReceipts.length,
+                  ),
+                ),
               ],
             ),
           ),
@@ -208,14 +251,29 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
   int selectedTab = 1;
 
-  Widget _tabTitle({required String title, required int index}) {
+  Widget _tabTitle({
+    required String title,
+    required int index,
+    required int count,
+  }) {
     final selected = selectedTab == index;
 
     return InkWell(
       onTap: () {
         setState(() {
           selectedTab = index;
+          currentPage = 0;
+
+          if (index == 1) {
+            receipts = pendingReceipts;
+          } else if (index == 2) {
+            receipts = todayCompletedReceipts;
+          }
         });
+
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(0);
+        }
       },
 
       child: Container(
@@ -231,7 +289,7 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
         ),
 
         child: Text(
-          "$title (${receipts.length})",
+          "$title ($count)",
 
           style: TextStyle(
             color: Colors.white,
@@ -243,11 +301,35 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
     );
   }
 
+  String formatDateTime(dynamic date) {
+    if (date == null) {
+      return "-";
+    }
+
+    try {
+      final d = DateTime.parse(date.toString());
+
+      final day = d.day.toString().padLeft(2, '0');
+      final month = d.month.toString().padLeft(2, '0');
+      final year = d.year.toString();
+
+      final hour = d.hour == 0 ? 12 : (d.hour > 12 ? d.hour - 12 : d.hour);
+
+      final minute = d.minute.toString().padLeft(2, '0');
+      final period = d.hour >= 12 ? "PM" : "AM";
+
+      return "$day/$month/$year $hour:$minute $period";
+    } catch (_) {
+      return value(date);
+    }
+  }
   // ==========================================================
   // BODY
   // ==========================================================
 
   Widget _buildBody() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -270,8 +352,13 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
             Center(
               child: Text(
-                "No receipts found.",
-                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                selectedTab == 1
+                    ? "No pending receipts found."
+                    : "No completed receipts found for today.",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDark ? AppColors.textPrimaryDark : Colors.black87,
+                ),
               ),
             ),
 
@@ -301,7 +388,9 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.blueGrey.shade700,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : Colors.blueGrey.shade700,
               ),
             ),
           ),
@@ -361,9 +450,11 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget buildRequestCard(Map<String, dynamic> item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final requestId = value(item["request_id"]);
 
-    final requestDate = formatDate(item["request_date"]);
+    final requestDate = formatDateTime(item["request_date"]);
 
     final requestType = value(item["request_type"]);
 
@@ -384,11 +475,13 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
       padding: const EdgeInsets.all(12),
 
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? AppColors.surfaceDark : Colors.white,
 
         borderRadius: BorderRadius.circular(10),
 
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A3A4A) : Colors.grey.shade200,
+        ),
 
         boxShadow: [
           BoxShadow(
@@ -416,7 +509,9 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                   ),
 
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
+                    color: isDark
+                        ? const Color(0xFF1A2D50)
+                        : Colors.blue.shade50,
 
                     borderRadius: BorderRadius.circular(15),
                   ),
@@ -483,11 +578,13 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget buildReceiptCard(Map<String, dynamic> item) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final receiptNo = value(item["receipt_no"]);
     final receiptDate = formatDate(item["receipt_date"]);
     final customerName = value(item["customer_name"]);
     final requestType = value(item["request_type"]);
-    final requestDate = formatDate(item["request_date"]);
+    final requestDate = formatDateTime(item["request_date"]);
     final valueFrom = value(item["value_from"]);
     final valueTo = value(item["value_to"]);
     final requestUserId = value(item["request_user_id"]);
@@ -531,7 +628,7 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
       padding: const EdgeInsets.all(2),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xffFCFEFF),
+          color: isDark ? AppColors.surfaceDark : const Color(0xffFCFEFF),
           borderRadius: BorderRadius.circular(26),
         ),
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
@@ -581,8 +678,10 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                           customerName,
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Color(0xff18243D),
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : const Color(0xff18243D),
                             fontSize: 19,
                             height: 1.25,
                             fontWeight: FontWeight.w700,
@@ -594,7 +693,9 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                         Text(
                           "Receipt #$receiptNo",
                           style: TextStyle(
-                            color: Colors.blueGrey.shade500,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : Colors.blueGrey.shade500,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -611,7 +712,9 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: const Color(0xffE8ECFA),
+                      color: isDark
+                          ? const Color(0xff1E2D50)
+                          : const Color(0xffE8ECFA),
                       borderRadius: BorderRadius.circular(18),
                     ),
                     child: Text(
@@ -662,23 +765,25 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
               const SizedBox(height: 10),
 
               // ==================================================
-              // VALUE FROM
+              // VALUE FROM - INCORRECT VALUE
               // ==================================================
-              _receiptInfoBox(
+              _receiptValueBox(
                 icon: Icons.currency_rupee,
                 title: "Value From",
                 valueText: valueFrom,
+                isCorrect: false,
               ),
 
               const SizedBox(height: 10),
 
               // ==================================================
-              // VALUE TO
+              // VALUE TO - CORRECT VALUE
               // ==================================================
-              _receiptInfoBox(
+              _receiptValueBox(
                 icon: Icons.currency_rupee,
                 title: "Value To",
                 valueText: valueTo,
+                isCorrect: true,
               ),
 
               const SizedBox(height: 10),
@@ -718,31 +823,193 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
               // ==================================================
               // UPDATE BUTTON
               // ==================================================
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _updateReceipt(item),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text("Update"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xff4053BA),
-                    foregroundColor: Colors.white,
-                    elevation: 2,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+              if (selectedTab == 1)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _updateReceipt(item),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text("Update"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xff4053BA),
+                      foregroundColor: Colors.white,
+                      elevation: 2,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _receiptValueBox({
+    required IconData icon,
+    required String title,
+    required String valueText,
+    required bool isCorrect,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor = isCorrect
+        ? (isDark ? const Color(0xFF0D2E1E) : const Color(0xffECFFF4))
+        : (isDark ? const Color(0xFF2E1010) : const Color(0xfffff1f1));
+    final borderColor = isCorrect
+        ? const Color(0xff35D39A)
+        : const Color(0xffff6b6b);
+    final valueBackground = isCorrect
+        ? const Color(0xffC8F1DD)
+        : const Color(0xffffd1d1);
+    final valueColor = isCorrect
+        ? const Color(0xff0B9B55)
+        : const Color(0xffD52F2F);
+    final badgeText = isCorrect ? "Correct Value" : "Incorrect Value";
+
+    Widget valueChip() {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: valueBackground,
+          borderRadius: BorderRadius.circular(9),
+        ),
+        child: Text(
+          valueText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: valueColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    Widget checkIcon() {
+      return Container(
+        width: 30,
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isCorrect ? const Color(0xff18A957) : const Color(0xffE3313B),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isCorrect ? Icons.check : Icons.close,
+          color: Colors.white,
+          size: 19,
+        ),
+      );
+    }
+
+    Widget badge() {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+        decoration: BoxDecoration(
+          color: valueBackground,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Text(
+          badgeText,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: valueColor,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // On small/mobile widths, use two compact rows so the value,
+        // status icon and badge never overflow the available width.
+        if (constraints.maxWidth < 600) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: borderColor, width: 1.2),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 22, color: const Color(0xff4053BA)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark
+                              ? AppColors.textPrimaryDark
+                              : const Color(0xff18243D),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    valueChip(),
+                    const SizedBox(width: 8),
+                    checkIcon(),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                Align(alignment: Alignment.centerRight, child: badge()),
+              ],
+            ),
+          );
+        }
+
+        // Desktop/tablet layout — matches the requested preview.
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: borderColor, width: 1.2),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, size: 23, color: const Color(0xff4053BA)),
+              const SizedBox(width: 14),
+              Text(
+                title,
+                style: TextStyle(
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : const Color(0xff18243D),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 18),
+              valueChip(),
+              const SizedBox(width: 14),
+              checkIcon(),
+              const Spacer(),
+              badge(),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -752,11 +1019,13 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
     required String valueText,
     Color? valueColor,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xffF1F4F8),
+        color: isDark ? const Color(0xFF1E2A3A) : const Color(0xffF1F4F8),
         borderRadius: BorderRadius.circular(15),
       ),
       child: Row(
@@ -771,8 +1040,10 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xff18243D),
+                  style: TextStyle(
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : const Color(0xff18243D),
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
@@ -786,7 +1057,10 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: valueColor ?? const Color(0xff202636),
+                    color: valueColor ??
+                        (isDark
+                            ? AppColors.textPrimaryDark
+                            : const Color(0xff202636)),
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     height: 1.25,
@@ -900,8 +1174,17 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
       );
 
       // ==================================================
-      // REFRESH DATA
+      // MOVE TO TODAY COMPLETE TAB
       // ==================================================
+      // The backend sets approvedate when the update succeeds.
+      // Select the completed tab before refreshing so the newly
+      // completed receipt is shown immediately.
+
+      if (mounted) {
+        setState(() {
+          selectedTab = 2;
+        });
+      }
 
       await loadReceipts();
     } catch (e) {
@@ -924,6 +1207,8 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget detailRow(IconData icon, String title, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 7),
 
@@ -951,7 +1236,11 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
             child: Text(
               text,
 
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isDark ? AppColors.textPrimaryDark : null,
+              ),
             ),
           ),
         ],
@@ -964,15 +1253,19 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget valueBox(String title, String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(10),
 
       decoration: BoxDecoration(
-        color: const Color(0xffF7F9FC),
+        color: isDark ? const Color(0xFF1E2A3A) : const Color(0xffF7F9FC),
 
         borderRadius: BorderRadius.circular(8),
 
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? const Color(0xFF2A3A4A) : Colors.grey.shade200,
+        ),
       ),
 
       child: Column(
@@ -990,7 +1283,11 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
           Text(
             text,
 
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: isDark ? AppColors.textPrimaryDark : null,
+            ),
           ),
         ],
       ),
@@ -1002,6 +1299,7 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget statusRow(String status) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final normalized = status.toLowerCase().trim();
 
     Color background;
@@ -1012,19 +1310,19 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
         normalized == "approve" ||
         normalized == "completed" ||
         normalized == "complete") {
-      background = Colors.green.shade50;
+      background = isDark ? const Color(0xFF0D2E1E) : Colors.green.shade50;
 
       foreground = Colors.green.shade800;
 
       icon = Icons.check_circle_outline;
     } else if (normalized == "rejected" || normalized == "reject") {
-      background = Colors.red.shade50;
+      background = isDark ? const Color(0xFF2E1010) : Colors.red.shade50;
 
       foreground = Colors.red.shade800;
 
       icon = Icons.cancel_outlined;
     } else {
-      background = Colors.orange.shade50;
+      background = isDark ? const Color(0xFF2E1E00) : Colors.orange.shade50;
 
       foreground = Colors.orange.shade800;
 
@@ -1080,6 +1378,8 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
   // ==========================================================
 
   Widget reasonRow(String reason) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 2),
 
@@ -1109,19 +1409,26 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
 
               decoration: BoxDecoration(
-                color: const Color(0xffF7F9FC),
+                color: isDark
+                    ? const Color(0xFF1E2A3A)
+                    : const Color(0xffF7F9FC),
 
                 borderRadius: BorderRadius.circular(7),
 
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(
+                  color: isDark
+                      ? const Color(0xFF2A3A4A)
+                      : Colors.grey.shade200,
+                ),
               ),
 
               child: Text(
                 reason,
 
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  color: isDark ? AppColors.textPrimaryDark : null,
                 ),
               ),
             ),

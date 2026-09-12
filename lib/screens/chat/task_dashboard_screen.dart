@@ -573,6 +573,8 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
         ),
         child: ClipRRect(
             borderRadius: BorderRadius.circular(14.5),
+            child: Material(
+            color: bgColor,
             child: Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
@@ -741,6 +743,7 @@ class _TaskDashboardScreenState extends State<TaskDashboardScreen>
               }).toList(),
             ),
           ),
+        ),
         ),
       ),
     );

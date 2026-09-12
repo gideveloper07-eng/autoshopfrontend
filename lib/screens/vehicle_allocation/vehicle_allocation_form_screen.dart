@@ -52,6 +52,7 @@ class _VehicleAllocationFormScreenState
   final _mfgYearCtrl = TextEditingController();
   final _deliveryDateCtrl = TextEditingController();
   final _statusCtrl = TextEditingController();
+  final _fscCodeCtrl = TextEditingController();
 
   // ── Selected values ────────────────────────────────────────────────────────
   String? _selCustomer; // m1_2
@@ -91,6 +92,8 @@ class _VehicleAllocationFormScreenState
   /// True when VIN + FSC should be editable.
   /// Only admin after a customer is already selected (or in edit mode).
   bool get _vinEnabled => _isAdmin && !_isLocked;
+
+  @override
   void initState() {
     super.initState();
     _dateCtrl.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
@@ -106,15 +109,17 @@ class _VehicleAllocationFormScreenState
     _mfgYearCtrl.dispose();
     _deliveryDateCtrl.dispose();
     _statusCtrl.dispose();
+    _fscCodeCtrl.dispose();
     super.dispose();
   }
 
   // ── Initialise: load dropdowns, then optionally load edit data ─────────────
   Future<void> _init() async {
-    setState(() {
-      _loadingDropdowns = true;
-      _initError = null;
-    });
+    // _loadingDropdowns is already true on first load. Avoid calling
+    // setState synchronously from initState; this keeps the first build
+    // completely clean and also makes the Retry path predictable.
+    _loadingDropdowns = true;
+    _initError = null;
     try {
       // Load admin flag first
       final adminFlag = await ApiService.isAdmin();
@@ -190,6 +195,7 @@ class _VehicleAllocationFormScreenState
         _selColour = _safeVal(d['colorunq']);
         _selVin = _safeVal(d['vin']);
         _selFscCode = _safeVal(d['fsccode']);
+        _fscCodeCtrl.text = _selFscCode ?? '';
         _selLocation = _safeVal(d['location']);
         _mfgYearCtrl.text = d['mfcyr']?.toString() ?? '';
         _deliveryDateCtrl.text = _formatDateStr(d['delivery_date']?.toString());
@@ -260,6 +266,7 @@ class _VehicleAllocationFormScreenState
           _selVin = list.first['data']?.toString();
           _mfgYearCtrl.text = list.first['mfcyr']?.toString() ?? '';
           _selFscCode = list.first['fsccode']?.toString();
+          _fscCodeCtrl.text = _selFscCode ?? '';
           _selLocation = list.first['location']?.toString();
         });
       }
@@ -299,6 +306,7 @@ class _VehicleAllocationFormScreenState
       setState(() {
         _mfgYearCtrl.text = match['sp_49']?.toString() ?? '';
         _selFscCode = match['sp_38']?.toString();
+        _fscCodeCtrl.text = _selFscCode ?? '';
         _selLocation = match['sp_56']?.toString();
       });
     }
@@ -370,7 +378,6 @@ class _VehicleAllocationFormScreenState
   }
 
   /// Returns the value only if it exists in the relevant list, else null.
-  /// Prevents DropdownButtonFormField "value not in items" assertion.
   String? _safeVal(dynamic v) {
     if (v == null) return null;
     final s = v.toString().trim();
@@ -449,24 +456,24 @@ class _VehicleAllocationFormScreenState
             Expanded(child: _buildInitError())
           else
             Expanded(
-              child: SingleChildScrollView(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    _buildCustomerSection(isDark),
-                    const SizedBox(height: 16),
-                    _buildBasicInfoSection(isDark),
-                    const SizedBox(height: 16),
-                    _buildStaffSection(isDark),
-                    const SizedBox(height: 16),
-                    _buildVehicleSection(isDark),
-                    const SizedBox(height: 16),
-                    _buildVinDetailsGrid(isDark),
-                    const SizedBox(height: 24),
-                    _buildActionButtons(isDark, isEdit),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                children: [
+                  _buildCustomerSection(isDark),
+                  const SizedBox(height: 16),
+                  _buildBasicInfoSection(isDark),
+                  const SizedBox(height: 16),
+                  _buildStaffSection(isDark),
+                  const SizedBox(height: 16),
+                  _buildVehicleSection(isDark),
+                  const SizedBox(height: 16),
+                  _buildVinDetailsGrid(isDark),
+                  const SizedBox(height: 24),
+                  _buildActionButtons(isDark, isEdit),
+                  const SizedBox(height: 32),
+                ],
               ),
             ),
         ],
@@ -861,6 +868,9 @@ class _VehicleAllocationFormScreenState
   }
 
   // ── Searchable dropdown popup ─────────────────────────────────────────────
+  // Uses a dedicated StatefulWidget instead of StatefulBuilder. This keeps the
+  // dialog's state isolated from the parent form and avoids dirty-widget/build
+  // scope issues while filtering large lists.
   Future<String?> _showSearchableDropdown({
     required String title,
     required String? selectedValue,
@@ -868,357 +878,31 @@ class _VehicleAllocationFormScreenState
     required String valueKey,
     required String labelKey,
     required bool isDark,
-  }) async {
-    final searchController = TextEditingController();
-
+  }) {
     final screenSize = MediaQuery.of(context).size;
-
-    // Responsive popup height:
-    // Small screens  → around 45% of screen
-    // Medium screens → around 50% of screen
-    // Large screens  → maximum 420px
-    final double popupHeight = (screenSize.height * 0.52)
-        .clamp(260.0, 420.0)
+    final popupHeight = (screenSize.height * 0.70)
+        .clamp(320.0, 620.0)
         .toDouble();
+    final popupWidth = (screenSize.width - 32).clamp(280.0, 620.0).toDouble();
 
-    final double popupWidth = (screenSize.width - 32)
-        .clamp(280.0, 600.0)
-        .toDouble();
-
-    final result = await showDialog<String>(
+    return showDialog<String>(
       context: context,
       barrierDismissible: true,
-      builder: (dialogContext) {
-        List<Map<String, dynamic>> filteredItems = List.from(items);
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            void performSearch(String query) {
-              final q = query.trim().toLowerCase();
-
-              setDialogState(() {
-                if (q.isEmpty) {
-                  filteredItems = List.from(items);
-                } else {
-                  filteredItems = items.where((item) {
-                    final name = item[labelKey]?.toString().toLowerCase() ?? '';
-
-                    final value =
-                        item[valueKey]?.toString().toLowerCase() ?? '';
-
-                    return name.contains(q) || value.contains(q);
-                  }).toList();
-                }
-              });
-            }
-
-            return Dialog(
-              insetPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 24,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: SizedBox(
-                width: popupWidth,
-                height: popupHeight,
-                child: Column(
-                  children: [
-                    // ─────────────────────────────────────────────
-                    // POPUP HEADER
-                    // ─────────────────────────────────────────────
-                    Container(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 10, 12),
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF0D3F8A) : _primary,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.list_alt_rounded,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Close',
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () {
-                              Navigator.pop(dialogContext);
-                            },
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white,
-                              size: 21,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // ─────────────────────────────────────────────
-                    // SEARCH BOX
-                    // ─────────────────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                      child: TextField(
-                        controller: searchController,
-                        autofocus: true,
-                        onChanged: performSearch,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search customer name...',
-                          hintStyle: TextStyle(
-                            fontSize: 13,
-                            color: isDark
-                                ? const Color(0xFF8A9BB0)
-                                : const Color(0xFF64748B),
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.search_rounded,
-                            size: 20,
-                            color: _accent,
-                          ),
-                          suffixIcon: searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(
-                                    Icons.clear_rounded,
-                                    size: 18,
-                                  ),
-                                  onPressed: () {
-                                    searchController.clear();
-                                    performSearch('');
-                                  },
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF0F1923)
-                              : const Color(0xFFF8FAFF),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? const Color(0xFF2A3A4A)
-                                  : const Color(0xFFD1E3FF),
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? const Color(0xFF2A3A4A)
-                                  : const Color(0xFFD1E3FF),
-                            ),
-                          ),
-                          focusedBorder: const OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(10)),
-                            borderSide: BorderSide(color: _accent, width: 1.5),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // ─────────────────────────────────────────────
-                    // RESULT COUNT
-                    // ─────────────────────────────────────────────
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 3,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${filteredItems.length} result${filteredItems.length == 1 ? '' : 's'}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? const Color(0xFF8A9BB0)
-                                : const Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // ─────────────────────────────────────────────
-                    // CUSTOMER LIST
-                    // ─────────────────────────────────────────────
-                    Expanded(
-                      child: filteredItems.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.person_search_rounded,
-                                    size: 42,
-                                    color: isDark
-                                        ? const Color(0xFF536579)
-                                        : const Color(0xFF94A3B8),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'No customer found',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? Colors.white70
-                                          : const Color(0xFF64748B),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          : Scrollbar(
-                              thumbVisibility: true,
-                              child: ListView.separated(
-                                padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-                                itemCount: filteredItems.length,
-                                separatorBuilder: (_, __) => Divider(
-                                  height: 1,
-                                  thickness: 0.5,
-                                  color: isDark
-                                      ? const Color(0xFF2A3A4A)
-                                      : const Color(0xFFE2E8F0),
-                                ),
-                                itemBuilder: (context, index) {
-                                  final item = filteredItems[index];
-
-                                  final itemValue =
-                                      item[valueKey]?.toString().trim() ?? '';
-
-                                  final itemLabel =
-                                      item[labelKey]?.toString().trim() ??
-                                      itemValue;
-
-                                  final isSelected = itemValue == selectedValue;
-
-                                  return Material(
-                                    color: isSelected
-                                        ? (isDark
-                                              ? const Color(0xFF173D70)
-                                              : const Color(0xFFEAF2FF))
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(8),
-                                      onTap: () {
-                                        Navigator.pop(dialogContext, itemValue);
-                                      },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 11,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              width: 34,
-                                              height: 34,
-                                              decoration: BoxDecoration(
-                                                color: isSelected
-                                                    ? _accent.withValues(
-                                                        alpha: 0.15,
-                                                      )
-                                                    : (isDark
-                                                          ? const Color(
-                                                              0xFF24364A,
-                                                            )
-                                                          : const Color(
-                                                              0xFFF1F5F9,
-                                                            )),
-                                                borderRadius:
-                                                    BorderRadius.circular(9),
-                                              ),
-                                              child: Icon(
-                                                Icons.person_outline_rounded,
-                                                size: 18,
-                                                color: isSelected
-                                                    ? _accent
-                                                    : (isDark
-                                                          ? const Color(
-                                                              0xFF9DB8D8,
-                                                            )
-                                                          : const Color(
-                                                              0xFF475569,
-                                                            )),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Text(
-                                                itemLabel,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 12.5,
-                                                  height: 1.25,
-                                                  fontWeight: isSelected
-                                                      ? FontWeight.w800
-                                                      : FontWeight.w600,
-                                                  color: isDark
-                                                      ? Colors.white
-                                                      : const Color(0xFF0F172A),
-                                                ),
-                                              ),
-                                            ),
-                                            if (isSelected)
-                                              const Icon(
-                                                Icons.check_circle_rounded,
-                                                color: _accent,
-                                                size: 20,
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (_) => _SearchableDropdownDialog(
+        title: title,
+        selectedValue: selectedValue,
+        items: items,
+        valueKey: valueKey,
+        labelKey: labelKey,
+        isDark: isDark,
+        width: popupWidth,
+        height: popupHeight,
+        primary: _primary,
+        accent: _accent,
+      ),
     );
-
-    searchController.dispose();
-
-    return result;
   }
+
   // ── Sections ──────────────────────────────────────────────────────────────
 
   Widget _buildCustomerSection(bool isDark) {
@@ -1423,40 +1107,20 @@ class _VehicleAllocationFormScreenState
 
         // ─────────────────────────────────────
         // VIN - FULL WIDTH
+        // IMPORTANT: Do NOT use DropdownButtonFormField here.
+        // A large stock response can contain thousands of VINs, and the
+        // normal dropdown creates a widget for every item during build.
+        // Use the same lazy searchable dialog used by the other dropdowns.
         // ─────────────────────────────────────
-        AbsorbPointer(
-          absorbing: !vinEnabled,
-          child: DropdownButtonFormField<String>(
-            value: vinItems.any((m) => m['data'] == _selVin) ? _selVin : null,
-            decoration: _fieldDecor('VIN *', enabled: true),
-            isExpanded: true,
-            iconEnabledColor: _accent,
-            hint: Text(
-              vinEnabled ? 'Select VIN' : (_selVin ?? '-'),
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: Color(0xFF0F172A),
-              ),
-            ),
-            items: vinItems.isNotEmpty
-                ? vinItems.map((m) {
-                    return DropdownMenuItem<String>(
-                      value: m['data'],
-                      child: Text(
-                        m['label']!,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
-                        ),
-                      ),
-                    );
-                  }).toList()
-                : null,
-            onChanged: _onVinChanged,
-          ),
+        _buildDropdown(
+          label: 'VIN *',
+          value: vinItems.any((m) => m['data'] == _selVin) ? _selVin : null,
+          items: vinItems,
+          valueKey: 'data',
+          labelKey: 'label',
+          isRequired: true,
+          enabled: vinEnabled,
+          onChanged: _onVinChanged,
         ),
 
         const SizedBox(height: 12),
@@ -1498,12 +1162,15 @@ class _VehicleAllocationFormScreenState
                 labelKey: 'label',
                 enabled: vinEnabled,
                 onChanged: (v) {
-                  setState(() => _selFscCode = v);
+                  setState(() {
+                    _selFscCode = v;
+                    _fscCodeCtrl.text = v ?? '';
+                  });
                 },
               )
             : TextFormField(
                 readOnly: true,
-                controller: TextEditingController(text: _selFscCode ?? ''),
+                controller: _fscCodeCtrl,
                 decoration: _fieldDecor('FSC Code', readOnly: true),
                 style: const TextStyle(
                   fontSize: 13,
@@ -1555,7 +1222,12 @@ class _VehicleAllocationFormScreenState
     );
   }
 
-  // ── VIN Details Grid (mirrors the WebDataGrid in the ASPX) ────────────────
+  // ── VIN Details Grid ─────────────────────────────────────────────────────
+  // IMPORTANT:
+  // The form itself must contain NO nested vertical scrollable here.
+  // On iOS, a large VIN ListView nested inside the page ListView can trigger
+  // very large RenderFlex/layout calculations. We therefore render a small,
+  // fixed preview in the form and open the complete stock list in a dialog.
   Widget _buildVinDetailsGrid(bool isDark) {
     return _sectionCard(
       title: 'Available Vehicles (Stock)',
@@ -1587,117 +1259,257 @@ class _VehicleAllocationFormScreenState
               ),
             ),
           )
-        else
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: _buildVinTable(isDark),
+        else ...[
+          _buildVinPreviewTable(isDark),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: OutlinedButton.icon(
+              onPressed: () => _showAllVinDetails(isDark),
+              icon: const Icon(Icons.open_in_new_rounded, size: 17),
+              label: Text('View all ${_vinDetails.length} vehicles'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _accent,
+                side: BorderSide(
+                  color: isDark
+                      ? const Color(0xFF355070)
+                      : const Color(0xFFBFD5FF),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ),
+        ],
       ],
     );
   }
 
-  Widget _buildVinTable(bool isDark) {
-    const headers = [
-      'Model',
-      'Variant',
-      'Colour',
-      'VIN',
-      'PDI',
-      'FSC Code',
-      'Year',
-      'Location',
-      'Ageing',
-    ];
-    const keys = [
-      'sp_45',
-      'sp_46',
-      'sp_47',
-      'sp_55',
-      'sp_50',
-      'sp_38',
-      'sp_49',
-      'sp_56',
-      'ageing',
-    ];
-    const widths = [100.0, 100.0, 110.0, 180.0, 70.0, 100.0, 60.0, 120.0, 70.0];
+  static const List<String> _vinHeaders = [
+    'Model',
+    'Variant',
+    'Colour',
+    'VIN',
+    'PDI',
+    'FSC Code',
+    'Year',
+    'Location',
+    'Ageing',
+  ];
 
-    final headerBg = isDark ? const Color(0xFF0D3F8A) : const Color(0xFF0D3F8A);
-    final evenBg = isDark ? const Color(0xFF1A2535) : Colors.white;
-    final oddBg = isDark ? const Color(0xFF1E2E42) : const Color(0xFFEAF1FF);
-    final textColor = isDark ? Colors.white70 : const Color(0xFF334155);
+  static const List<String> _vinKeys = [
+    'sp_45',
+    'sp_46',
+    'sp_47',
+    'sp_55',
+    'sp_50',
+    'sp_38',
+    'sp_49',
+    'sp_56',
+    'ageing',
+  ];
+
+  static const List<double> _vinWidths = [
+    100,
+    100,
+    110,
+    180,
+    70,
+    100,
+    60,
+    120,
+    70,
+  ];
+
+  Widget _buildVinPreviewTable(bool isDark) {
+    final previewCount = _vinDetails.length > 6 ? 6 : _vinDetails.length;
+    final totalWidth = _vinWidths.fold<double>(0, (a, b) => a + b);
     final borderColor = isDark
         ? const Color(0xFF2A3A4A)
         : const Color(0xFFC7D2FE);
+    final textColor = isDark ? Colors.white70 : const Color(0xFF334155);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(10),
-      child: Table(
-        border: TableBorder.all(color: borderColor, width: 0.5),
-        columnWidths: {
-          for (int i = 0; i < widths.length; i++)
-            i: FixedColumnWidth(widths[i]),
-        },
-        children: [
-          // Header row
-          TableRow(
-            decoration: BoxDecoration(color: headerBg),
-            children: headers
-                .map(
-                  (h) => Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 8,
-                    ),
-                    child: Text(
-                      h,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-          // Data rows
-          ..._vinDetails.asMap().entries.map((entry) {
-            final i = entry.key;
-            final row = entry.value;
-            final isSelected = row['sp_55']?.toString() == _selVin;
-            final rowBg = isSelected
-                ? _accent.withValues(alpha: 0.18)
-                : (i.isEven ? evenBg : oddBg);
-
-            return TableRow(
-              decoration: BoxDecoration(color: rowBg),
-              children: keys
-                  .map(
-                    (k) => GestureDetector(
-                      onTap: () => _onVinChanged(row['sp_55']?.toString()),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SizedBox(
+          width: totalWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                height: 42,
+                color: _primary,
+                child: Row(
+                  children: List.generate(
+                    _vinHeaders.length,
+                    (i) => SizedBox(
+                      width: _vinWidths[i],
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 7,
-                        ),
-                        child: Text(
-                          row[k]?.toString() ?? '-',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isSelected ? _accent : textColor,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.normal,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            _vinHeaders[i],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  )
-                  .toList(),
-            );
-          }),
-        ],
+                  ),
+                ),
+              ),
+              for (int index = 0; index < previewCount; index++)
+                _buildVinPreviewRow(
+                  _vinDetails[index],
+                  index,
+                  isDark,
+                  borderColor,
+                  textColor,
+                ),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _buildVinPreviewRow(
+    Map<String, dynamic> row,
+    int index,
+    bool isDark,
+    Color borderColor,
+    Color textColor,
+  ) {
+    final vin = row['sp_55']?.toString() ?? '';
+    final selected = vin.isNotEmpty && vin == _selVin;
+    final rowColor = selected
+        ? _accent.withValues(alpha: 0.18)
+        : index.isEven
+        ? (isDark ? const Color(0xFF1A2535) : Colors.white)
+        : (isDark ? const Color(0xFF1E2E42) : const Color(0xFFEAF1FF));
+
+    return InkWell(
+      onTap: vin.isEmpty ? null : () => _onVinChanged(vin),
+      child: Container(
+        height: 42,
+        color: rowColor,
+        child: Row(
+          children: List.generate(
+            _vinKeys.length,
+            (columnIndex) => SizedBox(
+              width: _vinWidths[columnIndex],
+              child: Container(
+                height: 42,
+                decoration: BoxDecoration(
+                  border: Border(
+                    left: BorderSide(color: borderColor, width: 0.5),
+                    bottom: BorderSide(color: borderColor, width: 0.5),
+                  ),
+                ),
+                alignment: Alignment.centerLeft,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  row[_vinKeys[columnIndex]]?.toString() ?? '-',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: selected ? _accent : textColor,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showAllVinDetails(bool isDark) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 24,
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: SizedBox(
+            height: MediaQuery.of(dialogContext).size.height * 0.78,
+            width: MediaQuery.of(dialogContext).size.width - 20,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                  decoration: BoxDecoration(
+                    color: _primary,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.directions_car_rounded,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 9),
+                      Expanded(
+                        child: Text(
+                          'Available Vehicles (${_vinDetails.length})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _VinListDialogBody(
+                    details: _vinDetails,
+                    selectedVin: _selVin,
+                    isDark: isDark,
+                    onSelected: (vin) {
+                      Navigator.of(dialogContext).pop();
+                      _onVinChanged(vin);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1773,4 +1585,454 @@ class _VehicleAllocationFormScreenState
       ],
     );
   }
+}
+
+// ============================================================================
+// ISOLATED SEARCHABLE DROPDOWN DIALOG
+// ============================================================================
+// Important: this widget owns its own search controller and filtered list.
+// It is intentionally separate from VehicleAllocationFormScreen so changes
+// inside the popup never mark the parent form dirty while it is building.
+class _SearchableDropdownDialog extends StatefulWidget {
+  final String title;
+  final String? selectedValue;
+  final List<Map<String, dynamic>> items;
+  final String valueKey;
+  final String labelKey;
+  final bool isDark;
+  final double width;
+  final double height;
+  final Color primary;
+  final Color accent;
+
+  const _SearchableDropdownDialog({
+    required this.title,
+    required this.selectedValue,
+    required this.items,
+    required this.valueKey,
+    required this.labelKey,
+    required this.isDark,
+    required this.width,
+    required this.height,
+    required this.primary,
+    required this.accent,
+  });
+
+  @override
+  State<_SearchableDropdownDialog> createState() =>
+      _SearchableDropdownDialogState();
+}
+
+class _SearchableDropdownDialogState extends State<_SearchableDropdownDialog> {
+  late final TextEditingController _searchController;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredItems {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.items;
+
+    return widget.items
+        .where((item) {
+          final label = item[widget.labelKey]?.toString().toLowerCase() ?? '';
+          final value = item[widget.valueKey]?.toString().toLowerCase() ?? '';
+          return label.contains(q) || value.contains(q);
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDark;
+    final filtered = _filteredItems;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+              decoration: BoxDecoration(
+                color: widget.primary,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.list_alt_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 21,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: (value) => setState(() => _query = value),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: dark ? Colors.white : const Color(0xFF0F172A),
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search ${widget.title.replaceAll(' *', '')}...',
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: Color(0xFF2C6CE0),
+                  ),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          icon: const Icon(Icons.clear_rounded, size: 18),
+                        ),
+                  filled: true,
+                  fillColor: dark
+                      ? const Color(0xFF0F1923)
+                      : const Color(0xFFF8FAFF),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: dark
+                          ? const Color(0xFF2A3A4A)
+                          : const Color(0xFFD1E3FF),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(
+                      color: dark
+                          ? const Color(0xFF2A3A4A)
+                          : const Color(0xFFD1E3FF),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide(color: widget.accent, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: dark
+                        ? const Color(0xFF8A9BB0)
+                        : const Color(0xFF64748B),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Expanded(
+              child: filtered.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No results found',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: dark
+                              ? Colors.white70
+                              : const Color(0xFF64748B),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final item = filtered[index];
+                        final value =
+                            item[widget.valueKey]?.toString().trim() ?? '';
+                        final label =
+                            item[widget.labelKey]?.toString().trim() ?? value;
+                        final selected = value == widget.selectedValue;
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Material(
+                            color: selected
+                                ? (dark
+                                      ? const Color(0xFF173D70)
+                                      : const Color(0xFFEAF2FF))
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () => Navigator.of(context).pop(value),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      selected
+                                          ? Icons.check_circle_rounded
+                                          : Icons.radio_button_unchecked,
+                                      size: 19,
+                                      color: selected
+                                          ? widget.accent
+                                          : (dark
+                                                ? const Color(0xFF70859F)
+                                                : const Color(0xFF94A3B8)),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                      child: Text(
+                                        label,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          height: 1.25,
+                                          fontWeight: selected
+                                              ? FontWeight.w800
+                                              : FontWeight.w600,
+                                          color: dark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VinListDialogBody extends StatefulWidget {
+  final List<Map<String, dynamic>> details;
+  final String? selectedVin;
+  final bool isDark;
+  final ValueChanged<String> onSelected;
+
+  const _VinListDialogBody({
+    required this.details,
+    required this.selectedVin,
+    required this.isDark,
+    required this.onSelected,
+  });
+
+  @override
+  State<_VinListDialogBody> createState() => _VinListDialogBodyState();
+}
+
+class _VinListDialogBodyState extends State<_VinListDialogBody> {
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filtered {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return widget.details;
+    return widget.details
+        .where((row) {
+          return row.values.any(
+            (value) => value?.toString().toLowerCase().contains(q) == true,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = widget.isDark;
+    final list = _filtered;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+          child: TextField(
+            controller: _searchController,
+            autofocus: true,
+            onChanged: (v) => setState(() => _query = v),
+            decoration: InputDecoration(
+              hintText: 'Search VIN, model, colour, location...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                      icon: const Icon(Icons.clear_rounded),
+                    ),
+              filled: true,
+              fillColor: dark
+                  ? const Color(0xFF0F1923)
+                  : const Color(0xFFF8FAFF),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '${list.length} result${list.length == 1 ? '' : 's'}',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: dark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 12),
+            itemCount: list.length,
+            itemBuilder: (context, index) {
+              final row = list[index];
+              final vin = row['sp_55']?.toString() ?? '';
+              final selected = vin == widget.selectedVin;
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                elevation: 0,
+                color: selected
+                    ? (dark ? const Color(0xFF173D70) : const Color(0xFFEAF2FF))
+                    : (dark ? const Color(0xFF1A2535) : Colors.white),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: vin.isEmpty ? null : () => widget.onSelected(vin),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      children: [
+                        Icon(
+                          selected
+                              ? Icons.check_circle_rounded
+                              : Icons.directions_car_rounded,
+                          size: 20,
+                          color: selected
+                              ? _VehicleAllocationColors.accent
+                              : const Color(0xFF64748B),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                vin.isEmpty ? '-' : vin,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: dark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${row['sp_45'] ?? '-'} • ${row['sp_46'] ?? '-'} • ${row['sp_47'] ?? '-'} • ${row['sp_56'] ?? '-'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: dark
+                                      ? Colors.white70
+                                      : const Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VehicleAllocationColors {
+  static const Color accent = Color(0xFF2C6CE0);
 }

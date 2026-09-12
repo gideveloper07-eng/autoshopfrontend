@@ -143,7 +143,8 @@ class _ChallanScreenState extends State<ChallanScreen>
 
   // Date filter: 'challan' for Challan Date, 'expected' for Expected Delivery Date
   String _dateFilter = 'challan';
-
+  // Status filter: pending / approve / reject
+  String _statusFilter = 'pending';
   static const Color _primary = Color(0xFF0D3F8A); // dark splash blue
   static const Color _accent = Color(0xFF57D1FF); // bright cyan accent
   static const Color _gridHeaderBorder = Color(0xFF27406D);
@@ -194,38 +195,41 @@ class _ChallanScreenState extends State<ChallanScreen>
   }
 
   Future<void> _loadData() async {
-    // ── Step 1: Show cached challan list immediately ──────────────────────
-    final cached = await CacheService.getListMap(
-      CacheService.keyChallanList,
-      ttlMs: CacheService.ttlMedium,
-    );
-    if (cached != null && cached.isNotEmpty && mounted) {
-      setState(() {
-        _rows = List<Map<String, dynamic>>.from(cached);
-        _filteredRows = List<Map<String, dynamic>>.from(cached);
-        _loading = false;
-      });
-      _animController.forward();
-    } else {
-      setState(() {
-        _loading = true;
-        _error = null;
-      });
-      _animController.reset();
-    }
+    if (!mounted) return;
 
-    // ── Step 2: Fetch fresh data from backend ─────────────────────────────
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    _animController.reset();
+
     try {
-      final data = await ApiService.getChallanRetailIncentive(
-        dateType: _dateFilter,
-      );
+      List<Map<String, dynamic>> data;
 
-      // ── Step 3: Update cache ────────────────────────────────────────────
-      if (data.isNotEmpty) {
-        await CacheService.setListMap(CacheService.keyChallanList, data);
+      // ---------------------------------------------------------
+      // PENDING CHALLAN
+      // ---------------------------------------------------------
+      if (_statusFilter == 'pending') {
+        data = await ApiService.getChallanRetailIncentive(
+          dateType: _dateFilter,
+        );
+      }
+      // ---------------------------------------------------------
+      // TODAY APPROVE
+      // ---------------------------------------------------------
+      else if (_statusFilter == 'approve') {
+        data = await ApiService.getTodayApproveChallans();
+      }
+      // ---------------------------------------------------------
+      // TODAY REJECT
+      // ---------------------------------------------------------
+      else {
+        data = await ApiService.getTodayRejectChallans();
       }
 
       if (!mounted) return;
+
       setState(() {
         _rows = List<Map<String, dynamic>>.from(data);
         _filteredRows = List<Map<String, dynamic>>.from(data);
@@ -234,12 +238,12 @@ class _ChallanScreenState extends State<ChallanScreen>
 
       _animController.forward();
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          if (_rows.isEmpty) _error = e.toString();
-          _loading = false;
-        });
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _loading = false;
+        _error = e.toString();
+      });
     }
   }
 
@@ -274,7 +278,7 @@ class _ChallanScreenState extends State<ChallanScreen>
   void _filterSearch(String query) {
     if (query.trim().isEmpty) {
       setState(() {
-        _filteredRows = _rows;
+        _filteredRows = List<Map<String, dynamic>>.from(_rows);
       });
       return;
     }
@@ -283,10 +287,10 @@ class _ChallanScreenState extends State<ChallanScreen>
 
     setState(() {
       _filteredRows = _rows.where((row) {
-        return row['sp_469'].toString().toLowerCase().contains(q) ||
-            row['sp_468'].toString().toLowerCase().contains(q) ||
-            row['date'].toString().toLowerCase().contains(q) ||
-            row['exdate'].toString().toLowerCase().contains(q);
+        return (row['sp_469']?.toString().toLowerCase().contains(q) ?? false) ||
+            (row['sp_468']?.toString().toLowerCase().contains(q) ?? false) ||
+            (row['date']?.toString().toLowerCase().contains(q) ?? false) ||
+            (row['exdate']?.toString().toLowerCase().contains(q) ?? false);
       }).toList();
     });
   }
@@ -391,7 +395,9 @@ class _ChallanScreenState extends State<ChallanScreen>
     final cardBg = theme.colorScheme.surface;
     final textDark = theme.colorScheme.onSurface;
     final textMid = isDark ? const Color(0xFF8A9BB0) : const Color(0xFF64748B);
-    final gridBorder = isDark ? const Color(0xFF2A3A4A) : const Color(0xFFC7D2FE);
+    final gridBorder = isDark
+        ? const Color(0xFF2A3A4A)
+        : const Color(0xFFC7D2FE);
 
     return Scaffold(
       backgroundColor: bg,
@@ -403,7 +409,7 @@ class _ChallanScreenState extends State<ChallanScreen>
                 ? _buildLoader(l10n, textMid)
                 : _error != null
                 ? _buildError(l10n, textDark, textMid)
-                : _rows.isEmpty
+                : _filteredRows.isEmpty
                 ? _buildEmpty(l10n, textMid)
                 : _buildGrid(l10n, cardBg, textMid, gridBorder),
           ),
@@ -419,8 +425,16 @@ class _ChallanScreenState extends State<ChallanScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF0A2A5C), const Color(0xFF1A4A8C), const Color(0xFF2A6AAC)]
-              : [const Color(0xFF0D3F8A), const Color(0xFF2C6CE0), const Color(0xFF82C9FF)],
+              ? [
+                  const Color(0xFF0A2A5C),
+                  const Color(0xFF1A4A8C),
+                  const Color(0xFF2A6AAC),
+                ]
+              : [
+                  const Color(0xFF0D3F8A),
+                  const Color(0xFF2C6CE0),
+                  const Color(0xFF82C9FF),
+                ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -647,11 +661,18 @@ class _ChallanScreenState extends State<ChallanScreen>
     );
   }
 
-  Widget _buildGrid(AppLocalizations l10n, Color cardBg, Color textMid, Color gridBorder) {
+  Widget _buildGrid(
+    AppLocalizations l10n,
+    Color cardBg,
+    Color textMid,
+    Color gridBorder,
+  ) {
     return FadeTransition(
       opacity: _fadeAnim,
       child: Column(
         children: [
+          _buildStatusFilters(cardBg, textMid),
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Row(
@@ -666,9 +687,21 @@ class _ChallanScreenState extends State<ChallanScreen>
                 ),
                 const Spacer(),
                 _StatChip(
-                  icon: Icons.calendar_today_rounded,
-                  label: l10n.pendingChallan,
-                  color: const Color(0xFF0891B2),
+                  icon: _statusFilter == 'pending'
+                      ? Icons.pending_actions_rounded
+                      : _statusFilter == 'approve'
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  label: _statusFilter == 'pending'
+                      ? 'Pending Challan'
+                      : _statusFilter == 'approve'
+                      ? 'Today Approve'
+                      : 'Today Reject',
+                  color: _statusFilter == 'pending'
+                      ? const Color(0xFF0891B2)
+                      : _statusFilter == 'approve'
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFDC2626),
                 ),
               ],
             ),
@@ -752,52 +785,56 @@ class _ChallanScreenState extends State<ChallanScreen>
               child: Row(
                 children: [
                   Icon(Icons.filter_list_rounded, size: 18, color: textMid),
-                    const SizedBox(width: 8),
-                    Text(
-                      l10n.showDate,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textMid,
-                      ),
+                  const SizedBox(width: 8),
+                  Text(
+                    l10n.showDate,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: textMid,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: _FilterChip(
-                              label: l10n.challanDate,
-                              isSelected: _dateFilter == 'challan',
-                              onTap: () {
-                                if (_dateFilter != 'challan') {
-                                  setState(() { _dateFilter = 'challan'; });
-                                  _loadData();
-                                }
-                              },
-                            ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: _FilterChip(
+                            label: l10n.challanDate,
+                            isSelected: _dateFilter == 'challan',
+                            onTap: () {
+                              if (_dateFilter != 'challan') {
+                                setState(() {
+                                  _dateFilter = 'challan';
+                                });
+                                _loadData();
+                              }
+                            },
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: _FilterChip(
-                              label: l10n.expectedDelivery,
-                              isSelected: _dateFilter == 'expected',
-                              onTap: () {
-                                if (_dateFilter != 'expected') {
-                                  setState(() { _dateFilter = 'expected'; });
-                                  _loadData();
-                                }
-                              },
-                            ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: _FilterChip(
+                            label: l10n.expectedDelivery,
+                            isSelected: _dateFilter == 'expected',
+                            onTap: () {
+                              if (_dateFilter != 'expected') {
+                                setState(() {
+                                  _dateFilter = 'expected';
+                                });
+                                _loadData();
+                              }
+                            },
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
 
           Expanded(
             child: Padding(
@@ -829,6 +866,87 @@ class _ChallanScreenState extends State<ChallanScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusFilters(Color cardBg, Color textMid) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF0D3F8A).withValues(alpha: 0.15),
+            width: 1.2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _StatusFilterChip(
+                label: 'Pending Challan',
+                icon: Icons.pending_actions_rounded,
+                isSelected: _statusFilter == 'pending',
+                color: _primary,
+                onTap: () {
+                  if (_statusFilter == 'pending') return;
+
+                  setState(() {
+                    _statusFilter = 'pending';
+                    _searchController.clear();
+                  });
+
+                  _loadData();
+                },
+              ),
+            ),
+
+            const SizedBox(width: 6),
+
+            Expanded(
+              child: _StatusFilterChip(
+                label: 'Today Approve',
+                icon: Icons.check_circle_rounded,
+                isSelected: _statusFilter == 'approve',
+                color: const Color(0xFF16A34A),
+                onTap: () {
+                  if (_statusFilter == 'approve') return;
+
+                  setState(() {
+                    _statusFilter = 'approve';
+                    _searchController.clear();
+                  });
+
+                  _loadData();
+                },
+              ),
+            ),
+
+            const SizedBox(width: 6),
+
+            Expanded(
+              child: _StatusFilterChip(
+                label: 'Today Reject',
+                icon: Icons.cancel_rounded,
+                isSelected: _statusFilter == 'reject',
+                color: const Color(0xFFDC2626),
+                onTap: () {
+                  if (_statusFilter == 'reject') return;
+
+                  setState(() {
+                    _statusFilter = 'reject';
+                    _searchController.clear();
+                  });
+
+                  _loadData();
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1049,9 +1167,7 @@ class _DataRow extends StatelessWidget {
             width: 112,
             child: Container(
               decoration: BoxDecoration(
-                border: Border(
-                  right: BorderSide(color: borderColor, width: 1),
-                ),
+                border: Border(right: BorderSide(color: borderColor, width: 1)),
               ),
               child: Center(
                 child: GestureDetector(
@@ -1280,6 +1396,67 @@ class _SheetField extends StatelessWidget {
   }
 }
 
+class _StatusFilterChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _StatusFilterChip({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color : color.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: isSelected ? color : color.withValues(alpha: 0.18),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 14, color: isSelected ? Colors.white : color),
+              const SizedBox(width: 3),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isSelected ? Colors.white : color,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -1295,8 +1472,12 @@ class _FilterChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final unselectedBg = isDark ? const Color(0xFF2A3A4A) : const Color(0xFFF1F5F9);
-    final unselectedBorder = isDark ? const Color(0xFF3A4A5A) : const Color(0xFFE2E8F0);
+    final unselectedBg = isDark
+        ? const Color(0xFF2A3A4A)
+        : const Color(0xFFF1F5F9);
+    final unselectedBorder = isDark
+        ? const Color(0xFF3A4A5A)
+        : const Color(0xFFE2E8F0);
     final unselectedText = theme.colorScheme.onSurface.withValues(alpha: 0.7);
 
     return GestureDetector(
@@ -1316,9 +1497,7 @@ class _FilterChip extends StatelessWidget {
           color: isSelected ? null : unselectedBg,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF27406D)
-                : unselectedBorder,
+            color: isSelected ? const Color(0xFF27406D) : unselectedBorder,
             width: 1,
           ),
         ),

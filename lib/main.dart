@@ -275,14 +275,25 @@ void main() {
       WidgetsFlutterBinding.ensureInitialized();
 
       if (!kIsWeb) {
-        await ChatDatabase.instance.database;
+        try {
+          await ChatDatabase.instance.database;
+        } catch (e) {
+          debugPrint('ChatDatabase init error (non-fatal): $e');
+        }
       }
 
-      await ConnectivityService.instance.initialize();
+      try {
+        await ConnectivityService.instance.initialize();
+      } catch (e) {
+        debugPrint('ConnectivityService init error (non-fatal): $e');
+      }
 
-      await Hive.initFlutter();
-
-      await HiveService.init();
+      try {
+        await Hive.initFlutter();
+        await HiveService.init();
+      } catch (e) {
+        debugPrint('Hive init error (non-fatal): $e');
+      }
 
       // ── Install error handler IMMEDIATELY after binding init ────────────
       // This must be the very first thing so it catches viewport errors that
@@ -421,7 +432,11 @@ void main() {
             );
       }
 
-      await ActivityService.initialize();
+      try {
+        await ActivityService.initialize();
+      } catch (e) {
+        debugPrint('ActivityService init error (non-fatal): $e');
+      }
 
       // Initialize festival service with real-time data
       await FestivalService.initializeWithApi();

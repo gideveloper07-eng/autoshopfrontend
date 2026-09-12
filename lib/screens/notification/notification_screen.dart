@@ -94,12 +94,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
               );
 
               if (confirm == true) {
-                // Clear cache too
-                await CacheService.delete(CacheService.keyNotifications);
-                setState(() => notifications.clear());
-                if (mounted) {
+                // Call backend to delete all notifications from DB
+                final success = await ApiService.clearAllNotifications();
+
+                if (!mounted) return;
+
+                if (success) {
+                  // Clear local cache and in-memory list
+                  await CacheService.delete(CacheService.keyNotifications);
+                  setState(() => notifications.clear());
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("All notifications cleared")),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Failed to clear notifications. Please try again."),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }

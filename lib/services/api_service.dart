@@ -898,6 +898,28 @@ class ApiService {
     }
   }
 
+  static Future<bool> clearAllNotifications() async {
+    try {
+      final token = await getToken();
+
+      if (token == null) return false;
+
+      final res = await http.delete(
+        Uri.parse("$baseUrl/api/notifications/clear-all"),
+
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      return res.statusCode == 200;
+    } catch (e) {
+      print("CLEAR ALL NOTIFICATIONS ERROR: $e");
+      return false;
+    }
+  }
+
   static Future<void> saveFCMToken(String fcmToken) async {
     try {
       final token = await getToken();
@@ -2894,6 +2916,121 @@ class ApiService {
     }
   }
   // ==========================================================
+  // TODAY COMPLETE RECEIPTS
+  // ==========================================================
+
+  static Future<List<Map<String, dynamic>>> getTodayCompletedReceipts() async {
+    try {
+      // ==================================================
+      // AUTHENTICATION
+      // ==================================================
+
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        print("❌ TODAY COMPLETE RECEIPT: NO TOKEN");
+        throw Exception("Authentication token missing");
+      }
+
+      // ==================================================
+      // API URL
+      // ==================================================
+
+      final url = "$baseUrl/api/challan/receipt/today-complete";
+
+      print("");
+      print("==============================================");
+      print("       TODAY COMPLETE RECEIPT API");
+      print("==============================================");
+      print("URL        : $url");
+      print("==============================================");
+
+      // ==================================================
+      // API REQUEST
+      // ==================================================
+
+      final response = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      // ==================================================
+      // DEBUG
+      // ==================================================
+
+      print("");
+      print("========== TODAY COMPLETE RESPONSE ==========");
+      print("STATUS CODE : ${response.statusCode}");
+      print("BODY        : ${response.body}");
+      print("==============================================");
+
+      // ==================================================
+      // HTTP ERROR
+      // ==================================================
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          "Today Complete Receipt API failed: "
+          "HTTP ${response.statusCode}\n"
+          "${response.body}",
+        );
+      }
+
+      // ==================================================
+      // JSON
+      // ==================================================
+
+      final body = jsonDecode(response.body);
+
+      if (body["success"] != true) {
+        throw Exception(
+          body["message"]?.toString() ?? "API returned success=false",
+        );
+      }
+
+      // ==================================================
+      // DATA CHECK
+      // ==================================================
+
+      if (body["data"] is! List) {
+        throw Exception(
+          "API data is not a List. "
+          "Actual type: ${body["data"].runtimeType}",
+        );
+      }
+
+      // ==================================================
+      // CONVERT DATA
+      // ==================================================
+
+      final List<dynamic> data = body["data"];
+
+      final result = data
+          .map<Map<String, dynamic>>(
+            (item) => Map<String, dynamic>.from(item as Map),
+          )
+          .toList();
+
+      print("TODAY COMPLETE ROW COUNT: ${result.length}");
+
+      return result;
+    } catch (e, stackTrace) {
+      print("");
+      print("❌❌❌ TODAY COMPLETE RECEIPT ERROR ❌❌❌");
+      print("ERROR: $e");
+      print("STACK TRACE:");
+      print(stackTrace);
+      print("==============================================");
+
+      rethrow;
+    }
+  }
+  // ==========================================================
   // UPDATE RECEIPT REQUEST
   // ==========================================================
 
@@ -3032,6 +3169,82 @@ class ApiService {
       print("==============================================");
 
       rethrow;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTodayApproveChallans() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return [];
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/today-approve");
+
+      final res = await http.get(
+        uri,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      print("TODAY APPROVE STATUS: ${res.statusCode}");
+      print("TODAY APPROVE RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+
+        if (body["success"] == true && body["data"] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body["data"] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("TODAY APPROVE ERROR: $e");
+      return [];
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getTodayRejectChallans() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return [];
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/today-reject");
+
+      final res = await http.get(
+        uri,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      print("TODAY REJECT STATUS: ${res.statusCode}");
+      print("TODAY REJECT RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+
+        if (body["success"] == true && body["data"] is List) {
+          return List<Map<String, dynamic>>.from(
+            (body["data"] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("TODAY REJECT ERROR: $e");
+      return [];
     }
   }
 

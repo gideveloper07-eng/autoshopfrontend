@@ -84,6 +84,9 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isAdmin = false;
   final String _adminUtg = "4848C835-2A09-4A80-A7E2-383C95926C54";
   int _pendingRequestCount = 0;
+  int _pendingReceiptRequestCount = 0;
+  int _pendingTaskCount = 0;
+  int _pendingChallanCount = 0;
   late AnimationController _requestBlink;
   late Animation<double> _requestBlinkAnim;
 
@@ -162,7 +165,11 @@ class _HomeScreenState extends State<HomeScreen>
     Future.delayed(const Duration(milliseconds: 450), _loadChatPreview);
     Future.delayed(const Duration(milliseconds: 600), _loadCompanyInfo);
     Future.delayed(const Duration(milliseconds: 500), _loadRequestInfo);
-
+    Future.delayed(
+      const Duration(milliseconds: 550),
+      _loadPendingReceiptRequestCount,
+    );
+    Future.delayed(const Duration(milliseconds: 650), _loadPendingTaskCount);
     // Process any due recurring tasks scheduled from previous assign-task actions
     Future.delayed(const Duration(milliseconds: 800), () async {
       final created = await RecurringTaskScheduler.processDueSlots();
@@ -193,10 +200,10 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPendingChallanNotifications();
     });
-    _pendingChallanTimer = Timer.periodic(
-      const Duration(minutes: 1),
-      (_) => _checkPendingChallanNotifications(),
-    );
+    _pendingChallanTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      _checkPendingChallanNotifications();
+      _loadPendingTaskCount();
+    });
     // Hide welcome message after 5 seconds
     Future.delayed(const Duration(seconds: 5), () {
       if (mounted) setState(() => _showWelcome = false);
@@ -329,6 +336,9 @@ class _HomeScreenState extends State<HomeScreen>
     loadDashboardStats();
     _loadChatPreview();
     loadUnreadCount();
+    _loadPendingReceiptRequestCount();
+    _checkPendingChallanNotifications();
+    _loadPendingTaskCount();
   }
 
   // â”€â”€ Chat preview loader â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -497,6 +507,43 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  Future<void> _loadPendingReceiptRequestCount() async {
+    try {
+      final receipts = await ApiService.getCombinedReceipts();
+
+      if (!mounted) return;
+
+      setState(() {
+        _pendingReceiptRequestCount = receipts.length;
+      });
+
+      debugPrint("PENDING RECEIPT REQUEST COUNT: $_pendingReceiptRequestCount");
+    } catch (e) {
+      debugPrint("PENDING RECEIPT REQUEST COUNT ERROR: $e");
+    }
+  }
+
+  Future<void> _loadPendingTaskCount() async {
+    try {
+      final tasks = await ApiService.getTasks();
+
+      final pendingCount = tasks.where((task) {
+        final status = task['Status']?.toString().trim().toLowerCase();
+        return status == 'pending';
+      }).length;
+
+      if (!mounted) return;
+
+      setState(() {
+        _pendingTaskCount = pendingCount;
+      });
+
+      debugPrint("PENDING TASK COUNT: $_pendingTaskCount");
+    } catch (e) {
+      debugPrint("PENDING TASK COUNT ERROR: $e");
+    }
+  }
+
   // ── Chat request info (non-admin only) ──────────────────────────────────
   Future<void> _loadRequestInfo() async {
     // IMPORTANT:
@@ -554,14 +601,22 @@ class _HomeScreenState extends State<HomeScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkPendingChallanNotifications();
+      _loadPendingReceiptRequestCount();
+      // Refresh dashboard stats so booking/sale counts are always current
+      loadDashboardStats();
+
       // Check for festival updates when app resumes
       FestivalService.autoRefreshIfNeeded();
+
       setState(() {
         _showFestivalBanner = FestivalService.isTodayFestival();
       });
-      // Re-check quote visibility on resume — quote changes daily at midnight
+
+      // Re-check quote visibility on resume
       QuoteService.isDismissed().then((dismissed) {
-        if (mounted) setState(() => _showDailyQuote = !dismissed);
+        if (mounted) {
+          setState(() => _showDailyQuote = !dismissed);
+        }
       });
     }
   }
@@ -571,9 +626,17 @@ class _HomeScreenState extends State<HomeScreen>
       final pendingChallans = await ApiService.getChallanRetailIncentive();
       final count = pendingChallans.length;
 
+      // Update Challan badge count
+      if (mounted) {
+        setState(() {
+          _pendingChallanCount = count;
+        });
+      }
+
       if (!mounted || count == 0) return;
 
       final alreadyNotified = await ApiService.getNotifiedPendingChallanIds();
+
       final newPendingChallans = pendingChallans.where((row) {
         return !alreadyNotified.contains(_pendingChallanId(row));
       }).toList();
@@ -1070,7 +1133,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                 title: "Today's Booking",
                                               ),
                                         ),
-                                      );
+                                      ).then((_) => loadDashboardStats());
                                     },
 
                                     onYesterdayTap: () {
@@ -1084,7 +1147,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                 title: "Yesterday's Booking",
                                               ),
                                         ),
-                                      );
+                                      ).then((_) => loadDashboardStats());
                                     },
                                   ),
                                 ),
@@ -1143,7 +1206,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                 title: "Today's Sale",
                                               ),
                                         ),
-                                      );
+                                      ).then((_) => loadDashboardStats());
                                     },
                                     onYesterdayTap: () {
                                       Navigator.push(
@@ -1156,7 +1219,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                 title: "Yesterday's Sale",
                                               ),
                                         ),
-                                      );
+                                      ).then((_) => loadDashboardStats());
                                     },
                                   ),
                                 ),
@@ -1327,6 +1390,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 Color(0xFF42A5F5),
                               ],
                               accentColor: Colors.lightBlueAccent,
+
+                              // Pending receipt requests
+                              badgeCount: _pendingReceiptRequestCount,
+
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -1372,6 +1439,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 Color(0xFF6A4BD8),
                               ],
                               accentColor: AppColors.secondary,
+
+                              // Pending challan count
+                              badgeCount: _pendingChallanCount,
+
                               onTap: () {
                                 Navigator.push(
                                   context,
@@ -1404,15 +1475,17 @@ class _HomeScreenState extends State<HomeScreen>
                                       cardId: 'taskDashboard',
                                       icon: Icons.task_alt,
                                       label: "Task Dashboard Screen",
-                                      subtitle: count > 0
-                                          ? "$count task${count > 1 ? 's' : ''} completed by user"
-                                          : "View assigned tasks",
+                                      subtitle: "View assigned tasks",
                                       gradient: const [
                                         Color(0xFF0D47A1),
                                         Color(0xFF1565C0),
                                         Color(0xFF1E88E5),
                                       ],
                                       accentColor: Colors.lightBlueAccent,
+
+                                      // Pending task count
+                                      badgeCount: _pendingTaskCount,
+
                                       onTap: () {
                                         Navigator.push(
                                           context,
@@ -2994,6 +3067,7 @@ class _HomeScreenState extends State<HomeScreen>
     required List<Color> gradient,
     required Color accentColor,
     required VoidCallback onTap,
+    int? badgeCount,
   }) {
     return GestureDetector(
       onTap: onTap,
@@ -3096,18 +3170,66 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Icon(icon, color: Colors.white, size: iconInner),
                       ),
 
-                      Container(
-                        width: arrowSize,
-                        height: arrowSize,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.18),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: arrowIconSize,
-                          color: Colors.white,
-                        ),
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: arrowSize,
+                            height: arrowSize,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: arrowIconSize,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          if ((badgeCount ?? 0) > 0)
+                            Positioned(
+                              right: -7,
+                              top: -9,
+                              child: Container(
+                                constraints: const BoxConstraints(
+                                  minWidth: 22,
+                                  minHeight: 18,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE53935),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.25),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    (badgeCount ?? 0) > 99
+                                        ? '99+'
+                                        : '${badgeCount ?? 0}',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
