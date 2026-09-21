@@ -3695,6 +3695,402 @@ class ApiService {
       return <String, dynamic>{};
     }).toList();
   }
+
+  // BOOKING FORM DROPDOWNS
+  // GET /api/booking/dropdowns
+  // Returns: states, cities, areas, models, colours, scNames
+  static Future<Map<String, List<Map<String, dynamic>>>>
+  getBookingFormDropdowns() async {
+    final empty = <String, List<Map<String, dynamic>>>{
+      'states': [],
+      'cities': [],
+      'areas': [],
+      'models': [],
+      'colours': [],
+      'scNames': [],
+    };
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return empty;
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/booking/dropdowns"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] is Map) {
+          final d = body['data'] as Map<String, dynamic>;
+          return {
+            'states': _toMapList(d['states']),
+            'cities': _toMapList(d['cities']),
+            'areas': _toMapList(d['areas']),
+            'models': _toMapList(d['models']),
+            'colours': _toMapList(d['colours']),
+            'scNames': _toMapList(d['scNames']),
+          };
+        }
+      }
+      print("BOOKING DROPDOWNS HTTP ${res.statusCode}: ${res.body}");
+      return empty;
+    } catch (e) {
+      print("BOOKING DROPDOWNS ERROR: $e");
+      return empty;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOKING VARIANTS by model
+  // GET /api/booking/variants/
+  // @what = 'vardata' with @Rcl_71 = modelUnq
+  // Returns: [ { value, data, sp_20_4 }, ... ]
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getBookingVariants(
+    String modelUnq,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/booking/variants/${Uri.encodeComponent(modelUnq)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+      print("BOOKING VARIANTS HTTP ${res.statusCode}");
+      return [];
+    } catch (e) {
+      print("BOOKING VARIANTS ERROR: $e");
+      return [];
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ─────────────────────────────────────────────────────────────────────────
+  // SAVE BOOKING REQUEST
+  // POST /api/booking/save
+  // Step 1: inserts into rh_m1 via A_SP_FOR_ACCOUNTMASTER @what='insert'
+  // Step 2: inserts docket row into rh_sp_73 with all 18 mapped fields
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> saveBookingRequest({
+    required String title,
+    required String name,
+    required String fatherName,
+    required String emailId,
+    required String address,
+    required String state,
+    required String cityUnq,
+    required String areaUnq,
+    required String zip,
+    required String mobileNo,
+    required String gstin,
+    required String birthAnniversary,
+    required String marriageAnniversary,
+    required String aadharNo,
+    required String modelUnq,
+    required String variantUnq,
+    required String colourUnq,
+    required String scUnq,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/booking/save"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({
+              'title': title,
+              'name': name,
+              'fatherName': fatherName,
+              'emailId': emailId,
+              'address': address,
+              'state': state,
+              'cityUnq': cityUnq,
+              'areaUnq': areaUnq,
+              'zip': zip,
+              'mobileNo': mobileNo,
+              'gstin': gstin,
+              'birthAnniversary': birthAnniversary,
+              'marriageAnniversary': marriageAnniversary,
+              'aadharNo': aadharNo,
+              'modelUnq': modelUnq,
+              'variantUnq': variantUnq,
+              'colourUnq': colourUnq,
+              'scUnq': scUnq,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+
+      throw Exception(body['message'] ?? "Save failed");
+    } catch (e) {
+      print("BOOKING SAVE ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // NEW BOOKING REQUEST API
+  // POST /api/booking/save-new
+  // This is a separate API and does NOT modify the existing save API.
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> saveNewBookingRequest({
+    required String title,
+    required String name,
+    required String fatherName,
+    required String emailId,
+    required String address,
+    required String state,
+    required String cityUnq,
+    required String areaUnq,
+    required String zip,
+    required String mobileNo,
+    required String gstin,
+    required String birthAnniversary,
+    required String marriageAnniversary,
+    required String aadharNo,
+    required String panNo, // ADD
+    required String modelUnq,
+    required String variantUnq,
+    required String colourUnq,
+    required String scUnq,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/booking/save-new"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({
+              'title': title,
+              'name': name,
+              'fatherName': fatherName,
+              'emailId': emailId,
+              'address': address,
+              'state': state,
+              'cityUnq': cityUnq,
+              'areaUnq': areaUnq,
+              'zip': zip,
+              'mobileNo': mobileNo,
+              'gstin': gstin,
+              'birthAnniversary': birthAnniversary,
+              'marriageAnniversary': marriageAnniversary,
+              'aadharNo': aadharNo,
+              'panNo': panNo, // ADD
+              'modelUnq': modelUnq,
+              'variantUnq': variantUnq,
+              'colourUnq': colourUnq,
+              'scUnq': scUnq,
+            }),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+
+      throw Exception(body['message'] ?? "Save failed");
+    } catch (e) {
+      print("NEW BOOKING SAVE ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOKING CITIES by STATE
+  // GET /api/booking/cities/:stateUnq
+  // `stateUnq` must be the internal State UNQID (`value`), not the display name.
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getBookingCities(
+    String stateUnq,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        print("BOOKING CITIES: No authentication token.");
+        return [];
+      }
+
+      final cleanStateUnq = stateUnq.trim();
+
+      if (cleanStateUnq.isEmpty) {
+        print("BOOKING CITIES: State UNQID is empty.");
+        return [];
+      }
+
+      final url =
+          "$baseUrl/api/booking/cities/${Uri.encodeComponent(cleanStateUnq)}";
+
+      print("BOOKING CITIES URL: $url");
+
+      final res = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("BOOKING CITIES STATUS: ${res.statusCode}");
+      print("BOOKING CITIES RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("BOOKING CITIES ERROR: $e");
+      return [];
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOKING REQUEST GRID
+  // GET /api/booking/request-grid
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getBookingRequestGrid() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/booking/request-grid"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("BOOKING REQUEST GRID STATUS: ${res.statusCode}");
+      print("BOOKING REQUEST GRID RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      print("BOOKING REQUEST GRID HTTP ${res.statusCode}: ${res.body}");
+
+      return [];
+    } catch (e) {
+      print("BOOKING REQUEST GRID ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // BOOKING AREAS by CITY
+  // GET /api/booking/areas/:cityUnq
+  // `cityUnq` must be the internal City UNQID (`value`), not the display name.
+  // ─────────────────────────────────────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getBookingAreas(
+    String cityUnq,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        print("BOOKING AREAS: No authentication token.");
+        return [];
+      }
+
+      final cleanCityUnq = cityUnq.trim();
+
+      if (cleanCityUnq.isEmpty) {
+        print("BOOKING AREAS: City UNQID is empty.");
+        return [];
+      }
+
+      final url =
+          "$baseUrl/api/booking/areas/${Uri.encodeComponent(cleanCityUnq)}";
+
+      print("BOOKING AREAS URL: $url");
+
+      final res = await http
+          .get(
+            Uri.parse(url),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("BOOKING AREAS STATUS: ${res.statusCode}");
+      print("BOOKING AREAS RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      return [];
+    } catch (e) {
+      print("BOOKING AREAS ERROR: $e");
+      return [];
+    }
+  }
 }
 
 class SendMessageResponse {

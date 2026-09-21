@@ -40,6 +40,7 @@ import '../../widgets/dashboard/morning_briefing_card.dart';
 import 'rgb_border_card.dart';
 import '../receipt/combined_receipt_screen.dart';
 import '../vehicle_allocation/vehicle_allocation_screen.dart';
+import '../booking/booking_screen_request_grid.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -1453,6 +1454,31 @@ class _HomeScreenState extends State<HomeScreen>
                               },
                             ),
                             _dashCard(
+                              cardId: 'bookingRequestForm',
+                              icon: Icons.app_registration_rounded,
+                              label: "Booking Request Form",
+                              subtitle: "New booking request",
+                              gradient: const [
+                                Color(0xFF0D47A1),
+                                Color(0xFF1565C0),
+                                Color(0xFF1E88E5),
+                              ],
+                              accentColor: Color(0xFF90CAF9),
+
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'BookingScreenRequestGrid',
+                                    ),
+                                    builder: (_) =>
+                                        const BookingScreenRequestGrid(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _dashCard(
                               cardId: 'assignTask',
                               icon: Icons.assignment_ind_rounded,
                               label: "Assign Task",
@@ -1548,6 +1574,33 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                     builder: (_) =>
                                         const VehicleAllocationScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            const SizedBox(height: 24),
+
+                            // Booking Request — available for non-admin also
+                            _dashCard(
+                              cardId: 'bookingRequestFormNonAdmin',
+                              icon: Icons.app_registration_rounded,
+                              label: "Booking Request Form",
+                              subtitle: "New booking request",
+                              gradient: const [
+                                Color(0xFF0D47A1),
+                                Color(0xFF1565C0),
+                                Color(0xFF1E88E5),
+                              ],
+                              accentColor: const Color(0xFF90CAF9),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'BookingScreenRequestGrid',
+                                    ),
+                                    builder: (_) =>
+                                        const BookingScreenRequestGrid(),
                                   ),
                                 );
                               },

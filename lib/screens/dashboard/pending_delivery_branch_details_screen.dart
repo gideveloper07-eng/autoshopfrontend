@@ -113,11 +113,16 @@ class _PendingDeliveryBranchDetailsScreenState
     if (_error != null) return _buildError();
     if (_rows.isEmpty) return _buildEmpty();
 
+    // Cap card height so it looks consistent on all screen sizes (like iPhone SE)
+    final screenHeight = MediaQuery.of(context).size.height;
+    final cardHeight = (screenHeight * 0.52).clamp(320.0, 480.0);
+
     return Column(
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
-        Expanded(
+        SizedBox(
+          height: cardHeight,
           child: PageView.builder(
             controller: _pageController,
             itemCount: _rows.length,
@@ -231,18 +236,16 @@ class _PendingDeliveryBranchDetailsScreenState
         ? customerName[0].toUpperCase()
         : 'P';
 
-    return AnimatedContainer(
+    return SizedBox(
+      height: double.infinity,
+      child: AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
       child: RgbBorderCard(
         borderRadius: 28,
         borderWidth: 2.0,
         glow: true,
-        child: Material(
-          elevation: 8,
-          borderRadius: BorderRadius.circular(28),
-          color: Colors.transparent,
-          child: Container(
+        child: Container(
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
@@ -251,7 +254,11 @@ class _PendingDeliveryBranchDetailsScreenState
                 end: Alignment.bottomRight,
                 colors: isDark
                     ? [const Color(0xff222222), const Color(0xff111111)]
-                    : [Colors.white, const Color(0xffFAF5FF)],
+                    : [
+                        const Color(0xFF4A148C),
+                        const Color(0xFF6A1B9A),
+                        const Color(0xFF1565C0),
+                      ],
               ),
             ),
             child: SingleChildScrollView(
@@ -265,7 +272,7 @@ class _PendingDeliveryBranchDetailsScreenState
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: _primary,
+                        backgroundColor: Colors.white.withOpacity(0.2),
                         child: Text(
                           initial,
                           style: const TextStyle(
@@ -282,16 +289,16 @@ class _PendingDeliveryBranchDetailsScreenState
                           children: [
                             Text(
                               customerName,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Record #${index + 1}',
-                              style: TextStyle(color: Colors.grey.shade600),
+                              style: TextStyle(color: Colors.white.withOpacity(0.7)),
                             ),
                           ],
                         ),
@@ -345,8 +352,8 @@ class _PendingDeliveryBranchDetailsScreenState
                 ],
               ),
             ),
-          ),
         ),
+      ),
       ),
     );
   }
@@ -358,11 +365,11 @@ class _PendingDeliveryBranchDetailsScreenState
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          color: Colors.grey.withOpacity(0.08),
+          color: Colors.white.withOpacity(0.12),
         ),
         child: Row(
           children: [
-            Icon(icon, color: _primary, size: 24),
+            Icon(icon, color: Colors.white, size: 24),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -370,7 +377,7 @@ class _PendingDeliveryBranchDetailsScreenState
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.65)),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -378,6 +385,7 @@ class _PendingDeliveryBranchDetailsScreenState
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],
