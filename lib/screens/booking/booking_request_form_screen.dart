@@ -138,11 +138,35 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
         _modelList = List<Map<String, dynamic>>.from(dd['models'] ?? const []);
 
+        // Sort models A to Z
+        _modelList.sort((a, b) {
+          final modelA = (a['value'] ?? '').toString().trim().toLowerCase();
+          final modelB = (b['value'] ?? '').toString().trim().toLowerCase();
+
+          return modelA.compareTo(modelB);
+        });
+
         _colourList = List<Map<String, dynamic>>.from(
           dd['colours'] ?? const [],
         );
 
+        // Sort colours alphabetically A-Z
+        _colourList.sort((a, b) {
+          final colourA = (a['value'] ?? '').toString().trim().toLowerCase();
+          final colourB = (b['value'] ?? '').toString().trim().toLowerCase();
+
+          return colourA.compareTo(colourB);
+        });
+
         _scList = List<Map<String, dynamic>>.from(dd['scNames'] ?? const []);
+
+        // Sort SC Names alphabetically A-Z
+        _scList.sort((a, b) {
+          final scA = (a['value'] ?? '').toString().trim().toLowerCase();
+          final scB = (b['value'] ?? '').toString().trim().toLowerCase();
+
+          return scA.compareTo(scB);
+        });
 
         _loadingDropdowns = false;
       });
@@ -177,6 +201,14 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
       final list = await ApiService.getBookingCities(stateUnq);
 
       if (!mounted) return;
+
+      // Sort cities A-Z by visible city name
+      list.sort((a, b) {
+        final cityA = (a['value'] ?? '').toString().trim().toLowerCase();
+        final cityB = (b['value'] ?? '').toString().trim().toLowerCase();
+
+        return cityA.compareTo(cityB);
+      });
 
       setState(() {
         _cityList = list;
@@ -220,6 +252,14 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
       final list = await ApiService.getBookingAreas(cityUnq);
 
       if (!mounted) return;
+
+      // Sort areas alphabetically A-Z
+      list.sort((a, b) {
+        final areaA = (a['value'] ?? '').toString().trim().toLowerCase();
+        final areaB = (b['value'] ?? '').toString().trim().toLowerCase();
+
+        return areaA.compareTo(areaB);
+      });
 
       setState(() {
         _areaList = list;
@@ -304,8 +344,8 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
       return 'Name is required';
     }
 
-    if (!RegExp(r'^[A-Za-z ]+$').hasMatch(v)) {
-      return 'Name can contain only letters and spaces';
+    if (!RegExp(r'^[A-Za-z. ]+$').hasMatch(v)) {
+      return 'Name can contain only letters, spaces and dots';
     }
 
     return null;
@@ -662,7 +702,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                     label: 'Name',
                     requiredField: true,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z ]')),
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z. ]')),
                     ],
                     labelColor: labelColor,
                     validator: _nameValidator,
@@ -675,7 +715,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                     label: "Father's Name",
                     requiredField: false,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z ]')),
+                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z. ]')),
                     ],
                     labelColor: labelColor,
                     validator: _fatherNameValidator,
@@ -1347,38 +1387,44 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                               return SafeArea(
                                 child: Container(
                                   height:
-                                      MediaQuery.of(context).size.height * 0.78,
+                                      MediaQuery.of(context).size.height * 0.85,
 
-                                  decoration: const BoxDecoration(
+                                  decoration: BoxDecoration(
                                     color: Colors.white,
-
-                                    borderRadius: BorderRadius.vertical(
-                                      top: Radius.circular(24),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(28),
                                     ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 30,
+                                        offset: const Offset(0, -5),
+                                      ),
+                                    ],
                                   ),
 
                                   child: Column(
                                     children: [
-                                      const SizedBox(height: 10),
+                                      const SizedBox(height: 12),
 
                                       Container(
-                                        width: 45,
+                                        width: 50,
                                         height: 5,
 
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade300,
+                                          color: Colors.grey.shade400,
                                           borderRadius: BorderRadius.circular(
-                                            10,
+                                            12,
                                           ),
                                         ),
                                       ),
 
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(
+                                          20,
                                           18,
-                                          16,
-                                          18,
-                                          10,
+                                          20,
+                                          12,
                                         ),
 
                                         child: Row(
@@ -1387,17 +1433,35 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                               child: Text(
                                                 'Select $label',
                                                 style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: _primary,
                                                 ),
                                               ),
                                             ),
 
-                                            IconButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(sheetContext),
-
-                                              icon: const Icon(Icons.close),
+                                            Container(
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: IconButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(sheetContext),
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.grey,
+                                                ),
+                                                iconSize: 20,
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      minWidth: 36,
+                                                      minHeight: 36,
+                                                    ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -1405,7 +1469,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
-                                          horizontal: 18,
+                                          horizontal: 20,
                                         ),
 
                                         child: TextField(
@@ -1418,9 +1482,14 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
                                           decoration: InputDecoration(
                                             hintText: 'Search $label...',
+                                            hintStyle: TextStyle(
+                                              color: Colors.grey.shade500,
+                                              fontSize: 15,
+                                            ),
 
-                                            prefixIcon: const Icon(
+                                            prefixIcon: Icon(
                                               Icons.search,
+                                              color: Colors.grey.shade600,
                                             ),
 
                                             suffixIcon:
@@ -1433,20 +1502,28 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                       setSheetState(() {});
                                                     },
 
-                                                    icon: const Icon(
+                                                    icon: Icon(
                                                       Icons.clear,
+                                                      color:
+                                                          Colors.grey.shade600,
                                                     ),
                                                   ),
 
                                             filled: true,
 
-                                            fillColor: Colors.grey.shade100,
+                                            fillColor: Colors.grey.shade50,
 
                                             border: OutlineInputBorder(
                                               borderRadius:
-                                                  BorderRadius.circular(12),
+                                                  BorderRadius.circular(16),
                                               borderSide: BorderSide.none,
                                             ),
+
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 16,
+                                                  vertical: 14,
+                                                ),
                                           ),
                                         ),
                                       ),
@@ -1454,7 +1531,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                       Padding(
                                         padding: const EdgeInsets.fromLTRB(
                                           20,
-                                          10,
+                                          14,
                                           20,
                                           8,
                                         ),
@@ -1466,8 +1543,9 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                             '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
 
                                             style: TextStyle(
-                                              color: Colors.grey.shade600,
-                                              fontSize: 12,
+                                              color: Colors.grey.shade700,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
                                         ),
@@ -1476,26 +1554,56 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                       Expanded(
                                         child: filtered.isEmpty
                                             ? Center(
-                                                child: Text(
-                                                  'No $label found\nTry a different search',
-
-                                                  textAlign: TextAlign.center,
-
-                                                  style: TextStyle(
-                                                    color: Colors.grey.shade600,
-                                                  ),
+                                                child: Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  children: [
+                                                    Icon(
+                                                      Icons.search_off,
+                                                      size: 48,
+                                                      color:
+                                                          Colors.grey.shade400,
+                                                    ),
+                                                    const SizedBox(height: 12),
+                                                    Text(
+                                                      'No $label found',
+                                                      style: TextStyle(
+                                                        color: Colors
+                                                            .grey
+                                                            .shade600,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      'Try a different search',
+                                                      style: TextStyle(
+                                                        color: Colors
+                                                            .grey
+                                                            .shade500,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               )
                                             : ListView.separated(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      horizontal: 10,
+                                                      horizontal: 12,
+                                                      vertical: 8,
                                                     ),
 
                                                 itemCount: filtered.length,
 
                                                 separatorBuilder: (_, __) =>
-                                                    const Divider(height: 1),
+                                                    Divider(
+                                                      height: 1,
+                                                      color:
+                                                          Colors.grey.shade200,
+                                                    ),
 
                                                 itemBuilder: (context, index) {
                                                   final entry = filtered[index];
@@ -1505,29 +1613,71 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                       effectiveValue;
 
                                                   return Material(
-                                                    color: Colors.transparent,
-                                                    child: ListTile(
-                                                      title: Text(
-                                                        entry.value,
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-
-                                                      trailing: isSelected
-                                                          ? const Icon(
-                                                              Icons
-                                                                  .check_circle,
-                                                              color:
-                                                                  Colors.green,
-                                                            )
-                                                          : null,
-
+                                                    color: isSelected
+                                                        ? _accent.withOpacity(
+                                                            0.08,
+                                                          )
+                                                        : Colors.transparent,
+                                                    child: InkWell(
                                                       onTap: () =>
                                                           Navigator.pop(
                                                             sheetContext,
                                                             entry.key,
                                                           ),
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 16,
+                                                              vertical: 12,
+                                                            ),
+                                                        child: Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                entry.value,
+                                                                maxLines: 1,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style: TextStyle(
+                                                                  fontSize: 15,
+                                                                  fontWeight:
+                                                                      isSelected
+                                                                      ? FontWeight
+                                                                            .w600
+                                                                      : FontWeight
+                                                                            .w400,
+                                                                  color:
+                                                                      isSelected
+                                                                      ? _primary
+                                                                      : Colors
+                                                                            .grey
+                                                                            .shade800,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            if (isSelected)
+                                                              Container(
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      4,
+                                                                    ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors
+                                                                      .green,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                child: const Icon(
+                                                                  Icons.check,
+                                                                  size: 16,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                      ),
                                                     ),
                                                   );
                                                 },
@@ -1542,7 +1692,9 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                         },
                       );
 
-                      searchController.dispose();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        searchController.dispose();
+                      });
 
                       if (result != null) {
                         onChanged(result);
@@ -1625,9 +1777,10 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
         text: text,
 
         style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
+          fontSize: 14,
+          fontWeight: FontWeight.w800,
           color: labelColor,
+          letterSpacing: 0.15,
         ),
 
         children: requiredField

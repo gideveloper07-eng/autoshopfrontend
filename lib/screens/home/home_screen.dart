@@ -1,8 +1,10 @@
 ﻿import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 import '../ai/ai_chat_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import '../../services/api_service.dart';
@@ -41,6 +43,7 @@ import 'rgb_border_card.dart';
 import '../receipt/combined_receipt_screen.dart';
 import '../vehicle_allocation/vehicle_allocation_screen.dart';
 import '../booking/booking_screen_request_grid.dart';
+import '../booking/acc_cancel_approve_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -83,7 +86,22 @@ class _HomeScreenState extends State<HomeScreen>
       true; // hides after 5 s // â† request once on first web tap
   // Chat request badge (non-admin only)
   bool _isAdmin = false;
-  final String _adminUtg = "4848C835-2A09-4A80-A7E2-383C95926C54";
+
+  // Dynamic screen permissions returned by:
+  // GET /api/app-permissions
+  //
+  // The backend returns:
+  // {
+  //   success: true,
+  //   isAdmin: false,
+  //   screens: [
+  //     {"ScreenName": "Receipt", "ScreenKey": "combinedReceipt"}
+  //   ]
+  // }
+  //
+  // Admin users bypass this list.
+  final Set<String> _allowedScreenKeys = <String>{};
+  bool _permissionsLoaded = false;
   int _pendingRequestCount = 0;
   int _pendingReceiptRequestCount = 0;
   int _pendingTaskCount = 0;
@@ -333,7 +351,8 @@ class _HomeScreenState extends State<HomeScreen>
       CacheService.delete(CacheService.keyMergedUsers),
       CacheService.delete(CacheService.keyContacts),
     ]);
-    _loadCompanyInfo();
+    await _loadCompanyInfo();
+    await loadSecurity();
     loadDashboardStats();
     _loadChatPreview();
     loadUnreadCount();
@@ -447,28 +466,144 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> loadSecurity() async {
     final savedUtg = (await ApiService.getUTG() ?? "").trim();
-    final adminFlag = await ApiService.isAdmin();
 
-    final utgAdminAccess =
-        savedUtg.toUpperCase() == "4848C835-2A09-4A80-A7E2-383C95926C54";
+    debugPrint("========================================");
+    debugPrint("HOME SECURITY");
+    debugPrint("LOCAL UTG : [$savedUtg]");
+    debugPrint("========================================");
 
-    final hasAdminAccess = adminFlag || utgAdminAccess;
+    final permissionResult = await _loadAppPermissions();
 
-    print("========================================");
-    print("HOME SECURITY");
-    print("USER UTG    : [$savedUtg]");
-    print("IS ADMIN    : $adminFlag");
-    print("UTG ADMIN   : $utgAdminAccess");
-    print("FINAL ADMIN : $hasAdminAccess");
-    print("========================================");
+    final bool backendIsAdmin = permissionResult["isAdmin"] == true;
+
+    final Set<String> permissions = Set<String>.from(
+      permissionResult["screens"] ?? <String>{},
+    );
 
     if (!mounted) return;
 
     setState(() {
       utg = savedUtg;
-      _isAdmin = hasAdminAccess;
+
+      // IMPORTANT:
+      // Backend is now the authority.
+      _isAdmin = backendIsAdmin;
+
+      _allowedScreenKeys
+        ..clear()
+        ..addAll(permissions);
+
+      _permissionsLoaded = true;
       isLoading = false;
     });
+
+    debugPrint("========================================");
+    debugPrint("FINAL HOME SECURITY");
+    debugPrint("LOCAL UTG        : [$utg]");
+    debugPrint("BACKEND IS ADMIN : $_isAdmin");
+    debugPrint("SCREEN COUNT     : ${_allowedScreenKeys.length}");
+    debugPrint("SCREEN KEYS      : $_allowedScreenKeys");
+    debugPrint("========================================");
+  }
+
+  /// Loads the ScreenKeys assigned to the current user's group.
+  ///
+  /// This intentionally uses the existing ApiService base URL and token,
+  /// so HomeScreen does not need another authentication implementation.
+  Future<Map<String, dynamic>> _loadAppPermissions() async {
+    try {
+      final token = await ApiService.getToken();
+
+      if (token == null || token.trim().isEmpty) {
+        debugPrint("APP PERMISSIONS: No token");
+
+        return {"isAdmin": false, "screens": <String>{}};
+      }
+
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/api/app-permissions'),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      debugPrint("APP PERMISSIONS RESPONSE: ${response.statusCode}");
+
+      debugPrint("APP PERMISSIONS BODY: ${response.body}");
+
+      if (response.statusCode != 200) {
+        return {"isAdmin": false, "screens": <String>{}};
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        return {"isAdmin": false, "screens": <String>{}};
+      }
+
+      if (decoded["success"] != true) {
+        return {"isAdmin": false, "screens": <String>{}};
+      }
+
+      final bool backendIsAdmin = decoded["isAdmin"] == true;
+
+      final rawScreens = decoded["screens"];
+
+      final Set<String> permissions = <String>{};
+
+      if (rawScreens is List) {
+        for (final item in rawScreens) {
+          if (item is String) {
+            final key = item.trim();
+
+            if (key.isNotEmpty) {
+              permissions.add(_normalizePermissionKey(key));
+            }
+          }
+
+          if (item is Map) {
+            final key = item["ScreenKey"]?.toString().trim() ?? "";
+
+            if (key.isNotEmpty) {
+              permissions.add(_normalizePermissionKey(key));
+            }
+          }
+        }
+      }
+
+      debugPrint("BACKEND IS ADMIN : $backendIsAdmin");
+
+      debugPrint("ALLOWED SCREEN KEYS : $permissions");
+
+      debugPrint("BACKEND USER       : ${decoded["userId"]}");
+
+      debugPrint("BACKEND GROUP      : ${decoded["groupId"]}");
+
+      debugPrint("BACKEND DATABASE   : ${decoded["databaseName"]}");
+
+      return {"isAdmin": backendIsAdmin, "screens": permissions};
+    } catch (e, stackTrace) {
+      debugPrint("APP PERMISSIONS EXCEPTION: $e");
+
+      debugPrint("$stackTrace");
+
+      return {"isAdmin": false, "screens": <String>{}};
+    }
+  }
+
+  String _normalizePermissionKey(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '');
+  }
+
+  bool _hasScreenPermission(String screenKey) {
+    // Backend admin flag is authoritative.
+    if (_isAdmin) return true;
+
+    // Fail closed until permissions have been loaded.
+    if (!_permissionsLoaded) return false;
+
+    return _allowedScreenKeys.contains(_normalizePermissionKey(screenKey));
   }
 
   Future<void> generateFCMToken() async {
@@ -1366,7 +1501,7 @@ class _HomeScreenState extends State<HomeScreen>
 
                       // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
                       // Admin: Challan + Tasks (assign & view all)
-                      if (_isAdmin && !isLoading)
+                      if (_isAdmin && !isLoading && _permissionsLoaded)
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -1479,6 +1614,30 @@ class _HomeScreenState extends State<HomeScreen>
                               },
                             ),
                             _dashCard(
+                              cardId: 'accCancelApprove',
+                              icon: Icons.cancel_presentation_rounded,
+                              label: "Acc. Cancellation Approval",
+                              subtitle: "Accessories cancellation requests",
+                              gradient: const [
+                                Color(0xFF7B1FA2),
+                                Color(0xFF9C27B0),
+                                Color(0xFFBA68C8),
+                              ],
+                              accentColor: Colors.purpleAccent,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    settings: const RouteSettings(
+                                      name: 'AccCancelApproveScreen',
+                                    ),
+                                    builder: (_) =>
+                                        const AccCancelApproveScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                            _dashCard(
                               cardId: 'assignTask',
                               icon: Icons.assignment_ind_rounded,
                               label: "Assign Task",
@@ -1549,84 +1708,207 @@ class _HomeScreenState extends State<HomeScreen>
                           ],
                         ),
 
-                      // Assign Task card — non-admin only
-                      if (!_isAdmin && !isLoading)
+                      // ────────────────────────────────────────────────
+                      // Permission-controlled cards for non-admin users using AppScreens.ScreenKey.
+                      //
+                      // The permission page controls these cards using
+                      // AppScreenPermissions.GroupIDs.
+                      // ────────────────────────────────────────────────
+                      if (!_isAdmin && !isLoading && _permissionsLoaded)
                         Column(
                           children: [
-                            // Vehicle Allocation — view only for non-admin
-                            _dashCard(
-                              cardId: 'vehicleAllocationNonAdmin',
-                              icon: Icons.car_rental_rounded,
-                              label: "Vehicle Allocation",
-                              subtitle: "View vehicle allocations",
-                              gradient: const [
-                                Color(0xFF1A237E),
-                                Color(0xFF283593),
-                                Color(0xFF3F51B5),
-                              ],
-                              accentColor: Colors.indigoAccent,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'VehicleAllocationScreen',
+                            if (_hasScreenPermission("vehicleAllocation"))
+                              _dashCard(
+                                cardId: 'vehicleAllocationNonAdmin',
+                                icon: Icons.car_rental_rounded,
+                                label: "Vehicle Allocation",
+                                subtitle: "View vehicle allocations",
+                                gradient: const [
+                                  Color(0xFF1A237E),
+                                  Color(0xFF283593),
+                                  Color(0xFF3F51B5),
+                                ],
+                                accentColor: Colors.indigoAccent,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      settings: const RouteSettings(
+                                        name: 'VehicleAllocationScreen',
+                                      ),
+                                      builder: (_) =>
+                                          const VehicleAllocationScreen(),
                                     ),
-                                    builder: (_) =>
-                                        const VehicleAllocationScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 24),
+                                  );
+                                },
+                              ),
 
-                            // Booking Request — available for non-admin also
-                            _dashCard(
-                              cardId: 'bookingRequestFormNonAdmin',
-                              icon: Icons.app_registration_rounded,
-                              label: "Booking Request Form",
-                              subtitle: "New booking request",
-                              gradient: const [
-                                Color(0xFF0D47A1),
-                                Color(0xFF1565C0),
-                                Color(0xFF1E88E5),
-                              ],
-                              accentColor: const Color(0xFF90CAF9),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'BookingScreenRequestGrid',
+                            if (_hasScreenPermission("vehicleAllocation") &&
+                                _hasScreenPermission("bookingRequestForm"))
+                              const SizedBox(height: 24),
+
+                            if (_hasScreenPermission("bookingRequestForm"))
+                              _dashCard(
+                                cardId: 'bookingRequestFormNonAdmin',
+                                icon: Icons.app_registration_rounded,
+                                label: "Booking Request Form",
+                                subtitle: "New booking request",
+                                gradient: const [
+                                  Color(0xFF0D47A1),
+                                  Color(0xFF1565C0),
+                                  Color(0xFF1E88E5),
+                                ],
+                                accentColor: const Color(0xFF90CAF9),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      settings: const RouteSettings(
+                                        name: 'BookingScreenRequestGrid',
+                                      ),
+                                      builder: (_) =>
+                                          const BookingScreenRequestGrid(),
                                     ),
-                                    builder: (_) =>
-                                        const BookingScreenRequestGrid(),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            // Assigned Task card
-                            _dashCard(
-                              cardId: 'assignedTaskNonAdmin',
-                              icon: Icons.assignment_ind_rounded,
-                              label: "Assigned task",
-                              subtitle: "Assigned Task",
-                              gradient: const [
-                                Color(0xFF4A148C),
-                                Color(0xFF6A1B9A),
-                                Color(0xFF8E24AA),
-                              ],
-                              accentColor: Colors.purpleAccent,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const GlobalTaskScreen(),
-                                  ),
-                                );
-                              },
-                            ),
+                                  );
+                                },
+                              ),
+
+                            if (_hasScreenPermission("bookingRequestForm") &&
+                                _hasScreenPermission("accCancelApprove"))
+                              const SizedBox(height: 24),
+
+                            if (_hasScreenPermission("accCancelApprove"))
+                              _dashCard(
+                                cardId: 'accCancelApproveNonAdmin',
+                                icon: Icons.cancel_presentation_rounded,
+                                label: "Acc. Cancellation Approval",
+                                subtitle: "Accessories cancellation requests",
+                                gradient: const [
+                                  Color(0xFF7B1FA2),
+                                  Color(0xFF9C27B0),
+                                  Color(0xFFBA68C8),
+                                ],
+                                accentColor: Colors.purpleAccent,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      settings: const RouteSettings(
+                                        name: 'AccCancelApproveScreen',
+                                      ),
+                                      builder: (_) =>
+                                          const AccCancelApproveScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                            if (_hasScreenPermission("accCancelApprove") &&
+                                _hasScreenPermission("assignTask"))
+                              const SizedBox(height: 24),
+
+                            if (_hasScreenPermission("assignTask"))
+                              _dashCard(
+                                cardId: 'assignedTaskNonAdmin',
+                                icon: Icons.assignment_ind_rounded,
+                                label: "Assigned task",
+                                subtitle: "Assigned Task",
+                                gradient: const [
+                                  Color(0xFF4A148C),
+                                  Color(0xFF6A1B9A),
+                                  Color(0xFF8E24AA),
+                                ],
+                                accentColor: Colors.purpleAccent,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const GlobalTaskScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                            // Receipt / Challan / Task Dashboard can also be
+                            // assigned to a normal group from the permission
+                            // page. They are rendered here when granted.
+                            if (_hasScreenPermission("combinedReceipt")) ...[
+                              if (_hasScreenPermission("assignTask"))
+                                const SizedBox(height: 24),
+                              _dashCard(
+                                cardId: 'combinedReceiptNonAdmin',
+                                icon: Icons.receipt_long_rounded,
+                                label: "Receipt",
+                                subtitle: "View receipt requests and receipts",
+                                gradient: const [
+                                  Color(0xFF1565C0),
+                                  Color(0xFF1976D2),
+                                  Color(0xFF42A5F5),
+                                ],
+                                accentColor: Colors.lightBlueAccent,
+                                badgeCount: _pendingReceiptRequestCount,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CombinedReceiptScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+
+                            if (_hasScreenPermission("challan")) ...[
+                              const SizedBox(height: 24),
+                              _dashCard(
+                                cardId: 'challanNonAdmin',
+                                icon: Icons.receipt_long_rounded,
+                                label: "Challan",
+                                subtitle: "View & manage challans",
+                                gradient: const [
+                                  Color(0xFF0A2E5C),
+                                  Color(0xFF3B2A96),
+                                  Color(0xFF6A4BD8),
+                                ],
+                                accentColor: AppColors.secondary,
+                                badgeCount: _pendingChallanCount,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ChallanScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+
+                            if (_hasScreenPermission("taskDashboard")) ...[
+                              const SizedBox(height: 24),
+                              _dashCard(
+                                cardId: 'taskDashboardNonAdmin',
+                                icon: Icons.task_alt,
+                                label: "Task Dashboard Screen",
+                                subtitle: "View assigned tasks",
+                                gradient: const [
+                                  Color(0xFF0D47A1),
+                                  Color(0xFF1565C0),
+                                  Color(0xFF1E88E5),
+                                ],
+                                accentColor: Colors.lightBlueAccent,
+                                badgeCount: _pendingTaskCount,
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const TaskDashboardScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                           ],
                         ),
                     ],

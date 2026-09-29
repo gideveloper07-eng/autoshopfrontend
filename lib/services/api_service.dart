@@ -4091,6 +4091,353 @@ class ApiService {
       return [];
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — SLIP HEADER
+  // GET /api/booking/acc-cancel-slip/:unqid
+  // Returns the header record for one requisition slip (SP what='Edit').
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<Map<String, dynamic>?> getAccCancelSlipHeader(
+    String unqid,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/booking/acc-cancel-slip/${Uri.encodeComponent(unqid)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("ACC CANCEL SLIP HEADER STATUS: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] != null) {
+          return Map<String, dynamic>.from(
+            body['data'] as Map<String, dynamic>,
+          );
+        }
+      }
+
+      print("ACC CANCEL SLIP HEADER HTTP ${res.statusCode}: ${res.body}");
+      return null;
+    } catch (e) {
+      print("ACC CANCEL SLIP HEADER ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — CHILD ACCESSORY DETAILS
+  // GET /api/booking/acc-cancel-details/:unqid
+  // Returns cancelled-but-not-yet-approved rows from rh_sp_43_c.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getAccCancelDetails(
+    String unqid,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/booking/acc-cancel-details/${Uri.encodeComponent(unqid)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("ACC CANCEL DETAILS STATUS: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      print("ACC CANCEL DETAILS HTTP ${res.statusCode}: ${res.body}");
+      return [];
+    } catch (e) {
+      print("ACC CANCEL DETAILS ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — DOCKET GRID
+  // GET /api/booking/acc-cancel-docket/:custUnq
+  // Returns docket/package rows for the customer (SP what='Docket_details').
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getAccCancelDocket(
+    String custUnq,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/booking/acc-cancel-docket/${Uri.encodeComponent(custUnq)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("ACC CANCEL DOCKET STATUS: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      print("ACC CANCEL DOCKET HTTP ${res.statusCode}: ${res.body}");
+      return [];
+    } catch (e) {
+      print("ACC CANCEL DOCKET ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACCESSORIES CANCELLATION APPROVAL GRID
+  // GET /api/booking/acc-cancel-approve-grid
+  // Returns requisition slips that have pending accessory cancellation
+  // approvals (sp_what = 'gridcancelapprove').
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<List<Map<String, dynamic>>> getAccCancelApproveGrid() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/booking/acc-cancel-approve-grid"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("ACC CANCEL APPROVE GRID STATUS: ${res.statusCode}");
+      print("ACC CANCEL APPROVE GRID RESPONSE: ${res.body}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+
+        if (body['success'] == true) {
+          return _toMapList(body['data']);
+        }
+      }
+
+      print("ACC CANCEL APPROVE GRID HTTP ${res.statusCode}: ${res.body}");
+
+      return [];
+    } catch (e) {
+      print("ACC CANCEL APPROVE GRID ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — ACCESSORIES TOTAL
+  // GET /api/booking/acc-cancel-acc-total/:unqid
+  // Returns the sum of MRP × Qty for ALL rh_sp_43_c rows for the slip,
+  // regardless of cancellation/approval status — used for the totals bar.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<double> getAccCancelAccTotal(String unqid) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/booking/acc-cancel-acc-total/${Uri.encodeComponent(unqid)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("ACC CANCEL ACC TOTAL STATUS: ${res.statusCode}");
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          final v = body['data']?['accessories_total'];
+          return (v is num)
+              ? v.toDouble()
+              : double.tryParse(v?.toString() ?? '') ?? 0;
+        }
+      }
+
+      print("ACC CANCEL ACC TOTAL HTTP ${res.statusCode}: ${res.body}");
+      return 0;
+    } catch (e) {
+      print("ACC CANCEL ACC TOTAL ERROR: $e");
+      return 0;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — APPROVE
+  // POST /api/booking/acc-cancel-approve/:childUnq
+  // Stamps sp_43_15 = GETDATE() on the child row and recalculates sp_46.
+  // :childUnq = sp_43_2 (primary key of rh_sp_43_c)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<void> approveAccCancel(String childUnq) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception("Authentication required. Please login again.");
+    }
+
+    final res = await http
+        .post(
+          Uri.parse(
+            "$baseUrl/api/booking/acc-cancel-approve/${Uri.encodeComponent(childUnq)}",
+          ),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    print("ACC CANCEL APPROVE STATUS: ${res.statusCode}");
+    print("ACC CANCEL APPROVE RESPONSE: ${res.body}");
+
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (body['success'] == true) return;
+      throw Exception(body['message'] ?? 'Approve failed');
+    }
+
+    // surface server-side error message when possible
+    try {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      throw Exception(body['message'] ?? 'Approve failed (${res.statusCode})');
+    } catch (_) {
+      throw Exception('Approve failed (${res.statusCode})');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // ACC CANCEL — REJECT
+  // POST /api/booking/acc-cancel-reject/:childUnq
+  // Body: { "reason": "<rejection reason text>" }
+  // Sets sp_43_18 = timestamp|reason, sp_43_19 = userid, sp_43_20 = ipadd.
+  // sp_43_7 (cancel request date) is intentionally left unchanged.
+  // :childUnq = sp_43_2 (primary key of rh_sp_43_c)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static Future<void> rejectAccCancel(String childUnq, String reason) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      throw Exception("Authentication required. Please login again.");
+    }
+
+    final res = await http
+        .post(
+          Uri.parse(
+            "$baseUrl/api/booking/acc-cancel-reject/${Uri.encodeComponent(childUnq)}",
+          ),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+          body: jsonEncode({"reason": reason}),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    print("ACC CANCEL REJECT STATUS: ${res.statusCode}");
+    print("ACC CANCEL REJECT RESPONSE: ${res.body}");
+
+    if (res.statusCode == 200) {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (body['success'] == true) return;
+      throw Exception(body['message'] ?? 'Reject failed');
+    }
+
+    try {
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      throw Exception(body['message'] ?? 'Reject failed (${res.statusCode})');
+    } catch (_) {
+      throw Exception('Reject failed (${res.statusCode})');
+    }
+  }
+
+  static Future<List<dynamic>> getAppPermissions() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return [];
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/app-permissions'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (data['success'] == true) {
+          return data['screens'] ?? [];
+        }
+      }
+
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
 }
 
 class SendMessageResponse {
