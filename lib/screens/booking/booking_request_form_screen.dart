@@ -520,14 +520,22 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
       builder: (ctx, child) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(ctx).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: _accent,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-            ),
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: _accent,
+                    onPrimary: Colors.white,
+                    surface: const Color(0xFF1E2A3A),
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: _accent,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
           ),
           child: child!,
         );
@@ -1385,12 +1393,24 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                               }).toList();
 
                               return SafeArea(
-                                child: Container(
+                                child: Builder(builder: (sheetThemeCtx) {
+                                  final isDarkSheet = Theme.of(sheetThemeCtx).brightness == Brightness.dark;
+                                  final sheetBg = isDarkSheet ? const Color(0xFF1E2535) : Colors.white;
+                                  final handleColor = isDarkSheet ? Colors.white24 : Colors.grey.shade400;
+                                  final searchFill = isDarkSheet ? Colors.white.withOpacity(0.08) : Colors.grey.shade50;
+                                  final hintColor = isDarkSheet ? Colors.white38 : Colors.grey.shade500;
+                                  final iconColor = isDarkSheet ? Colors.white54 : Colors.grey.shade600;
+                                  final resultsColor = isDarkSheet ? Colors.white54 : Colors.grey.shade700;
+                                  final dividerColor = isDarkSheet ? Colors.white12 : Colors.grey.shade200;
+                                  final itemTextColor = isDarkSheet ? Colors.white70 : Colors.grey.shade800;
+                                  final emptyIconColor = isDarkSheet ? Colors.white24 : Colors.grey.shade400;
+
+                                  return Container(
                                   height:
-                                      MediaQuery.of(context).size.height * 0.85,
+                                      MediaQuery.of(sheetThemeCtx).size.height * 0.85,
 
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: sheetBg,
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(28),
                                     ),
@@ -1412,7 +1432,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                         height: 5,
 
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade400,
+                                          color: handleColor,
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
@@ -1442,15 +1462,17 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
                                             Container(
                                               decoration: BoxDecoration(
-                                                color: Colors.grey.shade100,
+                                                color: isDarkSheet
+                                                    ? Colors.white.withOpacity(0.1)
+                                                    : Colors.grey.shade100,
                                                 shape: BoxShape.circle,
                                               ),
                                               child: IconButton(
                                                 onPressed: () =>
                                                     Navigator.pop(sheetContext),
-                                                icon: const Icon(
+                                                icon: Icon(
                                                   Icons.close,
-                                                  color: Colors.grey,
+                                                  color: isDarkSheet ? Colors.white70 : Colors.grey,
                                                 ),
                                                 iconSize: 20,
                                                 padding: const EdgeInsets.all(
@@ -1483,13 +1505,13 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                           decoration: InputDecoration(
                                             hintText: 'Search $label...',
                                             hintStyle: TextStyle(
-                                              color: Colors.grey.shade500,
+                                              color: hintColor,
                                               fontSize: 15,
                                             ),
 
                                             prefixIcon: Icon(
                                               Icons.search,
-                                              color: Colors.grey.shade600,
+                                              color: iconColor,
                                             ),
 
                                             suffixIcon:
@@ -1504,14 +1526,13 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
                                                     icon: Icon(
                                                       Icons.clear,
-                                                      color:
-                                                          Colors.grey.shade600,
+                                                      color: iconColor,
                                                     ),
                                                   ),
 
                                             filled: true,
 
-                                            fillColor: Colors.grey.shade50,
+                                            fillColor: searchFill,
 
                                             border: OutlineInputBorder(
                                               borderRadius:
@@ -1543,7 +1564,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                             '${filtered.length} result${filtered.length == 1 ? '' : 's'}',
 
                                             style: TextStyle(
-                                              color: Colors.grey.shade700,
+                                              color: resultsColor,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -1561,16 +1582,13 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                     Icon(
                                                       Icons.search_off,
                                                       size: 48,
-                                                      color:
-                                                          Colors.grey.shade400,
+                                                      color: emptyIconColor,
                                                     ),
                                                     const SizedBox(height: 12),
                                                     Text(
                                                       'No $label found',
                                                       style: TextStyle(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade600,
+                                                        color: resultsColor,
                                                         fontSize: 16,
                                                         fontWeight:
                                                             FontWeight.w500,
@@ -1580,9 +1598,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                     Text(
                                                       'Try a different search',
                                                       style: TextStyle(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade500,
+                                                        color: hintColor,
                                                         fontSize: 14,
                                                       ),
                                                     ),
@@ -1601,8 +1617,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                 separatorBuilder: (_, __) =>
                                                     Divider(
                                                       height: 1,
-                                                      color:
-                                                          Colors.grey.shade200,
+                                                      color: dividerColor,
                                                     ),
 
                                                 itemBuilder: (context, index) {
@@ -1650,9 +1665,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                                                   color:
                                                                       isSelected
                                                                       ? _primary
-                                                                      : Colors
-                                                                            .grey
-                                                                            .shade800,
+                                                                      : itemTextColor,
                                                                 ),
                                                               ),
                                                             ),
@@ -1685,7 +1698,8 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
                                       ),
                                     ],
                                   ),
-                                ),
+                                  ); // Container
+                                }), // Builder
                               );
                             },
                           );
@@ -1718,7 +1732,9 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
                           color: effectiveValue == null
                               ? Colors.grey.shade600
-                              : Colors.black87,
+                              : Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black87,
                         ),
                       ),
                     ),
@@ -1761,7 +1777,12 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
           items: items,
           onChanged: onChanged,
           validator: validator,
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          style: TextStyle(
+            fontSize: 14,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87,
+          ),
         ),
       ],
     );
@@ -1800,6 +1821,10 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
   // ─────────────────────────────────────────────────────────────────────────
 
   InputDecoration _inputDecoration({String? errorText}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? Colors.white.withOpacity(0.07) : Colors.white;
+    final borderColor = isDark ? Colors.white.withOpacity(0.2) : const Color(0xFFCCCCCC);
+
     return InputDecoration(
       isDense: true,
 
@@ -1807,12 +1832,12 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+        borderSide: BorderSide(color: borderColor),
       ),
 
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+        borderSide: BorderSide(color: borderColor),
       ),
 
       focusedBorder: OutlineInputBorder(
@@ -1832,7 +1857,7 @@ class _BookingRequestFormScreenState extends State<BookingRequestFormScreen> {
 
       filled: true,
 
-      fillColor: Colors.white,
+      fillColor: fillColor,
 
       errorText: errorText,
 

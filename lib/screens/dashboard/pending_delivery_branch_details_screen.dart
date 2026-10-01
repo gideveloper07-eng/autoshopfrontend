@@ -115,7 +115,7 @@ class _PendingDeliveryBranchDetailsScreenState
 
     // Cap card height so it looks consistent on all screen sizes (like iPhone SE)
     final screenHeight = MediaQuery.of(context).size.height;
-    final cardHeight = (screenHeight * 0.52).clamp(320.0, 480.0);
+    final cardHeight = (screenHeight * 0.62).clamp(380.0, 560.0);
 
     return Column(
       children: [
@@ -208,23 +208,42 @@ class _PendingDeliveryBranchDetailsScreenState
   }
 
   Widget _buildPageIndicator() {
+    // For large record sets show "X / Y" text instead of overflowing dots
+    if (_rows.length > 12) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          '${_currentPage + 1} / ${_rows.length}',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: _primary,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: List.generate(_rows.length, (i) {
-          final selected = i == _currentPage;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: selected ? 26 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: selected ? _primary : Colors.grey.shade400,
-              borderRadius: BorderRadius.circular(20),
-            ),
-          );
-        }),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(_rows.length, (i) {
+            final selected = i == _currentPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              width: selected ? 26 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: selected ? _primary : Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -236,30 +255,44 @@ class _PendingDeliveryBranchDetailsScreenState
         ? customerName[0].toUpperCase()
         : 'P';
 
+    // Avatar background colors cycling through a palette
+    const avatarColors = [
+      Color(0xFF1E3A5F),
+      Color(0xFF2E7D32),
+      Color(0xFF6A1B9A),
+      Color(0xFF00695C),
+      Color(0xFFBF360C),
+      Color(0xFF283593),
+    ];
+    final avatarColor = avatarColors[index % avatarColors.length];
+
+    // Date badge value
+    final dateVal = _val(row, 'expectedDeliveryDate') != '—'
+        ? _val(row, 'expectedDeliveryDate')
+        : _val(row, 'bookingDate') != '—'
+            ? _val(row, 'bookingDate')
+            : null;
+
+    final cardBg = isDark ? const Color(0xFF1E1E2E) : Colors.white;
+    final tileBg = isDark ? const Color(0xFF2A2A3E) : const Color(0xFFF5F5F5);
+    final labelColor = isDark ? Colors.white54 : Colors.grey[600]!;
+    final valueColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
+    final iconColor = isDark ? Colors.white70 : const Color(0xFF444466);
+
     return SizedBox(
       height: double.infinity,
       child: AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-      child: RgbBorderCard(
-        borderRadius: 28,
-        borderWidth: 2.0,
-        glow: true,
-        child: Container(
+        duration: const Duration(milliseconds: 300),
+        margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+        child: RgbBorderCard(
+          borderRadius: 28,
+          borderWidth: 2.0,
+          glow: true,
+          child: Container(
             clipBehavior: Clip.hardEdge,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(28),
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isDark
-                    ? [const Color(0xff222222), const Color(0xff111111)]
-                    : [
-                        const Color(0xFF4A148C),
-                        const Color(0xFF6A1B9A),
-                        const Color(0xFF1565C0),
-                      ],
-              ),
+              color: cardBg,
             ),
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
@@ -269,10 +302,11 @@ class _PendingDeliveryBranchDetailsScreenState
                 children: [
                   // ── Customer Header ──────────────────────────────
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: Colors.white.withOpacity(0.2),
+                        backgroundColor: avatarColor,
                         child: Text(
                           initial,
                           style: const TextStyle(
@@ -289,87 +323,129 @@ class _PendingDeliveryBranchDetailsScreenState
                           children: [
                             Text(
                               customerName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: valueColor,
                               ),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Record #${index + 1}',
-                              style: TextStyle(color: Colors.white.withOpacity(0.7)),
+                              'Sale #${index + 1}',
+                              style: TextStyle(
+                                color: labelColor,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      // Approved badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.3),
+                      // Date badge (replaces Approved badge)
+                      if (dateVal != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1E3A5F)
+                                : const Color(0xFFE3F2FD),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            dateVal,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.lightBlueAccent
+                                  : const Color(0xFF1565C0),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          'Approved',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
                   // ── Detail Tiles ─────────────────────────────────
-                  _infoTile(
-                    Icons.storefront_rounded,
-                    'Branch',
-                    _val(row, 'branch'),
-                  ),
                   _infoTile(
                     Icons.directions_car_rounded,
                     'Model',
                     _val(row, 'model'),
+                    tileBg,
+                    labelColor,
+                    valueColor,
+                    iconColor,
                   ),
                   _infoTile(
                     Icons.category_rounded,
                     'Variant',
                     _val(row, 'variant'),
+                    tileBg,
+                    labelColor,
+                    valueColor,
+                    iconColor,
                   ),
-                  _infoTile(Icons.palette_rounded, 'Color', _val(row, 'color')),
+                  _infoTile(
+                    Icons.palette_rounded,
+                    'Color',
+                    _val(row, 'color'),
+                    tileBg,
+                    labelColor,
+                    valueColor,
+                    iconColor,
+                  ),
+                  _infoTile(
+                    Icons.label_rounded,
+                    'Booking Type',
+                    _val(row, 'bookingType'),
+                    tileBg,
+                    labelColor,
+                    valueColor,
+                    iconColor,
+                  ),
+                  _infoTile(
+                    Icons.storefront_rounded,
+                    'Branch',
+                    _val(row, 'branch'),
+                    tileBg,
+                    labelColor,
+                    valueColor,
+                    iconColor,
+                  ),
 
                   const SizedBox(height: 12),
                 ],
               ),
             ),
+          ),
         ),
-      ),
       ),
     );
   }
 
-  Widget _infoTile(IconData icon, String title, String value) {
+  Widget _infoTile(
+    IconData icon,
+    String title,
+    String value,
+    Color tileBg,
+    Color labelColor,
+    Color valueColor,
+    Color iconColor,
+  ) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: Colors.white.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(14),
+          color: tileBg,
         ),
         child: Row(
           children: [
-            Icon(icon, color: Colors.white, size: 24),
+            Icon(icon, color: iconColor, size: 22),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -377,15 +453,15 @@ class _PendingDeliveryBranchDetailsScreenState
                 children: [
                   Text(
                     title,
-                    style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.65)),
+                    style: TextStyle(fontSize: 12, color: labelColor),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 3),
                   Text(
                     value,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: valueColor,
                     ),
                   ),
                 ],

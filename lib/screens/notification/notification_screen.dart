@@ -134,21 +134,40 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 itemCount: notifications.length,
                 itemBuilder: (context, index) {
                   final item = notifications[index];
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  final isRead = item["is_read"] == true || item["is_read"] == 1;
+
+                  final cardColor = isDark
+                      ? (isRead
+                          ? const Color(0xFF1E2535)
+                          : const Color(0xFF1A2A45))
+                      : (isRead ? Colors.white : Colors.blue.shade50);
+
+                  final borderColor = isDark
+                      ? Colors.blue.withOpacity(0.25)
+                      : Colors.blue.shade100;
+
+                  final isApproved = item["type"] == "CHALLAN_APPROVED";
+                  final avatarBg = isDark
+                      ? (isApproved
+                          ? Colors.green.withOpacity(0.2)
+                          : Colors.red.withOpacity(0.2))
+                      : (isApproved
+                          ? Colors.green.shade100
+                          : Colors.red.shade100);
+
                   return Container(
                     margin: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: item["is_read"] == true || item["is_read"] == 1
-                          ? Colors.white
-                          : Colors.blue.shade50,
+                      color: cardColor,
                       borderRadius: BorderRadius.circular(16),
-                      border:
-                          Border.all(color: Colors.blue.shade100, width: 1.2),
+                      border: Border.all(color: borderColor, width: 1.2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.08),
+                          color: Colors.blue.withOpacity(isDark ? 0.04 : 0.08),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
@@ -167,24 +186,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           loadNotifications();
                         },
                         leading: CircleAvatar(
-                          backgroundColor:
-                              item["type"] == "CHALLAN_APPROVED"
-                              ? Colors.green.shade100
-                              : Colors.red.shade100,
+                          backgroundColor: avatarBg,
                           child: Icon(
-                            item["type"] == "CHALLAN_APPROVED"
-                                ? Icons.check
-                                : Icons.close,
-                            color: item["type"] == "CHALLAN_APPROVED"
-                                ? Colors.green
-                                : Colors.red,
+                            isApproved ? Icons.check : Icons.close,
+                            color: isApproved ? Colors.green : Colors.red,
                           ),
                         ),
                         title: Text(
                           item["title"] ?? "",
                           style: TextStyle(
-                            fontWeight: item["is_read"] == true ||
-                                    item["is_read"] == 1
+                            fontWeight: isRead
                                 ? FontWeight.normal
                                 : FontWeight.bold,
                           ),
@@ -200,11 +211,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                       .split("T")
                                       .first ??
                                   "",
-                              style: const TextStyle(fontSize: 11),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark ? Colors.white54 : null,
+                              ),
                             ),
                             const SizedBox(height: 4),
-                            if (item["is_read"] != true &&
-                                item["is_read"] != 1)
+                            if (!isRead)
                               Container(
                                 width: 8,
                                 height: 8,

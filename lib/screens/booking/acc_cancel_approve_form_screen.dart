@@ -625,6 +625,7 @@ class _AccCancelApproveFormScreenState
   }
 
   Widget _field(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -632,7 +633,7 @@ class _AccCancelApproveFormScreenState
           label,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade600,
+            color: isDark ? Colors.white60 : Colors.grey.shade600,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -641,13 +642,19 @@ class _AccCancelApproveFormScreenState
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: isDark ? Colors.white.withOpacity(0.07) : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(
+              color: isDark ? Colors.white.withOpacity(0.15) : Colors.grey.shade300,
+            ),
           ),
           child: Text(
             value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : null,
+            ),
           ),
         ),
       ],
@@ -782,6 +789,11 @@ class _AccCancelApproveFormScreenState
     bool compact = false,
     bool numeric = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? Colors.white.withOpacity(0.07) : Colors.grey.shade100;
+    final borderColor = isDark ? Colors.white.withOpacity(0.15) : Colors.grey.shade300;
+    final labelColor = isDark ? Colors.white60 : Colors.grey.shade600;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -789,7 +801,7 @@ class _AccCancelApproveFormScreenState
           label,
           style: TextStyle(
             fontSize: compact ? 10 : 11,
-            color: Colors.grey.shade600,
+            color: labelColor,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -800,7 +812,10 @@ class _AccCancelApproveFormScreenState
             controller: ctrl,
             readOnly: true,
             keyboardType: numeric ? TextInputType.number : TextInputType.text,
-            style: TextStyle(fontSize: compact ? 12 : 13),
+            style: TextStyle(
+              fontSize: compact ? 12 : 13,
+              color: isDark ? Colors.white : null,
+            ),
             decoration: InputDecoration(
               isDense: true,
               contentPadding: EdgeInsets.symmetric(
@@ -808,14 +823,14 @@ class _AccCancelApproveFormScreenState
                 vertical: compact ? 8 : 10,
               ),
               filled: true,
-              fillColor: Colors.grey.shade100,
+              fillColor: fillColor,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(7),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+                borderSide: BorderSide(color: borderColor),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(7),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+                borderSide: BorderSide(color: borderColor),
               ),
             ),
           ),
@@ -831,6 +846,8 @@ class _AccCancelApproveFormScreenState
 
   Widget _buildTotalsBar(double width) {
     final compact = width < 600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final barColor = isDark ? Colors.white.withOpacity(0.08) : Colors.grey.shade200;
     final accAmt = _accessoriesTotal;
     final disc = _discountTotal;
     final total = _grandTotal;
@@ -843,7 +860,7 @@ class _AccCancelApproveFormScreenState
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: barColor,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
@@ -869,7 +886,7 @@ class _AccCancelApproveFormScreenState
       width: double.infinity,
       height: 42,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: barColor,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -898,6 +915,14 @@ class _AccCancelApproveFormScreenState
     bool highlight = false,
     bool compact = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final labelColor = isDark ? Colors.white60 : Colors.grey.shade600;
+    final valueColor = highlight
+        ? _primary
+        : isDark
+            ? Colors.white
+            : Colors.black87;
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 10, vertical: 4),
       child: Column(
@@ -909,7 +934,7 @@ class _AccCancelApproveFormScreenState
               label,
               style: TextStyle(
                 fontSize: compact ? 9 : 10,
-                color: Colors.grey.shade600,
+                color: labelColor,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -918,7 +943,7 @@ class _AccCancelApproveFormScreenState
             style: TextStyle(
               fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w700,
-              color: highlight ? _primary : Colors.black87,
+              color: valueColor,
             ),
           ),
         ],
@@ -926,11 +951,14 @@ class _AccCancelApproveFormScreenState
     );
   }
 
-  Widget _totalDivider() => Container(
-    width: 1,
-    color: Colors.grey.shade400,
-    margin: const EdgeInsets.symmetric(vertical: 6),
-  );
+  Widget _totalDivider() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: 1,
+      color: isDark ? Colors.white24 : Colors.grey.shade400,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+    );
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Docket table  — Category · Qty · MRP · Status
@@ -1214,7 +1242,12 @@ class _AccCancelApproveFormScreenState
             ],
           ),
 
-          Divider(height: compact ? 16 : 18, color: Colors.grey.shade200),
+          Divider(
+            height: compact ? 16 : 18,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white12
+                : Colors.grey.shade200,
+          ),
 
           _infoRow(
             Icons.numbers_rounded,
@@ -1268,7 +1301,6 @@ class _AccCancelApproveFormScreenState
 
     final approveBtn = SizedBox(
       height: btnH,
-      width: fullWidth ? double.infinity : null,
       child: ElevatedButton(
         onPressed: (approved || processing) ? null : () => _approve(row),
         style: ElevatedButton.styleFrom(
@@ -1299,7 +1331,6 @@ class _AccCancelApproveFormScreenState
 
     final rejectBtn = SizedBox(
       height: btnH,
-      width: fullWidth ? double.infinity : null,
       child: ElevatedButton(
         onPressed: (approved || processing) ? null : () => _reject(row),
         style: ElevatedButton.styleFrom(
@@ -1320,8 +1351,12 @@ class _AccCancelApproveFormScreenState
     );
 
     if (fullWidth) {
-      return Column(
-        children: [approveBtn, const SizedBox(height: 6), rejectBtn],
+      return Row(
+        children: [
+          Expanded(child: approveBtn),
+          const SizedBox(width: 8),
+          Expanded(child: rejectBtn),
+        ],
       );
     }
 

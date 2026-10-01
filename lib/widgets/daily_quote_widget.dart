@@ -219,8 +219,6 @@ class _DailyQuoteWidgetState extends State<DailyQuoteWidget>
                       children: [
                         Text(
                           '"${quote.text}"',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 12,
                             fontStyle: FontStyle.italic,

@@ -135,6 +135,10 @@ class _HomeScreenState extends State<HomeScreen>
   // Daily quote state — hidden until dismiss check completes
   bool _showDailyQuote = false;
 
+  // ── Draggable AI bubble ──────────────────────────────────────────────────
+  Offset? _aiBubbleOffset;
+  bool _aiDragging = false;
+
   // ── Dynamic RGB-border highlight ────────────────────────────────────────
   // Whichever card id sits here gets the stronger glyph border. Nothing is
   // hardcoded — long-press any card to move the highlight to it, or set
@@ -940,8 +944,10 @@ class _HomeScreenState extends State<HomeScreen>
             return const SizedBox.shrink();
           }
 
-          return Column(
+          return Stack(
             children: [
+              Column(
+                children: [
               // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
               Container(
                 decoration: BoxDecoration(
@@ -1916,36 +1922,50 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ],
-          );
+          ), // end Column
+
+              // ── Draggable AI bubble ──────────────────────────────────
+              Builder(builder: (ctx) {
+                final sz = MediaQuery.sizeOf(ctx);
+                const bubbleSize = 72.0;
+                final defaultOffset = Offset(
+                  18, // left side — away from chat bubble (bottom-right)
+                  sz.height - bubbleSize - 100,
+                );
+                final pos = _aiBubbleOffset ?? defaultOffset;
+                return Positioned(
+                  left: pos.dx,
+                  top: pos.dy,
+                  child: GestureDetector(
+                    onPanStart: (_) => setState(() => _aiDragging = true),
+                    onPanUpdate: (d) {
+                      setState(() {
+                        final next = (_aiBubbleOffset ?? defaultOffset) + d.delta;
+                        _aiBubbleOffset = Offset(
+                          next.dx.clamp(8.0, sz.width - bubbleSize - 8),
+                          next.dy.clamp(8.0, sz.height - bubbleSize - 8),
+                        );
+                      });
+                    },
+                    onPanEnd: (_) => setState(() => _aiDragging = false),
+                    onTap: _aiDragging
+                        ? null
+                        : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const AIChatScreen()),
+                            ),
+                    child: AnimatedScale(
+                      scale: _aiDragging ? 1.12 : 1.0,
+                      duration: const Duration(milliseconds: 150),
+                      child: _AiGlobeButton(onTap: () {}), // onTap handled above
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ); // end Stack
         },
-      ),
-      floatingActionButtonLocation: MediaQuery.of(context).size.width >= 600
-          ? FloatingActionButtonLocation.startFloat
-          : FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).size.width >= 600 ? 24 : 0,
-        ),
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            floatingActionButtonTheme: const FloatingActionButtonThemeData(
-              elevation: 0,
-              highlightElevation: 0,
-              backgroundColor: Colors.transparent,
-              splashColor: Colors.transparent,
-              focusColor: Colors.transparent,
-              hoverColor: Colors.transparent,
-            ),
-          ),
-          child: _AiGlobeButton(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AIChatScreen()),
-              );
-            },
-          ),
-        ),
       ),
     );
   }

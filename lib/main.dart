@@ -781,7 +781,7 @@ class AppRouteObserver extends NavigatorObserver with ChangeNotifier {
   }
 }
 
-class ChatBubbleOverlay extends StatelessWidget {
+class ChatBubbleOverlay extends StatefulWidget {
   final AppRouteObserver routeObserver;
   final Widget child;
 
@@ -791,8 +791,17 @@ class ChatBubbleOverlay extends StatelessWidget {
     required this.child,
   });
 
+  @override
+  State<ChatBubbleOverlay> createState() => _ChatBubbleOverlayState();
+}
+
+class _ChatBubbleOverlayState extends State<ChatBubbleOverlay> {
+  // Bubble position — null means "use default" (bottom-right corner)
+  Offset? _bubbleOffset;
+  bool _isDragging = false;
+
   void _openChat() {
-    if (routeObserver.currentRouteName == 'ChatListScreen') return;
+    if (widget.routeObserver.currentRouteName == 'ChatListScreen') return;
 
     navigatorKey.currentState?.push(
       MaterialPageRoute(
@@ -802,43 +811,60 @@ class ChatBubbleOverlay extends StatelessWidget {
     );
   }
 
+  /// Clamp bubble so it never goes off-screen, accounting for bubble size.
+  Offset _clamp(Offset pos, Size screenSize, double bubbleSize) {
+    final padding = 8.0;
+    return Offset(
+      pos.dx.clamp(padding, screenSize.width - bubbleSize - padding),
+      pos.dy.clamp(padding, screenSize.height - bubbleSize - padding),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        child,
+        widget.child,
         AnimatedBuilder(
-          animation: routeObserver,
+          animation: widget.routeObserver,
           builder: (context, _) {
-            if (!routeObserver.showChatBubble) {
+            if (!widget.routeObserver.showChatBubble) {
               return const SizedBox.shrink();
             }
 
-            final isCompact = MediaQuery.sizeOf(context).width < 600;
-            final isChallanDetails =
-                routeObserver.currentRouteName == 'ChallanEditDetailsScreen';
-            final isHomeScreen = routeObserver.currentRouteName == 'HomeScreen';
+            final size = MediaQuery.sizeOf(context);
+            final isCompact = size.width < 600;
             final bubbleSize = isCompact ? 56.0 : 64.0;
-            final bottomOffset = isChallanDetails
-                ? 92.0
-                : isHomeScreen && isCompact
-                ? 90.0
-                : 18.0;
+
+            // Default position (bottom-right, above nav bar)
+            final defaultOffset = Offset(
+              size.width - bubbleSize - 18,
+              size.height - bubbleSize - (isCompact ? 90.0 : 18.0),
+            );
+
+            final currentOffset = _bubbleOffset ?? defaultOffset;
 
             return Positioned(
-              left: isCompact && !isChallanDetails ? 18 : null,
-              right: isCompact && !isChallanDetails ? null : 18,
-              bottom: bottomOffset,
-              child: SafeArea(
-                minimum: const EdgeInsets.only(bottom: 6),
-                child: Material(
-                  color: Colors.transparent,
-                  child: Semantics(
-                    button: true,
-                    label: 'Open chat',
-                    child: InkWell(
-                      onTap: _openChat,
-                      customBorder: const CircleBorder(),
+              left: currentOffset.dx,
+              top: currentOffset.dy,
+              child: GestureDetector(
+                onPanStart: (_) => setState(() => _isDragging = true),
+                onPanUpdate: (details) {
+                  setState(() {
+                    final next = (_bubbleOffset ?? defaultOffset) + details.delta;
+                    _bubbleOffset = _clamp(next, size, bubbleSize);
+                  });
+                },
+                onPanEnd: (_) => setState(() => _isDragging = false),
+                onTap: _isDragging ? null : _openChat,
+                child: AnimatedScale(
+                  scale: _isDragging ? 1.12 : 1.0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Semantics(
+                      button: true,
+                      label: 'Open chat',
                       child: Container(
                         width: bubbleSize,
                         height: bubbleSize,
@@ -851,8 +877,10 @@ class ChatBubbleOverlay extends StatelessWidget {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF0B63FF).withOpacity(0.35),
-                              blurRadius: 18,
+                              color: const Color(0xFF0B63FF).withOpacity(
+                                _isDragging ? 0.55 : 0.35,
+                              ),
+                              blurRadius: _isDragging ? 28 : 18,
                               offset: const Offset(0, 8),
                             ),
                           ],
