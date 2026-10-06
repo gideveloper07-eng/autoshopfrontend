@@ -113,24 +113,22 @@ class _PendingDeliveryBranchDetailsScreenState
     if (_error != null) return _buildError();
     if (_rows.isEmpty) return _buildEmpty();
 
-    // Cap card height so it looks consistent on all screen sizes (like iPhone SE)
-    final screenHeight = MediaQuery.of(context).size.height;
-    final cardHeight = (screenHeight * 0.62).clamp(380.0, 560.0);
-
     return Column(
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
-        SizedBox(
-          height: cardHeight,
+        Expanded(
           child: PageView.builder(
             controller: _pageController,
             itemCount: _rows.length,
             physics: const BouncingScrollPhysics(),
             onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (ctx, i) => Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              child: _buildCard(_rows[i], i),
+            itemBuilder: (ctx, i) => SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: _buildCard(_rows[i], i),
+              ),
             ),
           ),
         ),
@@ -279,27 +277,24 @@ class _PendingDeliveryBranchDetailsScreenState
     final valueColor = isDark ? Colors.white : const Color(0xFF1A1A2E);
     final iconColor = isDark ? Colors.white70 : const Color(0xFF444466);
 
-    return SizedBox(
-      height: double.infinity,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
-        child: RgbBorderCard(
-          borderRadius: 28,
-          borderWidth: 2.0,
-          glow: true,
-          child: Container(
-            clipBehavior: Clip.hardEdge,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(28),
-              color: cardBg,
-            ),
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      margin: const EdgeInsets.fromLTRB(12, 6, 12, 20),
+      child: RgbBorderCard(
+        borderRadius: 28,
+        borderWidth: 2.0,
+        glow: true,
+        child: Container(
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(28),
+            color: cardBg,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                   // ── Customer Header ──────────────────────────────
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -422,8 +417,7 @@ class _PendingDeliveryBranchDetailsScreenState
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 
   Widget _infoTile(

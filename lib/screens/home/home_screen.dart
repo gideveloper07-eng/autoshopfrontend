@@ -1,49 +1,52 @@
 ﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
-import '../ai/ai_chat_screen.dart';
+
+import 'package:animated_flip_counter/animated_flip_counter.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:animated_flip_counter/animated_flip_counter.dart';
+
+import '../../l10n/app_localizations.dart';
+import '../../main.dart' show pendingTaskCompletionCount;
+import '../../providers/theme_provider.dart';
+import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
 import '../../services/cache_service.dart';
+import '../../services/festival_service.dart';
+import '../../services/quote_service.dart';
 import '../../services/recurring_task_scheduler.dart';
-import '../../l10n/app_localizations.dart';
-import '../../providers/theme_provider.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/daily_quote_widget.dart';
+import '../../widgets/dashboard/dashboard_comparison_card.dart';
+import '../../widgets/dashboard/morning_briefing_card.dart';
+import '../../widgets/dashboard/performance_trends_section.dart';
+import '../../widgets/festival_banner.dart';
+import '../ai/ai_chat_screen.dart';
 //import '../../services/notification_service.dart';
 import '../auth/login_screen.dart';
+import '../booking/acc_cancel_approve_screen.dart';
+import '../booking/booking_screen_request_grid.dart';
+import '../challan/challan_grid_screen.dart';
 import '../challan/challan_screen.dart';
 import '../chat/chat_list_screen.dart';
-import '../notification/notification_screen.dart';
-import '../settings/settings_screen.dart';
-import '../settings/dealership_selector_screen.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import '../../theme/app_colors.dart';
-import '../../services/activity_service.dart';
-import 'package:intl/intl.dart';
-import '../chat/task_dashboard_screen.dart';
 import '../chat/chat_requests_screen.dart';
+import '../chat/my_contact_requests_screen.dart';
+import '../chat/task_dashboard_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../dashboard/pending_delivery_branchwise_screen.dart';
 import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
-import '../../widgets/dashboard/dashboard_comparison_card.dart';
-import '../../widgets/dashboard/performance_trends_section.dart';
-import '../../widgets/festival_banner.dart';
-import '../../widgets/daily_quote_widget.dart';
-import '../../services/quote_service.dart';
-import '../chat/my_contact_requests_screen.dart';
-import 'global_task_screen.dart';
-import '../../services/festival_service.dart';
-import '../../main.dart' show pendingTaskCompletionCount;
-import '../../widgets/dashboard/morning_briefing_card.dart';
-import 'rgb_border_card.dart';
+import '../notification/notification_screen.dart';
 import '../receipt/combined_receipt_screen.dart';
+import '../settings/dealership_selector_screen.dart';
+import '../settings/settings_screen.dart';
 import '../vehicle_allocation/vehicle_allocation_screen.dart';
-import '../booking/booking_screen_request_grid.dart';
-import '../booking/acc_cancel_approve_screen.dart';
+import 'global_task_screen.dart';
+import 'rgb_border_card.dart';
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -948,1021 +951,1079 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               Column(
                 children: [
-              // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Container(
-                decoration: BoxDecoration(
-                  gradient: AppColors.vibrantGradientAdaptive(context),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.shadowPrimary,
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                  // â”€â”€ HEADER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: AppColors.vibrantGradientAdaptive(context),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.shadowPrimary,
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // â”€â”€ Single Row: car icon | app name | notification â”€â”€â”€â”€â”€â”€
-                        Row(
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Car icon â€” opens account dropdown
-                            GestureDetector(
-                              onTap: _showAccountSheet,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(9),
-                                ),
-                                child: const Icon(
-                                  Icons.directions_car_rounded,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            // App name + company subtitle
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Text(
-                                    "MyAutoShop",
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
+                            // â”€â”€ Single Row: car icon | app name | notification â”€â”€â”€â”€â”€â”€
+                            Row(
+                              children: [
+                                // Car icon â€” opens account dropdown
+                                GestureDetector(
+                                  onTap: _showAccountSheet,
+                                  child: Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                    child: const Icon(
+                                      Icons.directions_car_rounded,
                                       color: Colors.white,
-                                      letterSpacing: 0.5,
-                                      height: 1.1,
+                                      size: 20,
                                     ),
                                   ),
-                                  if (_currentCompanyName.isNotEmpty)
-                                    Text(
-                                      _currentCompanyName,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.white.withOpacity(0.75),
-                                        fontWeight: FontWeight.w500,
-                                        height: 1.2,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            // Switch pill (if multiple companies)
-                            if (_accessibleDatabases.length > 1) ...[
-                              GestureDetector(
-                                onTap: _switchCompany,
-                                child: Container(
-                                  margin: const EdgeInsets.only(right: 8),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 5,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.4),
-                                    ),
-                                  ),
-                                  child: Row(
+                                ),
+                                const SizedBox(width: 10),
+                                // App name + company subtitle
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(
-                                        Icons.swap_horiz_rounded,
-                                        color: Colors.white,
-                                        size: 13,
-                                      ),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        "Switch",
+                                    children: [
+                                      const Text(
+                                        "MyAutoShop",
+                                        overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
                                           color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                          height: 1.1,
                                         ),
                                       ),
+                                      if (_currentCompanyName.isNotEmpty)
+                                        Text(
+                                          _currentCompanyName,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white.withOpacity(
+                                              0.75,
+                                            ),
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.2,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
-                              ),
-                            ],
-                            GestureDetector(
-                              onTap: () async {
-                                await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const MyContactRequestsScreen(),
-                                  ),
-                                );
-                              },
-                              child: _headerIconBtn(
-                                Icons.people_alt_outlined,
-                                margin: const EdgeInsets.only(right: 8),
-                              ),
-                            ),
-                            // Chat request icon (non-admin only)
-                            if (!_isAdmin)
-                              _ChatRequestIconButton(
-                                pendingCount: _pendingRequestCount,
-                                animation: _requestBlinkAnim,
-                                onTap: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ChatRequestsScreen(),
+                                // Switch pill (if multiple companies)
+                                if (_accessibleDatabases.length > 1) ...[
+                                  GestureDetector(
+                                    onTap: _switchCompany,
+                                    child: Container(
+                                      margin: const EdgeInsets.only(right: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.4),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: const [
+                                          Icon(
+                                            Icons.swap_horiz_rounded,
+                                            color: Colors.white,
+                                            size: 13,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            "Switch",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  );
-                                  _loadRequestInfo();
-                                },
-                              ),
-                            // Notification bell
-                            Stack(
-                              children: [
+                                  ),
+                                ],
                                 GestureDetector(
                                   onTap: () async {
-                                    if (kIsWeb && !_webPermissionRequested) {
-                                      _webPermissionRequested = true;
-                                      await requestNotificationPermission();
-                                    }
                                     await Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        settings: const RouteSettings(
-                                          name: 'NotificationScreen',
-                                        ),
                                         builder: (_) =>
-                                            const NotificationScreen(),
+                                            const MyContactRequestsScreen(),
                                       ),
                                     );
-                                    await loadUnreadCount();
                                   },
-                                  child: _headerIconBtn(Icons.notifications),
+                                  child: _headerIconBtn(
+                                    Icons.people_alt_outlined,
+                                    margin: const EdgeInsets.only(right: 8),
+                                  ),
                                 ),
-                                if (unreadCount > 0)
-                                  Positioned(
-                                    right: 4,
-                                    top: 2,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(3),
-                                      decoration: const BoxDecoration(
-                                        color: Colors.red,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      constraints: const BoxConstraints(
-                                        minWidth: 16,
-                                        minHeight: 16,
-                                      ),
-                                      child: Text(
-                                        unreadCount > 99
-                                            ? "99+"
-                                            : unreadCount.toString(),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.bold,
+                                // Chat request icon (non-admin only)
+                                if (!_isAdmin)
+                                  _ChatRequestIconButton(
+                                    pendingCount: _pendingRequestCount,
+                                    animation: _requestBlinkAnim,
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const ChatRequestsScreen(),
                                         ),
-                                        textAlign: TextAlign.center,
+                                      );
+                                      _loadRequestInfo();
+                                    },
+                                  ),
+                                // Notification bell
+                                Stack(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: () async {
+                                        if (kIsWeb &&
+                                            !_webPermissionRequested) {
+                                          _webPermissionRequested = true;
+                                          await requestNotificationPermission();
+                                        }
+                                        await Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            settings: const RouteSettings(
+                                              name: 'NotificationScreen',
+                                            ),
+                                            builder: (_) =>
+                                                const NotificationScreen(),
+                                          ),
+                                        );
+                                        await loadUnreadCount();
+                                      },
+                                      child: _headerIconBtn(
+                                        Icons.notifications,
                                       ),
                                     ),
-                                  ),
+                                    if (unreadCount > 0)
+                                      Positioned(
+                                        right: 4,
+                                        top: 2,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(3),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          constraints: const BoxConstraints(
+                                            minWidth: 16,
+                                            minHeight: 16,
+                                          ),
+                                          child: Text(
+                                            unreadCount > 99
+                                                ? "99+"
+                                                : unreadCount.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    24,
-                    16,
-                    MediaQuery.of(context).size.width >= 600 ? 140 : 100,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Welcome banner — visible for 5 s after login
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 500),
-                        transitionBuilder: (child, anim) =>
-                            FadeTransition(opacity: anim, child: child),
-                        child: _showWelcome
-                            ? Column(
-                                key: const ValueKey('welcome'),
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Text(
-                                        "👋 ",
-                                        style: TextStyle(fontSize: 22),
-                                      ),
-                                      RichText(
-                                        text: TextSpan(
-                                          style: const TextStyle(
-                                            fontSize: 18,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                          children: [
-                                            const TextSpan(text: "Welcome, "),
-                                            TextSpan(
-                                              text: widget.userName
-                                                  .split(' ')
-                                                  .first,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.primary,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 24),
-                                ],
-                              )
-                            : const SizedBox.shrink(key: ValueKey('hidden')),
+                  // â”€â”€ BODY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        24,
+                        16,
+                        MediaQuery.of(context).size.width >= 600 ? 140 : 100,
                       ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Welcome banner — visible for 5 s after login
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 500),
+                            transitionBuilder: (child, anim) =>
+                                FadeTransition(opacity: anim, child: child),
+                            child: _showWelcome
+                                ? Column(
+                                    key: const ValueKey('welcome'),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Text(
+                                            "👋 ",
+                                            style: TextStyle(fontSize: 22),
+                                          ),
+                                          RichText(
+                                            text: TextSpan(
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                              children: [
+                                                const TextSpan(
+                                                  text: "Welcome, ",
+                                                ),
+                                                TextSpan(
+                                                  text: widget.userName
+                                                      .split(' ')
+                                                      .first,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
+                                  )
+                                : const SizedBox.shrink(
+                                    key: ValueKey('hidden'),
+                                  ),
+                          ),
 
-                      // Festival banner — shows on festival days
-                      if (_showFestivalBanner &&
-                          FestivalService.isTodayFestival())
-                        FestivalBanner(
-                          onClose: () {
-                            setState(() {
-                              _showFestivalBanner = false;
-                            });
-                          },
-                        ),
+                          // Festival banner — shows on festival days
+                          if (_showFestivalBanner &&
+                              FestivalService.isTodayFestival())
+                            FestivalBanner(
+                              onClose: () {
+                                setState(() {
+                                  _showFestivalBanner = false;
+                                });
+                              },
+                            ),
 
-                      // Daily quote widget
-                      if (_showDailyQuote)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: GestureDetector(
-                            onLongPress: () => _toggleHighlight('dailyQuote'),
+                          // Daily quote widget
+                          if (_showDailyQuote)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: GestureDetector(
+                                onLongPress: () =>
+                                    _toggleHighlight('dailyQuote'),
+                                child: RgbBorderCard(
+                                  borderRadius: 14,
+                                  intense: _isHighlighted('dailyQuote'),
+                                  child: DailyQuoteWidget(
+                                    onClose: () {
+                                      QuoteService.dismiss(); // persist 1-hour hide
+                                      setState(() {
+                                        _showDailyQuote = false;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                          // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
+                          SizedBox(
+                            height: 170,
+                            child: PageView(
+                              controller: _statsPageController,
+                              children: [
+                                // ── Page 1: Bookings ──────────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('bookings'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('bookings'),
+                                      child: DashboardComparisonCard(
+                                        compact: true,
+                                        title: "Bookings",
+                                        icon: Icons.bookmark_added_rounded,
+                                        today: _todayBooking,
+                                        yesterday: _yesterdayBooking,
+                                        growth: _bookingGrowth,
+                                        trend: _bookingTrend,
+                                        gradient: const [
+                                          Color(0xFF0A3D8F),
+                                          Color(0xFF1565C0),
+                                          Color(0xFF1E88E5),
+                                        ],
+                                        onTodayTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  BranchwiseDetailsScreen(
+                                                    reportType: "booking",
+                                                    period: "today",
+                                                    title: "Today's Booking",
+                                                  ),
+                                            ),
+                                          ).then((_) => loadDashboardStats());
+                                        },
+
+                                        onYesterdayTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  BranchwiseDetailsScreen(
+                                                    reportType: "booking",
+                                                    period: "yesterday",
+                                                    title:
+                                                        "Yesterday's Booking",
+                                                  ),
+                                            ),
+                                          ).then((_) => loadDashboardStats());
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // ── Page 2: Sales ─────────────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('sales'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('sales'),
+                                      child: DashboardComparisonCard(
+                                        compact: true,
+                                        title: "Sales",
+                                        icon: Icons.sell_rounded,
+                                        today: _todaySale,
+                                        yesterday: _yesterdaySale,
+                                        growth: _saleGrowth,
+                                        trend: _saleTrend,
+                                        gradient: const [
+                                          Color(0xFF1A237E),
+                                          Color(0xFF283593),
+                                          Color(0xFF3949AB),
+                                        ],
+                                        onPerformanceTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const SalesPerformanceScreen(),
+                                            ),
+                                          );
+                                        },
+                                        onComparisonTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const SalesComparisonScreen(),
+                                            ),
+                                          );
+                                        },
+                                        onTodayTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const BranchwiseDetailsScreen(
+                                                    reportType: "sale",
+                                                    period: "today",
+                                                    title: "Today's Sale",
+                                                  ),
+                                            ),
+                                          ).then((_) => loadDashboardStats());
+                                        },
+                                        onYesterdayTap: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  const BranchwiseDetailsScreen(
+                                                    reportType: "sale",
+                                                    period: "yesterday",
+                                                    title: "Yesterday's Sale",
+                                                  ),
+                                            ),
+                                          ).then((_) => loadDashboardStats());
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // ── Page 3: Pending Delivery ──────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 6),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const PendingDeliveryBranchwiseScreen(),
+                                      ),
+                                    ),
+                                    onLongPressStart: (_) =>
+                                        _toggleHighlight('pendingDelivery'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted(
+                                        'pendingDelivery',
+                                      ),
+                                      child: _PendingDeliveryCard(
+                                        count: _pendingDelivery,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // ── Page 4: Live Booking ──────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('liveBooking'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('liveBooking'),
+                                      child: _SimpleStatsCard(
+                                        title: "Live Booking",
+                                        subtitle: "Currently Live",
+                                        count: _liveBooking,
+                                        icon: Icons.event_available_rounded,
+                                        gradient: const [
+                                          Color(0xFF0A2E5C),
+                                          Color(0xFF123F7A),
+                                          Color(0xFF1976D2),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Page 5: Monthly Booking ──────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('mtdBooking'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('mtdBooking'),
+                                      child: _SimpleStatsCard(
+                                        title: "Monthly Booking",
+                                        subtitle: "This Month",
+                                        count: _mtdBooking,
+                                        icon: Icons.calendar_month_rounded,
+                                        gradient: const [
+                                          Color(0xFF4527A0),
+                                          Color(0xFF5E35B1),
+                                          Color(0xFF7E57C2),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Page 6: Monthly Sale ─────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('mtdSale'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('mtdSale'),
+                                      child: _SimpleStatsCard(
+                                        title: "Monthly Sale",
+                                        subtitle: "This Month",
+                                        count: _mtdSale,
+                                        icon: Icons.trending_up_rounded,
+                                        gradient: const [
+                                          Color(0xFF1565C0),
+                                          Color(0xFF1976D2),
+                                          Color(0xFF42A5F5),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _StatsPageDots(
+                            controller: _statsPageController,
+                            count: 6,
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          GestureDetector(
+                            onLongPress: () =>
+                                _toggleHighlight('performanceTrends'),
                             child: RgbBorderCard(
-                              borderRadius: 14,
-                              intense: _isHighlighted('dailyQuote'),
-                              child: DailyQuoteWidget(
-                                onClose: () {
-                                  QuoteService.dismiss(); // persist 1-hour hide
-                                  setState(() {
-                                    _showDailyQuote = false;
-                                  });
-                                },
+                              borderRadius: 26,
+                              intense: _isHighlighted('performanceTrends'),
+                              child: PerformanceTrendsSection(
+                                bookingGrowth: _bookingGrowth,
+                                bookingTrend: _bookingTrend,
+                                saleGrowth: _saleGrowth,
+                                saleTrend: _saleTrend,
                               ),
                             ),
                           ),
-                        ),
 
-                      // ── STATS CARDS — swipeable: Bookings / Sales / Pending Delivery ──
-                      SizedBox(
-                        height: 170,
-                        child: PageView(
-                          controller: _statsPageController,
-                          children: [
-                            // ── Page 1: Bookings ──────────────────────────────
-                            Padding(
-                              padding: const EdgeInsets.only(right: 6),
-                              child: GestureDetector(
-                                onLongPress: () => _toggleHighlight('bookings'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('bookings'),
-                                  child: DashboardComparisonCard(
-                                    compact: true,
-                                    title: "Bookings",
-                                    icon: Icons.bookmark_added_rounded,
-                                    today: _todayBooking,
-                                    yesterday: _yesterdayBooking,
-                                    growth: _bookingGrowth,
-                                    trend: _bookingTrend,
-                                    gradient: const [
-                                      Color(0xFF0A3D8F),
-                                      Color(0xFF1565C0),
-                                      Color(0xFF1E88E5),
-                                    ],
-                                    onTodayTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              BranchwiseDetailsScreen(
-                                                reportType: "booking",
-                                                period: "today",
-                                                title: "Today's Booking",
-                                              ),
-                                        ),
-                                      ).then((_) => loadDashboardStats());
-                                    },
+                          const SizedBox(height: 24),
 
-                                    onYesterdayTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              BranchwiseDetailsScreen(
-                                                reportType: "booking",
-                                                period: "yesterday",
-                                                title: "Yesterday's Booking",
-                                              ),
-                                        ),
-                                      ).then((_) => loadDashboardStats());
-                                    },
-                                  ),
-                                ),
-                              ),
+                          // ── AI MORNING DEALERSHIP BRIEFING ─────────────────────
+                          GestureDetector(
+                            onLongPress: () =>
+                                _toggleHighlight('morningBriefing'),
+                            child: RgbBorderCard(
+                              borderRadius: 20,
+                              intense: _isHighlighted('morningBriefing'),
+                              child: const MorningBriefingCard(),
                             ),
-                            // ── Page 2: Sales ─────────────────────────────────
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
+                          ),
 
-                              child: GestureDetector(
-                                onLongPress: () => _toggleHighlight('sales'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('sales'),
-                                  child: DashboardComparisonCard(
-                                    compact: true,
-                                    title: "Sales",
-                                    icon: Icons.sell_rounded,
-                                    today: _todaySale,
-                                    yesterday: _yesterdaySale,
-                                    growth: _saleGrowth,
-                                    trend: _saleTrend,
+                          const SizedBox(height: 24),
+
+                          // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+                          // Admin: Challan + Tasks (assign & view all)
+                          if (_isAdmin && !isLoading && _permissionsLoaded)
+                            GridView.count(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 16,
+                              childAspectRatio:
+                                  MediaQuery.of(context).size.width < 600
+                                  ? 1.05
+                                  : MediaQuery.of(context).size.width < 1000
+                                  ? 2.7
+                                  : 4.0,
+                              children: [
+                                _dashCard(
+                                  cardId: 'combinedReceipt',
+                                  icon: Icons.receipt_long_rounded,
+                                  label: "Receipt",
+                                  subtitle:
+                                      "View receipt requests and receipts",
+                                  gradient: const [
+                                    Color(0xFF1565C0),
+                                    Color(0xFF1976D2),
+                                    Color(0xFF42A5F5),
+                                  ],
+                                  accentColor: Colors.lightBlueAccent,
+
+                                  // Pending receipt requests
+                                  badgeCount: _pendingReceiptRequestCount,
+
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const CombinedReceiptScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'vehicleAllocation',
+                                  icon: Icons.car_rental_rounded,
+                                  label: "Vehicle Allocation",
+                                  subtitle: "View vehicle allocations",
+                                  gradient: const [
+                                    Color(0xFF1A237E),
+                                    Color(0xFF283593),
+                                    Color(0xFF3F51B5),
+                                  ],
+                                  accentColor: Colors.indigoAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        settings: const RouteSettings(
+                                          name: 'VehicleAllocationScreen',
+                                        ),
+                                        builder: (_) =>
+                                            const VehicleAllocationScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'challan',
+                                  icon: Icons.receipt_long_rounded,
+                                  label: "Challan",
+                                  subtitle: "View & manage challans",
+                                  gradient: const [
+                                    Color(0xFF0A2E5C),
+                                    Color(0xFF3B2A96),
+                                    Color(0xFF6A4BD8),
+                                  ],
+                                  accentColor: AppColors.secondary,
+
+                                  // Pending challan count
+                                  badgeCount: _pendingChallanCount,
+
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const ChallanScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'createChallan',
+                                  icon: Icons.add_card_rounded,
+                                  label: "Create Challan",
+                                  subtitle: "Create a new challan",
+                                  gradient: const [
+                                    Color.fromARGB(255, 6, 35, 66),
+                                    Color.fromARGB(255, 4, 35, 66),
+                                    Color.fromARGB(255, 8, 67, 116),
+                                  ],
+                                  accentColor: const Color.fromARGB(
+                                    255,
+                                    25,
+                                    79,
+                                    102,
+                                  ),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ChallanGridScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'bookingRequestForm',
+                                  icon: Icons.app_registration_rounded,
+                                  label: "Booking Request Form",
+                                  subtitle: "New booking request",
+                                  gradient: const [
+                                    Color(0xFF0D47A1),
+                                    Color(0xFF1565C0),
+                                    Color(0xFF1E88E5),
+                                  ],
+                                  accentColor: Color(0xFF90CAF9),
+
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        settings: const RouteSettings(
+                                          name: 'BookingScreenRequestGrid',
+                                        ),
+                                        builder: (_) =>
+                                            const BookingScreenRequestGrid(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'accCancelApprove',
+                                  icon: Icons.cancel_presentation_rounded,
+                                  label: "Acc. Cancellation Approval",
+                                  subtitle: "Accessories cancellation requests",
+                                  gradient: const [
+                                    Color(0xFF7B1FA2),
+                                    Color(0xFF9C27B0),
+                                    Color(0xFFBA68C8),
+                                  ],
+                                  accentColor: Colors.purpleAccent,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        settings: const RouteSettings(
+                                          name: 'AccCancelApproveScreen',
+                                        ),
+                                        builder: (_) =>
+                                            const AccCancelApproveScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                _dashCard(
+                                  cardId: 'assignTask',
+                                  icon: Icons.assignment_ind_rounded,
+                                  label: "Assign Task",
+                                  subtitle: "Assign and track task",
+                                  gradient: const [
+                                    Color(0xFF4A148C),
+                                    Color(0xFF6A1B9A),
+                                    Color(0xFF8E24AA),
+                                  ],
+                                  accentColor: Colors.purpleAccent,
+                                  onTap: () => _showAssignTaskDialog(),
+                                ),
+                                ValueListenableBuilder<int>(
+                                  valueListenable: pendingTaskCompletionCount,
+                                  builder: (context, count, _) {
+                                    return Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        _dashCard(
+                                          cardId: 'taskDashboard',
+                                          icon: Icons.task_alt,
+                                          label: "Task Dashboard Screen",
+                                          subtitle: "View assigned tasks",
+                                          gradient: const [
+                                            Color(0xFF0D47A1),
+                                            Color(0xFF1565C0),
+                                            Color(0xFF1E88E5),
+                                          ],
+                                          accentColor: Colors.lightBlueAccent,
+
+                                          // Pending task count
+                                          badgeCount: _pendingTaskCount,
+
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const TaskDashboardScreen(),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                        if (count > 0)
+                                          Positioned(
+                                            top: -6,
+                                            right: -6,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(5),
+                                              decoration: const BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                '$count',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+
+                          // ────────────────────────────────────────────────
+                          // Permission-controlled cards for non-admin users using AppScreens.ScreenKey.
+                          //
+                          // The permission page controls these cards using
+                          // AppScreenPermissions.GroupIDs.
+                          // ────────────────────────────────────────────────
+                          if (!_isAdmin && !isLoading && _permissionsLoaded)
+                            Column(
+                              children: [
+                                if (_hasScreenPermission("vehicleAllocation"))
+                                  _dashCard(
+                                    cardId: 'vehicleAllocationNonAdmin',
+                                    icon: Icons.car_rental_rounded,
+                                    label: "Vehicle Allocation",
+                                    subtitle: "View vehicle allocations",
                                     gradient: const [
                                       Color(0xFF1A237E),
                                       Color(0xFF283593),
-                                      Color(0xFF3949AB),
+                                      Color(0xFF3F51B5),
                                     ],
-                                    onPerformanceTap: () {
+                                    accentColor: Colors.indigoAccent,
+                                    onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
+                                          settings: const RouteSettings(
+                                            name: 'VehicleAllocationScreen',
+                                          ),
                                           builder: (_) =>
-                                              const SalesPerformanceScreen(),
+                                              const VehicleAllocationScreen(),
                                         ),
                                       );
                                     },
-                                    onComparisonTap: () {
+                                  ),
+
+                                if (_hasScreenPermission("vehicleAllocation") &&
+                                    _hasScreenPermission("bookingRequestForm"))
+                                  const SizedBox(height: 24),
+
+                                if (_hasScreenPermission("bookingRequestForm"))
+                                  _dashCard(
+                                    cardId: 'bookingRequestFormNonAdmin',
+                                    icon: Icons.app_registration_rounded,
+                                    label: "Booking Request Form",
+                                    subtitle: "New booking request",
+                                    gradient: const [
+                                      Color(0xFF0D47A1),
+                                      Color(0xFF1565C0),
+                                      Color(0xFF1E88E5),
+                                    ],
+                                    accentColor: const Color(0xFF90CAF9),
+                                    onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
+                                          settings: const RouteSettings(
+                                            name: 'BookingScreenRequestGrid',
+                                          ),
                                           builder: (_) =>
-                                              const SalesComparisonScreen(),
+                                              const BookingScreenRequestGrid(),
                                         ),
                                       );
                                     },
-                                    onTodayTap: () {
+                                  ),
+
+                                if (_hasScreenPermission(
+                                      "bookingRequestForm",
+                                    ) &&
+                                    _hasScreenPermission("accCancelApprove"))
+                                  const SizedBox(height: 24),
+
+                                if (_hasScreenPermission("accCancelApprove"))
+                                  _dashCard(
+                                    cardId: 'accCancelApproveNonAdmin',
+                                    icon: Icons.cancel_presentation_rounded,
+                                    label: "Acc. Cancellation Approval",
+                                    subtitle:
+                                        "Accessories cancellation requests",
+                                    gradient: const [
+                                      Color(0xFF7B1FA2),
+                                      Color(0xFF9C27B0),
+                                      Color(0xFFBA68C8),
+                                    ],
+                                    accentColor: Colors.purpleAccent,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          settings: const RouteSettings(
+                                            name: 'AccCancelApproveScreen',
+                                          ),
+                                          builder: (_) =>
+                                              const AccCancelApproveScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                if (_hasScreenPermission("accCancelApprove") &&
+                                    _hasScreenPermission("assignTask"))
+                                  const SizedBox(height: 24),
+
+                                if (_hasScreenPermission("assignTask"))
+                                  _dashCard(
+                                    cardId: 'assignedTaskNonAdmin',
+                                    icon: Icons.assignment_ind_rounded,
+                                    label: "Assigned task",
+                                    subtitle: "Assigned Task",
+                                    gradient: const [
+                                      Color(0xFF4A148C),
+                                      Color(0xFF6A1B9A),
+                                      Color(0xFF8E24AA),
+                                    ],
+                                    accentColor: Colors.purpleAccent,
+                                    onTap: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
-                                              const BranchwiseDetailsScreen(
-                                                reportType: "sale",
-                                                period: "today",
-                                                title: "Today's Sale",
-                                              ),
+                                              const GlobalTaskScreen(),
                                         ),
-                                      ).then((_) => loadDashboardStats());
-                                    },
-                                    onYesterdayTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const BranchwiseDetailsScreen(
-                                                reportType: "sale",
-                                                period: "yesterday",
-                                                title: "Yesterday's Sale",
-                                              ),
-                                        ),
-                                      ).then((_) => loadDashboardStats());
+                                      );
                                     },
                                   ),
-                                ),
-                              ),
-                            ),
-                            // ── Page 3: Pending Delivery ──────────────────────
-                            Padding(
-                              padding: const EdgeInsets.only(left: 6),
-                              child: GestureDetector(
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const PendingDeliveryBranchwiseScreen(),
-                                  ),
-                                ),
-                                onLongPressStart: (_) =>
-                                    _toggleHighlight('pendingDelivery'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('pendingDelivery'),
-                                  child: _PendingDeliveryCard(
-                                    count: _pendingDelivery,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // ── Page 4: Live Booking ──────────────────────────
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
-                              child: GestureDetector(
-                                onLongPress: () =>
-                                    _toggleHighlight('liveBooking'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('liveBooking'),
-                                  child: _SimpleStatsCard(
-                                    title: "Live Booking",
-                                    subtitle: "Currently Live",
-                                    count: _liveBooking,
-                                    icon: Icons.event_available_rounded,
-                                    gradient: const [
-                                      Color(0xFF0A2E5C),
-                                      Color(0xFF123F7A),
-                                      Color(0xFF1976D2),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
 
-                            // ── Page 5: Monthly Booking ──────────────────────
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
-                              child: GestureDetector(
-                                onLongPress: () =>
-                                    _toggleHighlight('mtdBooking'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('mtdBooking'),
-                                  child: _SimpleStatsCard(
-                                    title: "Monthly Booking",
-                                    subtitle: "This Month",
-                                    count: _mtdBooking,
-                                    icon: Icons.calendar_month_rounded,
-                                    gradient: const [
-                                      Color(0xFF4527A0),
-                                      Color(0xFF5E35B1),
-                                      Color(0xFF7E57C2),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-
-                            // ── Page 6: Monthly Sale ─────────────────────────
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                              ),
-                              child: GestureDetector(
-                                onLongPress: () => _toggleHighlight('mtdSale'),
-                                child: RgbBorderCard(
-                                  borderRadius: 18,
-                                  intense: _isHighlighted('mtdSale'),
-                                  child: _SimpleStatsCard(
-                                    title: "Monthly Sale",
-                                    subtitle: "This Month",
-                                    count: _mtdSale,
-                                    icon: Icons.trending_up_rounded,
+                                // Receipt / Challan / Task Dashboard can also be
+                                // assigned to a normal group from the permission
+                                // page. They are rendered here when granted.
+                                if (_hasScreenPermission(
+                                  "combinedReceipt",
+                                )) ...[
+                                  if (_hasScreenPermission("assignTask"))
+                                    const SizedBox(height: 24),
+                                  _dashCard(
+                                    cardId: 'combinedReceiptNonAdmin',
+                                    icon: Icons.receipt_long_rounded,
+                                    label: "Receipt",
+                                    subtitle:
+                                        "View receipt requests and receipts",
                                     gradient: const [
                                       Color(0xFF1565C0),
                                       Color(0xFF1976D2),
                                       Color(0xFF42A5F5),
                                     ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      _StatsPageDots(
-                        controller: _statsPageController,
-                        count: 6,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      GestureDetector(
-                        onLongPress: () =>
-                            _toggleHighlight('performanceTrends'),
-                        child: RgbBorderCard(
-                          borderRadius: 26,
-                          intense: _isHighlighted('performanceTrends'),
-                          child: PerformanceTrendsSection(
-                            bookingGrowth: _bookingGrowth,
-                            bookingTrend: _bookingTrend,
-                            saleGrowth: _saleGrowth,
-                            saleTrend: _saleTrend,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // ── AI MORNING DEALERSHIP BRIEFING ─────────────────────
-                      GestureDetector(
-                        onLongPress: () => _toggleHighlight('morningBriefing'),
-                        child: RgbBorderCard(
-                          borderRadius: 20,
-                          intense: _isHighlighted('morningBriefing'),
-                          child: const MorningBriefingCard(),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // â”€â”€ DASHBOARD CARDS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                      // Admin: Challan + Tasks (assign & view all)
-                      if (_isAdmin && !isLoading && _permissionsLoaded)
-                        GridView.count(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 16,
-                          childAspectRatio:
-                              MediaQuery.of(context).size.width < 600
-                              ? 1.05
-                              : MediaQuery.of(context).size.width < 1000
-                              ? 2.7
-                              : 4.0,
-                          children: [
-                            _dashCard(
-                              cardId: 'combinedReceipt',
-                              icon: Icons.receipt_long_rounded,
-                              label: "Receipt",
-                              subtitle: "View receipt requests and receipts",
-                              gradient: const [
-                                Color(0xFF1565C0),
-                                Color(0xFF1976D2),
-                                Color(0xFF42A5F5),
-                              ],
-                              accentColor: Colors.lightBlueAccent,
-
-                              // Pending receipt requests
-                              badgeCount: _pendingReceiptRequestCount,
-
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) =>
-                                        const CombinedReceiptScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _dashCard(
-                              cardId: 'vehicleAllocation',
-                              icon: Icons.car_rental_rounded,
-                              label: "Vehicle Allocation",
-                              subtitle: "View vehicle allocations",
-                              gradient: const [
-                                Color(0xFF1A237E),
-                                Color(0xFF283593),
-                                Color(0xFF3F51B5),
-                              ],
-                              accentColor: Colors.indigoAccent,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'VehicleAllocationScreen',
-                                    ),
-                                    builder: (_) =>
-                                        const VehicleAllocationScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _dashCard(
-                              cardId: 'challan',
-                              icon: Icons.receipt_long_rounded,
-                              label: "Challan",
-                              subtitle: "View & manage challans",
-                              gradient: const [
-                                Color(0xFF0A2E5C),
-                                Color(0xFF3B2A96),
-                                Color(0xFF6A4BD8),
-                              ],
-                              accentColor: AppColors.secondary,
-
-                              // Pending challan count
-                              badgeCount: _pendingChallanCount,
-
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ChallanScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _dashCard(
-                              cardId: 'bookingRequestForm',
-                              icon: Icons.app_registration_rounded,
-                              label: "Booking Request Form",
-                              subtitle: "New booking request",
-                              gradient: const [
-                                Color(0xFF0D47A1),
-                                Color(0xFF1565C0),
-                                Color(0xFF1E88E5),
-                              ],
-                              accentColor: Color(0xFF90CAF9),
-
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'BookingScreenRequestGrid',
-                                    ),
-                                    builder: (_) =>
-                                        const BookingScreenRequestGrid(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _dashCard(
-                              cardId: 'accCancelApprove',
-                              icon: Icons.cancel_presentation_rounded,
-                              label: "Acc. Cancellation Approval",
-                              subtitle: "Accessories cancellation requests",
-                              gradient: const [
-                                Color(0xFF7B1FA2),
-                                Color(0xFF9C27B0),
-                                Color(0xFFBA68C8),
-                              ],
-                              accentColor: Colors.purpleAccent,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    settings: const RouteSettings(
-                                      name: 'AccCancelApproveScreen',
-                                    ),
-                                    builder: (_) =>
-                                        const AccCancelApproveScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                            _dashCard(
-                              cardId: 'assignTask',
-                              icon: Icons.assignment_ind_rounded,
-                              label: "Assign Task",
-                              subtitle: "Assign and track task",
-                              gradient: const [
-                                Color(0xFF4A148C),
-                                Color(0xFF6A1B9A),
-                                Color(0xFF8E24AA),
-                              ],
-                              accentColor: Colors.purpleAccent,
-                              onTap: () => _showAssignTaskDialog(),
-                            ),
-                            ValueListenableBuilder<int>(
-                              valueListenable: pendingTaskCompletionCount,
-                              builder: (context, count, _) {
-                                return Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    _dashCard(
-                                      cardId: 'taskDashboard',
-                                      icon: Icons.task_alt,
-                                      label: "Task Dashboard Screen",
-                                      subtitle: "View assigned tasks",
-                                      gradient: const [
-                                        Color(0xFF0D47A1),
-                                        Color(0xFF1565C0),
-                                        Color(0xFF1E88E5),
-                                      ],
-                                      accentColor: Colors.lightBlueAccent,
-
-                                      // Pending task count
-                                      badgeCount: _pendingTaskCount,
-
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                const TaskDashboardScreen(),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    if (count > 0)
-                                      Positioned(
-                                        top: -6,
-                                        right: -6,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: const BoxDecoration(
-                                            color: Colors.red,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Text(
-                                            '$count',
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
+                                    accentColor: Colors.lightBlueAccent,
+                                    badgeCount: _pendingReceiptRequestCount,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const CombinedReceiptScreen(),
                                         ),
-                                      ),
-                                  ],
-                                );
-                              },
+                                      );
+                                    },
+                                  ),
+                                ],
+
+                                if (_hasScreenPermission("challan")) ...[
+                                  const SizedBox(height: 24),
+                                  _dashCard(
+                                    cardId: 'challanNonAdmin',
+                                    icon: Icons.receipt_long_rounded,
+                                    label: "Challan",
+                                    subtitle: "View & manage challans",
+                                    gradient: const [
+                                      Color(0xFF0A2E5C),
+                                      Color(0xFF3B2A96),
+                                      Color(0xFF6A4BD8),
+                                    ],
+                                    accentColor: AppColors.secondary,
+                                    badgeCount: _pendingChallanCount,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const ChallanScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+
+                                if (_hasScreenPermission("taskDashboard")) ...[
+                                  const SizedBox(height: 24),
+                                  _dashCard(
+                                    cardId: 'taskDashboardNonAdmin',
+                                    icon: Icons.task_alt,
+                                    label: "Task Dashboard Screen",
+                                    subtitle: "View assigned tasks",
+                                    gradient: const [
+                                      Color(0xFF0D47A1),
+                                      Color(0xFF1565C0),
+                                      Color(0xFF1E88E5),
+                                    ],
+                                    accentColor: Colors.lightBlueAccent,
+                                    badgeCount: _pendingTaskCount,
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const TaskDashboardScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ],
                             ),
-                          ],
-                        ),
-
-                      // ────────────────────────────────────────────────
-                      // Permission-controlled cards for non-admin users using AppScreens.ScreenKey.
-                      //
-                      // The permission page controls these cards using
-                      // AppScreenPermissions.GroupIDs.
-                      // ────────────────────────────────────────────────
-                      if (!_isAdmin && !isLoading && _permissionsLoaded)
-                        Column(
-                          children: [
-                            if (_hasScreenPermission("vehicleAllocation"))
-                              _dashCard(
-                                cardId: 'vehicleAllocationNonAdmin',
-                                icon: Icons.car_rental_rounded,
-                                label: "Vehicle Allocation",
-                                subtitle: "View vehicle allocations",
-                                gradient: const [
-                                  Color(0xFF1A237E),
-                                  Color(0xFF283593),
-                                  Color(0xFF3F51B5),
-                                ],
-                                accentColor: Colors.indigoAccent,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(
-                                        name: 'VehicleAllocationScreen',
-                                      ),
-                                      builder: (_) =>
-                                          const VehicleAllocationScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-
-                            if (_hasScreenPermission("vehicleAllocation") &&
-                                _hasScreenPermission("bookingRequestForm"))
-                              const SizedBox(height: 24),
-
-                            if (_hasScreenPermission("bookingRequestForm"))
-                              _dashCard(
-                                cardId: 'bookingRequestFormNonAdmin',
-                                icon: Icons.app_registration_rounded,
-                                label: "Booking Request Form",
-                                subtitle: "New booking request",
-                                gradient: const [
-                                  Color(0xFF0D47A1),
-                                  Color(0xFF1565C0),
-                                  Color(0xFF1E88E5),
-                                ],
-                                accentColor: const Color(0xFF90CAF9),
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(
-                                        name: 'BookingScreenRequestGrid',
-                                      ),
-                                      builder: (_) =>
-                                          const BookingScreenRequestGrid(),
-                                    ),
-                                  );
-                                },
-                              ),
-
-                            if (_hasScreenPermission("bookingRequestForm") &&
-                                _hasScreenPermission("accCancelApprove"))
-                              const SizedBox(height: 24),
-
-                            if (_hasScreenPermission("accCancelApprove"))
-                              _dashCard(
-                                cardId: 'accCancelApproveNonAdmin',
-                                icon: Icons.cancel_presentation_rounded,
-                                label: "Acc. Cancellation Approval",
-                                subtitle: "Accessories cancellation requests",
-                                gradient: const [
-                                  Color(0xFF7B1FA2),
-                                  Color(0xFF9C27B0),
-                                  Color(0xFFBA68C8),
-                                ],
-                                accentColor: Colors.purpleAccent,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      settings: const RouteSettings(
-                                        name: 'AccCancelApproveScreen',
-                                      ),
-                                      builder: (_) =>
-                                          const AccCancelApproveScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-
-                            if (_hasScreenPermission("accCancelApprove") &&
-                                _hasScreenPermission("assignTask"))
-                              const SizedBox(height: 24),
-
-                            if (_hasScreenPermission("assignTask"))
-                              _dashCard(
-                                cardId: 'assignedTaskNonAdmin',
-                                icon: Icons.assignment_ind_rounded,
-                                label: "Assigned task",
-                                subtitle: "Assigned Task",
-                                gradient: const [
-                                  Color(0xFF4A148C),
-                                  Color(0xFF6A1B9A),
-                                  Color(0xFF8E24AA),
-                                ],
-                                accentColor: Colors.purpleAccent,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const GlobalTaskScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-
-                            // Receipt / Challan / Task Dashboard can also be
-                            // assigned to a normal group from the permission
-                            // page. They are rendered here when granted.
-                            if (_hasScreenPermission("combinedReceipt")) ...[
-                              if (_hasScreenPermission("assignTask"))
-                                const SizedBox(height: 24),
-                              _dashCard(
-                                cardId: 'combinedReceiptNonAdmin',
-                                icon: Icons.receipt_long_rounded,
-                                label: "Receipt",
-                                subtitle: "View receipt requests and receipts",
-                                gradient: const [
-                                  Color(0xFF1565C0),
-                                  Color(0xFF1976D2),
-                                  Color(0xFF42A5F5),
-                                ],
-                                accentColor: Colors.lightBlueAccent,
-                                badgeCount: _pendingReceiptRequestCount,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const CombinedReceiptScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-
-                            if (_hasScreenPermission("challan")) ...[
-                              const SizedBox(height: 24),
-                              _dashCard(
-                                cardId: 'challanNonAdmin',
-                                icon: Icons.receipt_long_rounded,
-                                label: "Challan",
-                                subtitle: "View & manage challans",
-                                gradient: const [
-                                  Color(0xFF0A2E5C),
-                                  Color(0xFF3B2A96),
-                                  Color(0xFF6A4BD8),
-                                ],
-                                accentColor: AppColors.secondary,
-                                badgeCount: _pendingChallanCount,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ChallanScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-
-                            if (_hasScreenPermission("taskDashboard")) ...[
-                              const SizedBox(height: 24),
-                              _dashCard(
-                                cardId: 'taskDashboardNonAdmin',
-                                icon: Icons.task_alt,
-                                label: "Task Dashboard Screen",
-                                subtitle: "View assigned tasks",
-                                gradient: const [
-                                  Color(0xFF0D47A1),
-                                  Color(0xFF1565C0),
-                                  Color(0xFF1E88E5),
-                                ],
-                                accentColor: Colors.lightBlueAccent,
-                                badgeCount: _pendingTaskCount,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const TaskDashboardScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ), // end Column
-
-              // ── Draggable AI bubble ──────────────────────────────────
-              Builder(builder: (ctx) {
-                final sz = MediaQuery.sizeOf(ctx);
-                const bubbleSize = 72.0;
-                final defaultOffset = Offset(
-                  18, // left side — away from chat bubble (bottom-right)
-                  sz.height - bubbleSize - 100,
-                );
-                final pos = _aiBubbleOffset ?? defaultOffset;
-                return Positioned(
-                  left: pos.dx,
-                  top: pos.dy,
-                  child: GestureDetector(
-                    onPanStart: (_) => setState(() => _aiDragging = true),
-                    onPanUpdate: (d) {
-                      setState(() {
-                        final next = (_aiBubbleOffset ?? defaultOffset) + d.delta;
-                        _aiBubbleOffset = Offset(
-                          next.dx.clamp(8.0, sz.width - bubbleSize - 8),
-                          next.dy.clamp(8.0, sz.height - bubbleSize - 8),
-                        );
-                      });
-                    },
-                    onPanEnd: (_) => setState(() => _aiDragging = false),
-                    onTap: _aiDragging
-                        ? null
-                        : () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const AIChatScreen()),
-                            ),
-                    child: AnimatedScale(
-                      scale: _aiDragging ? 1.12 : 1.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: _AiGlobeButton(onTap: () {}), // onTap handled above
+                        ],
+                      ),
                     ),
                   ),
-                );
-              }),
+                ],
+              ), // end Column
+              // ── Draggable AI bubble ──────────────────────────────────
+              Builder(
+                builder: (ctx) {
+                  final sz = MediaQuery.sizeOf(ctx);
+                  const bubbleSize = 72.0;
+                  final defaultOffset = Offset(
+                    18, // left side — away from chat bubble (bottom-right)
+                    sz.height - bubbleSize - 100,
+                  );
+                  final pos = _aiBubbleOffset ?? defaultOffset;
+                  return Positioned(
+                    left: pos.dx,
+                    top: pos.dy,
+                    child: GestureDetector(
+                      onPanStart: (_) => setState(() => _aiDragging = true),
+                      onPanUpdate: (d) {
+                        setState(() {
+                          final next =
+                              (_aiBubbleOffset ?? defaultOffset) + d.delta;
+                          _aiBubbleOffset = Offset(
+                            next.dx.clamp(8.0, sz.width - bubbleSize - 8),
+                            next.dy.clamp(8.0, sz.height - bubbleSize - 8),
+                          );
+                        });
+                      },
+                      onPanEnd: (_) => setState(() => _aiDragging = false),
+                      onTap: _aiDragging
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AIChatScreen(),
+                              ),
+                            ),
+                      child: AnimatedScale(
+                        scale: _aiDragging ? 1.12 : 1.0,
+                        duration: const Duration(milliseconds: 150),
+                        child: _AiGlobeButton(
+                          onTap: () {},
+                        ), // onTap handled above
+                      ),
+                    ),
+                  );
+                },
+              ),
             ],
           ); // end Stack
         },
@@ -4445,49 +4506,46 @@ class _AiGlobeButtonState extends State<_AiGlobeButton>
     return SizedBox(
       width: 72,
       height: 72,
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedBuilder(
-          animation: _ctrl,
-          builder: (_, __) => ClipOval(
-            child: Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const RadialGradient(
-                  center: Alignment(-0.3, -0.3),
-                  radius: 0.9,
-                  colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFb040ff).withOpacity(0.55),
-                    blurRadius: 18,
-                    spreadRadius: 0,
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF00d4ff).withOpacity(0.35),
-                    blurRadius: 12,
-                    spreadRadius: 0,
-                  ),
-                ],
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) => ClipOval(
+          child: Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: const RadialGradient(
+                center: Alignment(-0.3, -0.3),
+                radius: 0.9,
+                colors: [Color(0xFF1a1040), Color(0xFF0a0520)],
               ),
-              child: CustomPaint(
-                painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
-                child: const Center(
-                  child: Text(
-                    'AI',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.5,
-                      shadows: [
-                        Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
-                        Shadow(color: Color(0xFFb040ff), blurRadius: 18),
-                      ],
-                    ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFb040ff).withOpacity(0.55),
+                  blurRadius: 18,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: const Color(0xFF00d4ff).withOpacity(0.35),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: CustomPaint(
+              painter: _GlobePainter(angle: _ctrl.value * 2 * math.pi),
+              child: const Center(
+                child: Text(
+                  'AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    shadows: [
+                      Shadow(color: Color(0xFF00d4ff), blurRadius: 12),
+                      Shadow(color: Color(0xFFb040ff), blurRadius: 18),
+                    ],
                   ),
                 ),
               ),

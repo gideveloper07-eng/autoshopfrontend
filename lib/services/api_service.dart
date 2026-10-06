@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+
 import 'cache_service.dart';
-import 'package:flutter/services.dart';
 
 class ApiService {
   static const String baseUrl = "http://api.myautoshop365.com";
@@ -447,6 +449,302 @@ class ApiService {
     } catch (e) {
       print("CHALLAN ERROR: $e");
       return [];
+    }
+  }
+  // ================================================================
+  // ASP.NET CHALLAN GRID
+  // Equivalent to:
+  //   Getreceipt
+  //   Getreceiptpage
+  //   getsearch
+  //   totalrow
+  //   DeletegRecptData
+  // ================================================================
+
+  static Future<List<Map<String, dynamic>>> getChallanGrid({
+    int page = 1,
+    int pageSize = 10,
+    String search = '',
+  }) async {
+    return getChallanGridPage(page: page, pageSize: pageSize, search: search);
+  }
+
+  static Future<List<Map<String, dynamic>>> getChallanGridPage({
+    required int page,
+    int pageSize = 10,
+    String search = '',
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/grid/page").replace(
+        queryParameters: {
+          "page": page.toString(),
+          "pageSize": pageSize.toString(),
+          if (search.trim().isNotEmpty) "search": search.trim(),
+        },
+      );
+
+      print("========== CHALLAN GRID ==========");
+      print("URL       : $uri");
+      print("PAGE      : $page");
+      print("PAGE SIZE : $pageSize");
+      print("SEARCH    : $search");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("STATUS : ${response.statusCode}");
+      print("BODY   : ${response.body}");
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          "Challan grid failed: HTTP ${response.statusCode}\n"
+          "${response.body}",
+        );
+      }
+
+      final body = jsonDecode(response.body);
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        return List<Map<String, dynamic>>.from(
+          (body["data"] as List).map(
+            (e) => Map<String, dynamic>.from(e as Map),
+          ),
+        );
+      }
+
+      throw Exception(
+        body is Map
+            ? body["message"]?.toString() ?? "Unable to load Challan grid"
+            : "Invalid Challan grid response",
+      );
+    } catch (e) {
+      print("❌ CHALLAN GRID ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ================================================================
+  // ASP.NET: getsearch
+  // ================================================================
+
+  static Future<List<Map<String, dynamic>>> searchChallanGrid({
+    required String search,
+    int page = 1,
+    int pageSize = 10,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/grid/search").replace(
+        queryParameters: {
+          "search": search.trim(),
+          "page": page.toString(),
+          "pageSize": pageSize.toString(),
+        },
+      );
+
+      print("========== CHALLAN GRID SEARCH ==========");
+      print("URL    : $uri");
+      print("SEARCH : $search");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("STATUS : ${response.statusCode}");
+      print("BODY   : ${response.body}");
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          "Challan search failed: HTTP ${response.statusCode}\n"
+          "${response.body}",
+        );
+      }
+
+      final body = jsonDecode(response.body);
+
+      if (body is Map && body["success"] == true && body["data"] is List) {
+        return List<Map<String, dynamic>>.from(
+          (body["data"] as List).map(
+            (e) => Map<String, dynamic>.from(e as Map),
+          ),
+        );
+      }
+
+      throw Exception(
+        body is Map
+            ? body["message"]?.toString() ?? "Search failed"
+            : "Invalid search response",
+      );
+    } catch (e) {
+      print("❌ CHALLAN SEARCH ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ================================================================
+  // ASP.NET: totalrow
+  // ================================================================
+
+  static Future<int> getChallanGridTotal({String search = ''}) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/grid/total").replace(
+        queryParameters: {
+          if (search.trim().isNotEmpty) "search": search.trim(),
+        },
+      );
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("CHALLAN TOTAL STATUS : ${response.statusCode}");
+      print("CHALLAN TOTAL BODY   : ${response.body}");
+
+      if (response.statusCode != 200) {
+        throw Exception("Challan total failed: HTTP ${response.statusCode}");
+      }
+
+      final body = jsonDecode(response.body);
+
+      if (body is Map) {
+        final value =
+            body["total"] ?? body["totalRows"] ?? body["count"] ?? body["data"];
+
+        if (value is num) {
+          return value.toInt();
+        }
+
+        return int.tryParse(value?.toString() ?? '') ?? 0;
+      }
+
+      return 0;
+    } catch (e) {
+      print("❌ CHALLAN TOTAL ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ================================================================
+  // ASP.NET: DeletegRecptData
+  // ================================================================
+
+  static Future<Map<String, dynamic>> deleteChallanGridRecord({
+    required String unqId,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final response = await http
+          .post(
+            Uri.parse("$baseUrl/api/challan/grid/delete"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode({"unqid": unqId}),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("CHALLAN DELETE STATUS : ${response.statusCode}");
+      print("CHALLAN DELETE BODY   : ${response.body}");
+
+      final body = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        if (body is Map<String, dynamic>) {
+          return body;
+        }
+
+        return {"success": true, "message": "Record deleted successfully"};
+      }
+
+      throw Exception(
+        body is Map
+            ? body["message"]?.toString() ?? "Delete failed"
+            : "Delete failed",
+      );
+    } catch (e) {
+      print("❌ CHALLAN DELETE ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ================================================================
+  // ASP.NET printbill equivalent
+  // ================================================================
+
+  static Future<void> printChallan(String sp462) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception("Authentication required. Please login again.");
+      }
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/print",
+      ).replace(queryParameters: {"sp_462": sp462});
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("CHALLAN PRINT STATUS : ${response.statusCode}");
+
+      if (response.statusCode != 200) {
+        throw Exception("Challan print failed: HTTP ${response.statusCode}");
+      }
+
+      print("CHALLAN PRINT RESPONSE: ${response.body}");
+    } catch (e) {
+      print("❌ CHALLAN PRINT ERROR: $e");
+      rethrow;
     }
   }
 
@@ -4437,6 +4735,737 @@ class ApiService {
     } catch (e) {
       return [];
     }
+  }
+
+  /// Returns booking customers available for a new challan.
+  static Future<List<Map<String, dynamic>>> getChallanNewCustomers() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/customers"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanNewCustomers ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns all vehicle models.
+  static Future<List<Map<String, dynamic>>> getChallanModels() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/models"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanModels ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns variants for a given model id.
+  static Future<List<Map<String, dynamic>>> getChallanVariants(
+    String modelId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/new/variants?modelId=${Uri.encodeComponent(modelId)}",
+            ),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanVariants ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns available stock colors for a variant.
+  static Future<List<Map<String, dynamic>>> getChallanColors(
+    String variantId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/new/colors?variantId=${Uri.encodeComponent(variantId)}",
+            ),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanColors ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns VINs available for the selected variant + color.
+  static Future<List<Map<String, dynamic>>> getChallanVins({
+    required String variantId,
+    String colorId = '',
+    String challanType = 'Customer Challan',
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final params = <String, String>{
+        'variantId': variantId,
+        if (colorId.isNotEmpty) 'colorId': colorId,
+        'challanType': challanType,
+      };
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/new/vins",
+      ).replace(queryParameters: params);
+      final res = await http
+          .get(uri, headers: {"Authorization": "Bearer $token"})
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanVins ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns variant pricing details (ex-showroom, charges, taxes) from rh_sp_37_c.
+  static Future<Map<String, dynamic>?> getChallanVariantDetails({
+    required String variantId,
+    String challanDate = '',
+    String stateId = '',
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+      final params = <String, String>{
+        'variantId': variantId,
+        if (challanDate.isNotEmpty) 'challanDate': challanDate,
+        if (stateId.isNotEmpty) 'stateId': stateId,
+      };
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/new/variant-details",
+      ).replace(queryParameters: params);
+      final res = await http
+          .get(uri, headers: {"Authorization": "Bearer $token"})
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return null;
+    } catch (e) {
+      print("getChallanVariantDetails ERROR: $e");
+      return null;
+    }
+  }
+
+  /// Returns all RTO cities.
+  static Future<List<Map<String, dynamic>>> getChallanRtoCities() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/rto-cities"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanRtoCities ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns hypothecation (HPN / bank) list.
+  static Future<List<Map<String, dynamic>>> getChallanHpnList() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/hpn-list"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanHpnList ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns states list.
+  static Future<List<Map<String, dynamic>>> getChallanStates() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/states"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanStates ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns branch list.
+  static Future<List<Map<String, dynamic>>> getChallanBranches() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/branches"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanBranches ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns insurance companies.
+  static Future<List<Map<String, dynamic>>>
+  getChallanInsuranceCompanies() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/insurance-companies"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] is List) {
+          return List<Map<String, dynamic>>.from(body['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print("getChallanInsuranceCompanies ERROR: $e");
+      return [];
+    }
+  }
+
+  /// Returns the next auto-incremented challan number.
+  static Future<int> getChallanNextNo() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return 1;
+      final res = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/new/next-challan-no"),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true) {
+          return (body['nextNo'] as num?)?.toInt() ?? 1;
+        }
+      }
+      return 1;
+    } catch (e) {
+      print("getChallanNextNo ERROR: $e");
+      return 1;
+    }
+  }
+
+  /// Returns receipt amounts already collected for a customer.
+  static Future<Map<String, dynamic>> getChallanReceiptAmounts(
+    String customerId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {};
+      final res = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/new/receipt-amounts?customerId=${Uri.encodeComponent(customerId)}",
+            ),
+            headers: {"Authorization": "Bearer $token"},
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+        if (body['success'] == true && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data']);
+        }
+      }
+      return {};
+    } catch (e) {
+      print("getChallanReceiptAmounts ERROR: $e");
+      return {};
+    }
+  }
+
+  /// Saves a new challan.
+  /// [formData] should contain all sp_xxx fields + prefix, pageno.
+  static Future<Map<String, dynamic>> saveChallanNew(
+    Map<String, dynamic> formData,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) {
+        throw Exception("Not authenticated");
+      }
+      print("ðŸš— saveChallanNew: Sending ${formData.keys.length} fields");
+      final res = await http
+          .post(
+            Uri.parse("$baseUrl/api/challan/new/save"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+            body: jsonEncode(formData),
+          )
+          .timeout(const Duration(seconds: 45));
+
+      print("saveChallanNew status: ${res.statusCode}");
+      print("saveChallanNew body: ${res.body}");
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body;
+      }
+      throw Exception(body['message'] ?? "Save failed");
+    } catch (e) {
+      print("saveChallanNew ERROR: $e");
+      rethrow;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW CHALLAN – ADDITIONAL FORM SUPPORT METHODS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Returns receipt rows for a customer (payments received).
+  /// Maps to A_SP_FOR_Challan @what='griddata11'
+  static Future<Map<String, dynamic>> getChallanReceiptGrid(
+    String customerId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {'rows': [], 'rcTotal': 0};
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/receipt-grid',
+      ).replace(queryParameters: {'customerId': customerId});
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) return body;
+      }
+      return {'rows': [], 'rcTotal': 0};
+    } catch (e) {
+      print('getChallanReceiptGrid ERROR: $e');
+      return {'rows': [], 'rcTotal': 0};
+    }
+  }
+
+  /// Loads an existing challan for editing.
+  /// Maps to A_SP_FOR_Challan @what='Edit'
+  static Future<Map<String, dynamic>?> loadChallanForEdit(String sp462) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+      final res = await http
+          .get(
+            Uri.parse(
+              '$baseUrl/api/challan/new/load/${Uri.encodeComponent(sp462)}',
+            ),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 30));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true)
+          return body['data'] as Map<String, dynamic>?;
+      }
+      return null;
+    } catch (e) {
+      print('loadChallanForEdit ERROR: $e');
+      return null;
+    }
+  }
+
+  /// Updates an existing challan.
+  /// Maps to A_SP_FOR_Challan @what='update'
+  static Future<Map<String, dynamic>> updateChallan(
+    Map<String, dynamic> formData,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) throw Exception('Not authenticated');
+      final res = await http
+          .post(
+            Uri.parse('$baseUrl/api/challan/new/update'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode(formData),
+          )
+          .timeout(const Duration(seconds: 45));
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && body['success'] == true) return body;
+      throw Exception(body['message'] ?? 'Update failed');
+    } catch (e) {
+      print('updateChallan ERROR: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns customer list by challan type.
+  /// type: 'booking' | 'csd' | 'dealer' | 'stb' | 'usedcar'
+  static Future<List<Map<String, dynamic>>> getChallanCustomersByType(
+    String type,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/customers-by-type',
+      ).replace(queryParameters: {'type': type});
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print('getChallanCustomersByType ERROR: $e');
+      return [];
+    }
+  }
+
+  /// Returns city list (for Add City dialog).
+  static Future<List<Map<String, dynamic>>> getChallanCities() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/api/challan/new/cities'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 20));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print('getChallanCities ERROR: $e');
+      return [];
+    }
+  }
+
+  /// Saves a new city via A_SP_FOR_ACCOUNTMASTER @what='insert'.
+  /// Returns the refreshed city list on success, or throws on error.
+  static Future<List<Map<String, dynamic>>> saveChallanCity({
+    required String cityName,
+    required String stateName,
+  }) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) throw Exception('Not authenticated');
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/api/challan/new/add-city'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'cityName': cityName, 'stateName': stateName}),
+        )
+        .timeout(const Duration(seconds: 20));
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    if (body['success'] == true) {
+      return List<Map<String, dynamic>>.from(
+        (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+    }
+    throw Exception(body['message'] ?? 'Failed to save city');
+  }
+
+  /// Returns TCS percentage for a given date.
+  /// Maps to A_SP_FOR_Challan @what='tcsdata'
+  static Future<double> getChallanTcsData(String date) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return 0.0;
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/tcs-data',
+      ).replace(queryParameters: {'date': date});
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return double.tryParse(body['tcs']?.toString() ?? '0') ?? 0.0;
+        }
+      }
+      return 0.0;
+    } catch (e) {
+      print('getChallanTcsData ERROR: $e');
+      return 0.0;
+    }
+  }
+
+  /// Returns own RTO city for a branch.
+  /// Maps to A_SP_FOR_Challan @what='ownrto'
+  static Future<Map<String, dynamic>?> getChallanOwnRto(String branchId) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return null;
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/own-rto',
+      ).replace(queryParameters: {'branchId': branchId});
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] != null) {
+          return Map<String, dynamic>.from(body['data'] as Map);
+        }
+      }
+      return null;
+    } catch (e) {
+      print('getChallanOwnRto ERROR: $e');
+      return null;
+    }
+  }
+
+  /// Returns HPN child branches for a parent HPN.
+  /// Maps to A_SP_FOR_Challan @what='branchhpndata'
+  static Future<List<Map<String, dynamic>>> getChallanHpnBranches(
+    String hpnId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/hpn-branches',
+      ).replace(queryParameters: {'hpnId': hpnId});
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print('getChallanHpnBranches ERROR: $e');
+      return [];
+    }
+  }
+
+  /// Deletes a challan (admin only, checks SI + STB).
+  static Future<Map<String, dynamic>> deleteChallanById(
+    String sp462,
+    String custId,
+  ) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) throw Exception('Not authenticated');
+      final uri = Uri.parse(
+        '$baseUrl/api/challan/new/${Uri.encodeComponent(sp462)}',
+      ).replace(queryParameters: {'custId': custId});
+      final res = await http
+          .delete(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 30));
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      return body;
+    } catch (e) {
+      print('deleteChallanById ERROR: $e');
+      rethrow;
+    }
+  }
+
+  /// Returns retail support (scheme amounts from booking).
+  /// Maps to A_SP_FOR_Challan @what='Retail_support'
+  static Future<Map<String, dynamic>> getChallanRetailSupport({
+    required String variantId,
+    required String modelId,
+    required String vinNo,
+    required String challanDate,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return {};
+      final uri = Uri.parse('$baseUrl/api/challan/new/retail-support').replace(
+        queryParameters: {
+          'variant': variantId,
+          'model': modelId,
+          'vinno': vinNo,
+          'challandate': challanDate,
+        },
+      );
+      final res = await http
+          .get(uri, headers: {'Authorization': 'Bearer $token'})
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return Map<String, dynamic>.from(body['data'] as Map? ?? {});
+        }
+      }
+      return {};
+    } catch (e) {
+      print('getChallanRetailSupport ERROR: $e');
+      return {};
+    }
+  }
+
+  /// Returns area list.
+  static Future<List<Map<String, dynamic>>> getChallanAreas() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return [];
+      final res = await http
+          .get(
+            Uri.parse('$baseUrl/api/challan/new/areas'),
+            headers: {'Authorization': 'Bearer $token'},
+          )
+          .timeout(const Duration(seconds: 15));
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return List<Map<String, dynamic>>.from(
+            (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+          );
+        }
+      }
+      return [];
+    } catch (e) {
+      print('getChallanAreas ERROR: $e');
+      return [];
+    }
+  }
+
+  /// Saves a new area via A_SP_FOR_AreaMaster @what='insert'.
+  /// Returns the refreshed area list on success, or throws on error.
+  static Future<List<Map<String, dynamic>>> saveChallanArea({
+    required String areaName,
+  }) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) throw Exception('Not authenticated');
+    final res = await http
+        .post(
+          Uri.parse('$baseUrl/api/challan/new/add-area'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'areaName': areaName}),
+        )
+        .timeout(const Duration(seconds: 20));
+    final body = jsonDecode(res.body) as Map<String, dynamic>;
+    if (body['success'] == true) {
+      return List<Map<String, dynamic>>.from(
+        (body['data'] as List).map((e) => Map<String, dynamic>.from(e)),
+      );
+    }
+    throw Exception(body['message'] ?? 'Failed to save area');
   }
 }
 
