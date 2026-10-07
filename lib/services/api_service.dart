@@ -3336,7 +3336,7 @@ class ApiService {
     required String requestUnqid,
     required String recptUnqid,
     required String reqType,
-    required String valTo,
+    String? valTo,
   }) async {
     try {
       // ==================================================
@@ -3356,21 +3356,40 @@ class ApiService {
       final url = "$baseUrl/api/challan/receipt/update";
 
       // ==================================================
+      // NORMALIZE REQUEST TYPE
+      // ==================================================
+
+      final normalizedReqType = reqType.trim().toLowerCase();
+
+      // ==================================================
+      // NORMALIZE VALUE TO
+      // ==================================================
+
+      String? finalValueTo;
+
+      if (valTo != null && valTo.trim().isNotEmpty) {
+        finalValueTo = valTo.trim();
+      } else {
+        finalValueTo = null;
+      }
+
+      // ==================================================
       // REQUEST BODY
       // ==================================================
 
       final body = {
         // app_receipt_request.unqid
-        "request_unqid": requestUnqid,
+        "request_unqid": requestUnqid.trim(),
 
         // rh_rcl.rcl_2
-        "recpt_unqid": recptUnqid,
+        "recpt_unqid": recptUnqid.trim(),
 
         // Request type
-        "req_type": reqType,
+        "req_type": reqType.trim(),
 
         // New value
-        "val_to": valTo,
+        // Cancel request can be NULL
+        "val_to": finalValueTo,
       };
 
       // ==================================================
@@ -3382,12 +3401,43 @@ class ApiService {
       print("       UPDATE RECEIPT API CALL");
       print("==============================================");
       print("URL           : $url");
-      print("request_unqid : $requestUnqid");
-      print("recpt_unqid   : $recptUnqid");
-      print("req_type      : $reqType");
-      print("val_to        : $valTo");
+      print("request_unqid : ${requestUnqid.trim()}");
+      print("recpt_unqid   : ${recptUnqid.trim()}");
+      print("req_type      : ${reqType.trim()}");
+      print("normalized    : $normalizedReqType");
+      print("val_to        : $finalValueTo");
       print("BODY          : ${jsonEncode(body)}");
       print("==============================================");
+
+      // ==================================================
+      // VALIDATION
+      // ==================================================
+
+      if (requestUnqid.trim().isEmpty) {
+        throw Exception("requestUnqid is required");
+      }
+
+      if (recptUnqid.trim().isEmpty) {
+        throw Exception("recptUnqid is required");
+      }
+
+      if (reqType.trim().isEmpty) {
+        throw Exception("reqType is required");
+      }
+
+      // ==================================================
+      // VALUE TO VALIDATION
+      // ==================================================
+      // Cancel does NOT require value_to.
+      //
+      // Other request types require value_to.
+      // ==================================================
+
+      if (normalizedReqType != "cancel") {
+        if (finalValueTo == null || finalValueTo == "-") {
+          throw Exception("Value To not found");
+        }
+      }
 
       // ==================================================
       // API CALL
@@ -3432,7 +3482,13 @@ class ApiService {
       // DECODE RESPONSE
       // ==================================================
 
-      final result = jsonDecode(response.body) as Map<String, dynamic>;
+      final decodedResponse = jsonDecode(response.body);
+
+      if (decodedResponse is! Map<String, dynamic>) {
+        throw Exception("Invalid API response format");
+      }
+
+      final result = decodedResponse;
 
       // ==================================================
       // API SUCCESS CHECK
@@ -3452,18 +3508,25 @@ class ApiService {
       print("==============================================");
       print("       RECEIPT UPDATE SUCCESS");
       print("==============================================");
-      print("Request Unqid : $requestUnqid");
-      print("Receipt Unqid : $recptUnqid");
+      print("Request Unqid : ${requestUnqid.trim()}");
+      print("Receipt Unqid : ${recptUnqid.trim()}");
+      print("Request Type  : ${reqType.trim()}");
+      print("Value To      : $finalValueTo");
       print("Status        : ${result["request_status"]}");
+      print("Message       : ${result["message"]}");
       print("==============================================");
 
       return result;
     } catch (e) {
+      // ==================================================
+      // ERROR
+      // ==================================================
+
       print("");
       print("==============================================");
       print("❌ UPDATE RECEIPT API ERROR");
       print("==============================================");
-      print(e);
+      print("ERROR : $e");
       print("==============================================");
 
       rethrow;

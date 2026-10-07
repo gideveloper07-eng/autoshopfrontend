@@ -38,11 +38,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   String? _initError;
   late final AnimationController _animCtrl;
   late final Animation<double> _fadeAnim;
-
+  final Set<String> _customerFinancialFields = <String>{};
   // ── Edit mode ─────────────────────────────────────────────────────────────
   bool get _isEditing =>
       widget.editSp462 != null && widget.editSp462!.isNotEmpty;
   String _editUnq = '0'; // holds the real sp_462 guid when editing
+  // ── Finance field enable/disable ───────────────────────────────────────
+  bool get _financeFieldsDisabled {
+    return _finType.trim().toLowerCase() == 'cash';
+  }
 
   // ── Receipt grid ──────────────────────────────────────────────────────────
   List<Map<String, dynamic>> _receiptRows = [];
@@ -425,7 +429,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       // ============================================================
 
       final r = await Future.wait([
-        ApiService.getChallanNewCustomers(),
+        ApiService.getChallanCustomersByType('booking'),
         ApiService.getChallanModels(),
         ApiService.getChallanRtoCities(),
         ApiService.getChallanHpnList(),
@@ -484,25 +488,54 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       // SET DATA
       // ============================================================
 
+      final states = r[4] as List<Map<String, dynamic>>;
+
+      // Find Rajasthan from the state master
+      String? defaultStateId;
+
+      for (final state in states) {
+        final stateName = (state['value'] ?? state['name'] ?? '')
+            .toString()
+            .trim()
+            .toUpperCase();
+
+        if (stateName == 'RAJASTHAN') {
+          defaultStateId = state['data']?.toString();
+          break;
+        }
+      }
+
+      debugPrint('Default State ID: $defaultStateId');
+
       setState(() {
         _customers = r[0] as List<Map<String, dynamic>>;
         _models = r[1] as List<Map<String, dynamic>>;
         _rtoCities = r[2] as List<Map<String, dynamic>>;
         _hpnList = r[3] as List<Map<String, dynamic>>;
-        _states = r[4] as List<Map<String, dynamic>>;
+
+        _states = states;
+
         _branches = branches;
         _insuranceCos = r[6] as List<Map<String, dynamic>>;
 
         _challanNo = ((r[7] as List).first as Map)['n'] as int? ?? 1;
 
-        // IMPORTANT
         _cities = r[8] as List<Map<String, dynamic>>;
         _areas = r[9] as List<Map<String, dynamic>>;
 
         _branchId = selectedBranchId;
 
+        // DEFAULT STATE = RAJASTHAN
+        // Do not overwrite state when editing an existing challan.
+        if (!_isEditing && defaultStateId != null) {
+          _stateId = defaultStateId;
+        }
+
         _loading = false;
       });
+
+      debugPrint('FINAL _stateId = $_stateId');
+      debugPrint('FINAL _branchId = $_branchId');
 
       debugPrint('FINAL _branchId = $_branchId');
 
@@ -944,73 +977,1488 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     }
   }
 
-  Future<void> _fetchVariantDetails(String varId) async {
-    final d = await ApiService.getChallanVariantDetails(
-      variantId: varId,
-      challanDate: DateFormat('dd/MM/yyyy').format(_challanDate),
-      stateId: _stateId ?? '',
+  void _applyChallanFinancialData(Map<String, dynamic> d) {
+    // ============================================================
+    // EX-SHOWROOM
+    // ============================================================
+    _exShowCtrl.text = _f(
+      d['ExshowRoomPrice'] ??
+          d['exshowroomprice'] ??
+          d['exshowroom'] ??
+          d['exShowroom'],
     );
-    if (d == null || !mounted) return;
-    setState(() {
-      _exShowCtrl.text = _f(d['exshowroom']);
-      _fastTagCtrl.text = _f(d['fasttag']);
-      _rtoExShowCtrl.text = _f(d['rtoexshow'] ?? d['exshowroom']);
-      _rtoRateCtrl.text = _f(d['rtorate']);
-      _rtoSurCtrl.text = _f(d['rtosurcharge']);
-      _greenTaxCtrl.text = _f(d['greentax']);
-      _regFeeCtrl.text = _f(d['regfee']);
-      _hpnRtoCtrl.text = _f(d['hpn']);
-      _dupCtrl.text = _f(d['duplicate']);
-      _smartCtrl.text = _f(d['smartcard']);
-      _otherRtoCtrl.text = _f(d['other']);
-      _thirdPartyCtrl.text = _f(d['thirdparty']);
-      _paCoverCtrl.text = _f(d['pacover']);
-      _cngPerCtrl.text = _f(d['cng'] ?? '0');
-      _bhPerCtrl.text = _f(d['bhperc'] ?? '0');
-      if (d['gst'] != null) _gstUnq = d['gst'].toString();
-      if (d['idv'] != null) _idvCtrl.text = _f(d['idv']);
-      if (d['insurancepercent'] != null) {
-        _insPerCtrl.text = _f(d['insurancepercent']);
+
+    _schemesCtrl.text = _f(
+      d['lessofallencashmentschemne'] ?? d['scheme'] ?? d['schemes'],
+    );
+
+    _subTotalCtrl.text = _f(d['subtotal']);
+
+    // ============================================================
+    // INSURANCE
+    // ============================================================
+    final insTypeRaw = d['instype']?.toString().trim().toLowerCase() ?? '';
+
+    if (insTypeRaw == 'in') {
+      _insType = 'In House';
+    } else if (insTypeRaw == 'out') {
+      _insType = 'Out House';
+    }
+
+    _insExShowCtrl.text = _f(
+      d['insshowroom'] ?? d['insuranceexshowroom'] ?? d['insuranceExShowroom'],
+    );
+
+    _cessCtrl.text = _f(d['CESS'] ?? d['cess']);
+
+    _idvCtrl.text = _f(d['Idv'] ?? d['idv']);
+
+    _idvAmtCtrl.text = _f(d['IdvAmount'] ?? d['idvamount']);
+
+    _afterIdvCtrl.text = _f(d['afteridvamt'] ?? d['afterIdvAmount']);
+
+    _insAmtCtrl.text = _f(d['InsperAmount'] ?? d['insperamount']);
+
+    _insPerCtrl.text = _f(
+      d['InsurancePercentage'] ??
+          d['insurancepercentage'] ??
+          d['insurancepercent'],
+    );
+
+    _finalInsCtrl.text = _f(
+      d['InsuranceAmount'] ?? d['insuranceamount'] ?? d['finalinsurance'],
+    );
+
+    _insDisCtrl.text = _f(
+      d['DiscountPrecentage'] ?? d['discountprecentage'] ?? d['insdis'],
+    );
+
+    _disAmtCtrl.text = _f(d['DiscountAmount'] ?? d['discountamount']);
+
+    _afterDisCtrl.text = _f(d['afterdisamtamt'] ?? d['afterdiscount']);
+
+    _thirdPartyCtrl.text = _f(d['ThirdParty'] ?? d['thirdparty']);
+
+    _paCoverCtrl.text = _f(d['PACover'] ?? d['pacover']);
+
+    _paAmtCtrl.text = _f(d['pacoveramt']);
+
+    _zdCtrl.text = _f(d['ZD'] ?? d['zd']);
+
+    _zdAmtCtrl.text = _f(d['zdamt']);
+
+    _epCtrl.text = _f(d['ep']);
+
+    _epAmtCtrl.text = _f(d['epamt']);
+
+    _pbCtrl.text = _f(d['PB'] ?? d['pb']);
+
+    _kpCtrl.text = _f(d['KP'] ?? d['kp']);
+
+    _kpAmtCtrl.text = _f(d['kpamt']);
+
+    _paidDrvCtrl.text = _f(d['PaidDriver'] ?? d['paiddriver']);
+
+    _afterPdCtrl.text = _f(d['amtafterpaiddriver']);
+
+    _rtiCtrl.text = _f(d['rti']);
+
+    _rtiAmtCtrl.text = _f(d['rtiamt']);
+
+    _cmCtrl.text = _f(d['cm']);
+
+    _cmAmtCtrl.text = _f(d['cmamt']);
+
+    _gstUnq = (d['gstunq'] ?? d['gst'])?.toString();
+
+    _cgstCtrl.text = _f(d['cgst']);
+
+    _sgstCtrl.text = _f(d['sgst']);
+
+    _gstAmtCtrl.text = _f(d['GSTAmount'] ?? d['gstamount']);
+
+    _addLessCtrl.text = _f(d['addless']);
+
+    _ncbCtrl.text = _f(d['NCB'] ?? d['ncb']);
+
+    _cngPerCtrl.text = _f(d['cngp'] ?? d['cng']);
+
+    _cngAmtCtrl.text = _f(d['cngamt']);
+
+    // ============================================================
+    // RTO
+    // ============================================================
+    final rtoFromRaw = d['rtofrom'] ?? d['rtoinout'];
+
+    if (rtoFromRaw != null) {
+      final rto = rtoFromRaw.toString().trim().toLowerCase();
+
+      if (rto == 'in') {
+        _rtoFrom = 'In House';
+      } else if (rto == 'out') {
+        _rtoFrom = 'Out House';
+      } else if (rto == 'bh') {
+        _rtoFrom = 'BH';
       }
-      if (d['insuranceexshowroom'] != null) {
-        _insExShowCtrl.text = _f(d['insuranceexshowroom']);
-      }
-    });
-    _recalculateAspNet();
+    }
+
+    final scrapRaw = d['scrapper'] ?? d['scrappage'];
+
+    if (scrapRaw != null) {
+      final s = scrapRaw.toString().trim().toUpperCase();
+      _scrappage = s == 'TRUE' || s == '1' || s == 'YES';
+    }
+
+    _rtoCityId = (d['rtounq'] ?? d['rtocity'])?.toString();
+
+    _rtoExShowCtrl.text = _f(d['rtoexshow'] ?? d['RTOExShowroom']);
+
+    _rtoRateCtrl.text = _f(d['RTORate'] ?? d['rtorate']);
+
+    _rtoSurCtrl.text = _f(
+      d['RTOTaxSurcharge'] ?? d['rtotaxsurcharge'] ?? d['rtosurcharge'],
+    );
+
+    _greenTaxCtrl.text = _f(d['GreenTax'] ?? d['greentax']);
+
+    _regFeeCtrl.text = _f(d['RegFee'] ?? d['regfee']);
+
+    _hpnRtoCtrl.text = _f(d['HPN'] ?? d['hpn']);
+
+    _dupCtrl.text = _f(d['Duplicate'] ?? d['duplicate']);
+
+    _smartCtrl.text = _f(d['SmartCard'] ?? d['smartcard']);
+
+    _otherRtoCtrl.text = _f(d['Other'] ?? d['other']);
+
+    _rtoTempCtrl.text = _f(d['RTO TEMP'] ?? d['rto temp'] ?? d['rtotemp']);
+
+    _bhPerCtrl.text = _f(d['bhperc'] ?? d['BHPercentage']);
+
+    _bhYearCtrl.text = d['bhyear']?.toString() ?? d['BHYear']?.toString() ?? '';
+
+    _rtoAmtCtrl.text = _f(d['RTOAmount'] ?? d['rtoamount']);
+
+    // ============================================================
+    // OTHER AMOUNTS
+    // ============================================================
+    _oth1Ctrl.text = d['OTHER1']?.toString() ?? d['other1']?.toString() ?? '';
+
+    _amt1Ctrl.text = _f(d['AMOUNT1'] ?? d['amount1']);
+
+    _oth2Ctrl.text = d['OTHER2']?.toString() ?? d['other2']?.toString() ?? '';
+
+    _amt2Ctrl.text = _f(d['AMOUNT2'] ?? d['amount2']);
+
+    _oth3Ctrl.text = d['OTHER3']?.toString() ?? d['other3']?.toString() ?? '';
+
+    _amt3Ctrl.text = _f(d['AMOUNT3'] ?? d['amount3']);
+
+    // ============================================================
+    // FINAL CHALLAN VALUES
+    // ============================================================
+    _workshopInvNo.text = d['WORKSHOPINVOICENO']?.toString() ?? '';
+
+    _workshopInvAmt.text = _f(
+      d['WORKSHOPINVOICEAMOUNT'] ?? d['workshopinvoiceamount'],
+    );
+
+    _trcCtrl.text = _f(d['trc']);
+
+    _compAccCtrl.text = _f(d['Accessories'] ?? d['accessories']);
+
+    _ownAccCtrl.text = _f(d['ownaccss'] ?? d['ownaccessories']);
+
+    _warrantyCtrl.text = _f(
+      d['WarrantyAmount'] ?? d['warrantyamount'] ?? d['warranty'],
+    );
+
+    _warrantyYrCtrl.text =
+        d['WarrantyYear']?.toString() ?? d['warrantyyear']?.toString() ?? '';
+
+    _fastTagCtrl.text = _f(d['fasttag']);
+
+    _tcsCtrl.text = _f(d['tcs']);
+
+    _totalCtrl.text = _f(d['netamount']);
   }
 
-  void _onCustomerSelected(String? id) {
-    setState(() => _custId = id);
-    if (id == null) return;
+  Future<void> _fetchVariantDetails(
+    String varId, {
+    bool preserveCustomerValues = false,
+  }) async {
+    try {
+      final d = await ApiService.getChallanVariantDetails(
+        variantId: varId,
+        challanDate: DateFormat('dd/MM/yyyy').format(_challanDate),
+        stateId: _stateId ?? '',
+      );
+
+      if (d == null || !mounted) return;
+
+      setState(() {
+        // ======================================================
+        // EX-SHOWROOM
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('exshowroom')) {
+          if (d['exshowroom'] != null) {
+            _exShowCtrl.text = _f(d['exshowroom']);
+          }
+        }
+
+        // ======================================================
+        // FAST TAG
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('fasttag')) {
+          if (d['fasttag'] != null) {
+            _fastTagCtrl.text = _f(d['fasttag']);
+          }
+        }
+
+        // ======================================================
+        // RTO EX-SHOWROOM
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('rtoexshow')) {
+          if (d['rtoexshow'] != null) {
+            _rtoExShowCtrl.text = _f(d['rtoexshow']);
+          } else if (d['exshowroom'] != null) {
+            _rtoExShowCtrl.text = _f(d['exshowroom']);
+          }
+        }
+
+        // ======================================================
+        // RTO RATE
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('rtorate')) {
+          if (d['rtorate'] != null) {
+            _rtoRateCtrl.text = _f(d['rtorate']);
+          }
+        }
+
+        // ======================================================
+        // RTO SURCHARGE
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('rtosurcharge')) {
+          if (d['rtosurcharge'] != null) {
+            _rtoSurCtrl.text = _f(d['rtosurcharge']);
+          }
+        }
+
+        // ======================================================
+        // GREEN TAX
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('greentax')) {
+          if (d['greentax'] != null) {
+            _greenTaxCtrl.text = _f(d['greentax']);
+          }
+        }
+
+        // ======================================================
+        // REGISTRATION FEE
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('regfee')) {
+          if (d['regfee'] != null) {
+            _regFeeCtrl.text = _f(d['regfee']);
+          }
+        }
+
+        // ======================================================
+        // HPN
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('hpn')) {
+          if (d['hpn'] != null) {
+            _hpnRtoCtrl.text = _f(d['hpn']);
+          }
+        }
+
+        // ======================================================
+        // DUPLICATE
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('duplicate')) {
+          if (d['duplicate'] != null) {
+            _dupCtrl.text = _f(d['duplicate']);
+          }
+        }
+
+        // ======================================================
+        // SMART CARD
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('smartcard')) {
+          if (d['smartcard'] != null) {
+            _smartCtrl.text = _f(d['smartcard']);
+          }
+        }
+
+        // ======================================================
+        // OTHER RTO
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('other')) {
+          if (d['other'] != null) {
+            _otherRtoCtrl.text = _f(d['other']);
+          }
+        }
+
+        // ======================================================
+        // THIRD PARTY
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('thirdparty')) {
+          if (d['thirdparty'] != null) {
+            _thirdPartyCtrl.text = _f(d['thirdparty']);
+          }
+        }
+
+        // ======================================================
+        // PA COVER
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('pacover')) {
+          if (d['pacover'] != null) {
+            _paCoverCtrl.text = _f(d['pacover']);
+          }
+        }
+
+        // ======================================================
+        // CNG
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('cng')) {
+          if (d['cng'] != null) {
+            _cngPerCtrl.text = _f(d['cng']);
+          }
+        }
+
+        // ======================================================
+        // BH %
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('bhperc')) {
+          if (d['bhperc'] != null) {
+            _bhPerCtrl.text = _f(d['bhperc']);
+          }
+        }
+
+        // ======================================================
+        // BH YEAR
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('bhyear')) {
+          if (d['bhyear'] != null) {
+            _bhYearCtrl.text = _f(d['bhyear']);
+          }
+        }
+
+        // ======================================================
+        // GST
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('gst')) {
+          if (d['gst'] != null) {
+            _gstUnq = d['gst'].toString();
+          }
+        }
+
+        // ======================================================
+        // IDV
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('idv')) {
+          if (d['idv'] != null) {
+            _idvCtrl.text = _f(d['idv']);
+          }
+        }
+
+        // ======================================================
+        // INSURANCE %
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('insurancepercent')) {
+          if (d['insurancepercent'] != null) {
+            _insPerCtrl.text = _f(d['insurancepercent']);
+          }
+        }
+
+        // ======================================================
+        // INSURANCE EX-SHOWROOM
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('insuranceexshowroom')) {
+          if (d['insuranceexshowroom'] != null) {
+            _insExShowCtrl.text = _f(d['insuranceexshowroom']);
+          }
+        }
+
+        // ======================================================
+        // ZD
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('zd')) {
+          if (d['zd'] != null) {
+            _zdCtrl.text = _f(d['zd']);
+          }
+        }
+
+        // ======================================================
+        // PB
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('pb')) {
+          if (d['pb'] != null) {
+            _pbCtrl.text = _f(d['pb']);
+          }
+        }
+
+        // ======================================================
+        // KP
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('kp')) {
+          if (d['kp'] != null) {
+            _kpCtrl.text = _f(d['kp']);
+          }
+        }
+
+        // ======================================================
+        // RTI
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('rti')) {
+          if (d['rti'] != null) {
+            _rtiCtrl.text = _f(d['rti']);
+          }
+        }
+
+        // ======================================================
+        // CM
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('cm')) {
+          if (d['cm'] != null) {
+            _cmCtrl.text = _f(d['cm']);
+          }
+        }
+
+        // ======================================================
+        // EP
+        // ======================================================
+
+        if (!preserveCustomerValues ||
+            !_customerFinancialFields.contains('ep')) {
+          if (d['ep'] != null) {
+            _epCtrl.text = _f(d['ep']);
+          }
+        }
+      });
+
+      // ========================================================
+      // RECALCULATE
+      // ========================================================
+
+      _recalculateAspNet();
+    } catch (e, stackTrace) {
+      debugPrint('_fetchVariantDetails ERROR: $e');
+
+      debugPrint(stackTrace.toString());
+    }
+  }
+
+  Future<void> _onCustomerSelected(String? id) async {
+    if (id == null || id.isEmpty) return;
+
+    // ============================================================
+    // RESET CUSTOMER-SPECIFIC FIELD TRACKING
+    // ============================================================
+
+    _customerFinancialFields.clear();
+
+    // ============================================================
+    // FIND CUSTOMER
+    // ============================================================
+
     final c = _customers.firstWhere(
       (e) => (e['data'] ?? e['value'] ?? e['id']).toString() == id,
       orElse: () => <String, dynamic>{},
     );
+
     if (c.isEmpty) {
-      _loadReceiptGrid(id);
+      setState(() => _custId = id);
+
+      await _loadReceiptGrid(id);
+
+      if (mounted) {
+        _recalculateAspNet();
+      }
+
       return;
     }
-    setState(() {
-      _addressCtrl.text = c['address']?.toString() ?? '';
-      _mobileCtrl.text = c['mobile']?.toString() ?? '';
-      _panCtrl.text = c['panno']?.toString() ?? c['pan']?.toString() ?? '';
-      _aadharCtrl.text = c['aadhar']?.toString() ?? '';
-      _gstinCtrl.text = c['gstin']?.toString() ?? '';
-      _fatherCtrl.text = c['fathername']?.toString() ?? '';
-      _emailCtrl.text = c['email']?.toString() ?? '';
-      _ageCtrl.text = c['age']?.toString() ?? '';
-      _nomineeCtrl.text = c['nominee']?.toString() ?? '';
-      _scCtrl.text = c['scname']?.toString() ?? '';
-      _tlCtrl.text = c['tl']?.toString() ?? '';
-      _managerCtrl.text = c['manager']?.toString() ?? '';
 
-      _title = (c['title']?.toString().isNotEmpty == true)
-          ? c['title'].toString()
-          : 'MR';
+    // ============================================================
+    // CUSTOMER + VEHICLE + FINANCIAL DATA
+    // ============================================================
+
+    setState(() {
+      // ==========================================================
+      // CUSTOMER
+      // ==========================================================
+
+      _custId = id;
+
+      // ==========================================================
+      // VEHICLE
+      // ==========================================================
+
+      _modelId = c['va_26']?.toString();
+
+      _variantId = c['va_27']?.toString();
+
+      _colorId = c['va_28']?.toString();
+
+      _vinNo = c['va_29']?.toString();
+
+      // ==========================================================
+      // ENGINE
+      // ==========================================================
+
+      _engineCtrl.text = c['sp_54']?.toString() ?? '';
+
+      // ==========================================================
+      // CUSTOMER DETAILS
+      // ==========================================================
+
+      _addressCtrl.text =
+          c['m1_11']?.toString() ?? c['address']?.toString() ?? '';
+
+      _emailCtrl.text = c['m1_50']?.toString() ?? c['email']?.toString() ?? '';
+
+      _mobileCtrl.text =
+          c['m1_47']?.toString() ?? c['mobile']?.toString() ?? '';
+
+      _aadharCtrl.text =
+          c['m1_48']?.toString() ?? c['aadhar']?.toString() ?? '';
+
+      _panCtrl.text =
+          c['m1_40']?.toString() ??
+          c['panno']?.toString() ??
+          c['pan']?.toString() ??
+          '';
+
+      _gstinCtrl.text = c['m1_37']?.toString() ?? c['gstin']?.toString() ?? '';
+
+      // ==========================================================
+      // TITLE
+      // ==========================================================
+
+      final titleRaw = c['m1_51']?.toString().trim() ?? '';
+
+      if (titleRaw.isNotEmpty) {
+        _title = titleRaw;
+      } else {
+        final fallbackTitle = c['title']?.toString().trim() ?? '';
+
+        _title = fallbackTitle.isNotEmpty ? fallbackTitle : 'MR';
+      }
+
+      // ==========================================================
+      // NOMINEE / RELATION / AGE
+      // ==========================================================
+
+      _nomineeCtrl.text = c['nominee']?.toString() ?? '';
+
+      _ageCtrl.text = c['age']?.toString() ?? '';
+
+      final relRaw = c['relation']?.toString().trim() ?? '';
+
+      if (relRaw.isNotEmpty) {
+        _relation = relRaw;
+      }
+
+      // ==========================================================
+      // FATHER NAME
+      // ==========================================================
+
+      _fatherCtrl.text = c['fathername']?.toString() ?? '';
+
+      // ==========================================================
+      // SALES CONSULTANT
+      // ==========================================================
+
+      _scCtrl.text = c['scname']?.toString() ?? '';
+
+      // ==========================================================
+      // TL / MANAGER
+      // ==========================================================
+
+      _tlCtrl.text = c['tlname']?.toString() ?? c['tl']?.toString() ?? '';
+
+      _managerCtrl.text =
+          c['managername']?.toString() ?? c['manager']?.toString() ?? '';
+
+      // ==========================================================
+      // EP / RTI / CM
+      //
+      // Only overwrite if customer API actually contains a value.
+      // Empty string should NOT destroy master values.
+      // ==========================================================
+
+      final epValue = c['ep'];
+
+      if (epValue != null && epValue.toString().trim().isNotEmpty) {
+        final epRaw = _f(epValue);
+
+        _customerFinancialFields.add('ep');
+
+        _epCtrl.text = epRaw;
+
+        _epAdd = (double.tryParse(epRaw) ?? 0) > 0;
+      }
+
+      final rtiValue = c['rti'];
+
+      if (rtiValue != null && rtiValue.toString().trim().isNotEmpty) {
+        final rtiRaw = _f(rtiValue);
+
+        _customerFinancialFields.add('rti');
+
+        _rtiCtrl.text = rtiRaw;
+
+        _rtiAdd = (double.tryParse(rtiRaw) ?? 0) > 0;
+      }
+
+      final cmValue = c['cm'];
+
+      if (cmValue != null && cmValue.toString().trim().isNotEmpty) {
+        final cmRaw = _f(cmValue);
+
+        _customerFinancialFields.add('cm');
+
+        _cmCtrl.text = cmRaw;
+
+        _cmAdd = (double.tryParse(cmRaw) ?? 0) > 0;
+      }
+
+      // ==========================================================
+      // INSURANCE DISCOUNT
+      // ==========================================================
+
+      final insDisValue = c['insdis'];
+
+      if (insDisValue != null && insDisValue.toString().trim().isNotEmpty) {
+        _customerFinancialFields.add('insdis');
+
+        _insDisCtrl.text = _f(insDisValue);
+      }
+
+      // ==========================================================
+      // INSURANCE IN / OUT
+      // ==========================================================
+
+      final insInOut = c['insinout']?.toString().trim().toLowerCase() ?? '';
+
+      if (insInOut == 'in') {
+        _insType = 'In House';
+      } else if (insInOut == 'out') {
+        _insType = 'Out House';
+      }
+
+      // ==========================================================
+      // RTO IN / OUT
+      //
+      // Only map explicit textual values.
+      // Do NOT assume "0.00" means In House/Out House.
+      // ==========================================================
+
+      final rtoInOut = c['rtoinout']?.toString().trim().toLowerCase() ?? '';
+
+      if (rtoInOut == 'in') {
+        _rtoFrom = 'In House';
+      } else if (rtoInOut == 'out') {
+        _rtoFrom = 'Out House';
+      } else if (rtoInOut == 'bh') {
+        _rtoFrom = 'BH';
+      }
+
+      // ==========================================================
+      // RTO CITY
+      // ==========================================================
+
+      final rtoCityFromCust = c['rtocity']?.toString() ?? '';
+
+      if (rtoCityFromCust.isNotEmpty) {
+        _rtoCityId = rtoCityFromCust;
+      }
+
+      // ==========================================================
+      // RTO CITY NAME
+      // ==========================================================
+
+      // ==========================================================
+      // TRC
+      // ==========================================================
+
+      final trcValue = c['trc'];
+
+      if (trcValue != null && trcValue.toString().trim().isNotEmpty) {
+        _customerFinancialFields.add('trc');
+
+        _trcCtrl.text = _f(trcValue);
+      }
+
+      // ==========================================================
+      // HPN / HYPOTHECATION
+      // ==========================================================
+
+      _hpnParentId =
+          c['hpnunq']?.toString() ??
+          c['sp_688']?.toString() ??
+          c['sp_774']?.toString();
+
+      _hpnChildId = c['sp_689']?.toString() ?? c['sp_775']?.toString();
+
+      _hpnId = c['hpn']?.toString();
+
+      _hypCtrl.text = c['hpnchild']?.toString() ?? '';
+
+      // ==========================================================
+      // FINANCE TYPE
+      // ==========================================================
+
+      final financeRaw = c['finance']?.toString().trim().toLowerCase() ?? '';
+
+      if (financeRaw == 'in') {
+        _finType = 'In House';
+      } else if (financeRaw == 'out') {
+        _finType = 'Out House';
+      } else if (financeRaw == 'cash') {
+        _finType = 'Cash';
+      } else {
+        _finType = 'In House';
+      }
+
+      // ==========================================================
+      // LOAN AMOUNT
+      // ==========================================================
+
+      _loanAmtCtrl.text = _f(
+        c['loanamt'] ?? c['netdisbured'] ?? c['sp_537'] ?? c['bankamt'],
+      );
+
+      // ==========================================================
+      // NET DISBURSED
+      // ==========================================================
+
+      _netDisCtrl.text = _f(
+        c['netdisbured'] ?? c['loanamt'] ?? c['sp_537'] ?? c['bankamt'],
+      );
+
+      // ==========================================================
+      // BRANCH
+      //
+      // IMPORTANT:
+      // Always replace previous customer's branch.
+      // ==========================================================
+
+      final custBranchId = c['branchid']?.toString() ?? '';
+
+      if (custBranchId.isNotEmpty) {
+        _branchId = custBranchId;
+      }
+
+      _branchNameCtrl.text =
+          c['branchname']?.toString() ??
+          c['branch']?.toString() ??
+          c['m1_53']?.toString() ??
+          '';
+
+      // ==========================================================
+      // CORPORATE
+      // ==========================================================
+
+      final corp = double.tryParse(c['corporate']?.toString() ?? '0') ?? 0;
+
+      if (corp > 0) {
+        _corpValCtrl.text = corp.toStringAsFixed(2);
+
+        _corpYn = 'Yes';
+      } else {
+        _corpValCtrl.text = '0';
+        _corpYn = 'No';
+      }
+
+      // ==========================================================
+      // EXCHANGE
+      // ==========================================================
+
+      final exch = double.tryParse(c['exchange']?.toString() ?? '0') ?? 0;
+
+      if (exch > 0) {
+        _exchValCtrl.text = exch.toStringAsFixed(2);
+
+        _exchYn = 'Yes';
+      } else {
+        _exchValCtrl.text = '0';
+        _exchYn = 'No';
+      }
+
+      // ==========================================================
+      // LOYALTY
+      // ==========================================================
+
+      final loy = double.tryParse(c['loyality']?.toString() ?? '0') ?? 0;
+
+      if (loy > 0) {
+        _loyValCtrl.text = loy.toStringAsFixed(2);
+
+        _loyYn = 'Yes';
+      } else {
+        _loyValCtrl.text = '0';
+        _loyYn = 'No';
+      }
+
+      // ==========================================================
+      // DEALER
+      // ==========================================================
+
+      final deal = double.tryParse(c['dealer']?.toString() ?? '0') ?? 0;
+
+      if (deal > 0) {
+        _dealValCtrl.text = deal.toStringAsFixed(2);
+
+        _dealYn = 'Yes';
+      } else {
+        _dealValCtrl.text = '0';
+        _dealYn = 'No';
+      }
+
+      // ==========================================================
+      // SCHEME
+      //
+      // API may return [0, 0].
+      // Do not try to double.parse("[0, 0]").
+      // ==========================================================
+
+      final schemeValue = c['scheme'];
+
+      if (schemeValue is List) {
+        double schemeTotal = 0;
+
+        for (final item in schemeValue) {
+          schemeTotal += double.tryParse(item?.toString() ?? '0') ?? 0;
+        }
+
+        _schemesCtrl.text = schemeTotal.toStringAsFixed(2);
+      } else {
+        final scheme = double.tryParse(schemeValue?.toString() ?? '0') ?? 0;
+
+        _schemesCtrl.text = scheme.toStringAsFixed(2);
+      }
+
+      // ==========================================================
+      // WARRANTY
+      // ==========================================================
+
+      final wrtyAmt =
+          double.tryParse(
+            c['wrty_amt']?.toString() ?? c['warranty']?.toString() ?? '0',
+          ) ??
+          0;
+
+      _warrantyCtrl.text = wrtyAmt.toStringAsFixed(2);
+
+      // ==========================================================
+      // WARRANTY YEAR
+      // ==========================================================
+
+      if (c['warranty'] != null) {
+        // Keep existing warranty-year logic if your API provides
+        // a separate year field.
+      }
+
+      // ==========================================================
+      // RSA
+      // ==========================================================
+
+      final rsaAmt = double.tryParse(c['rsa']?.toString() ?? '0') ?? 0;
+
+      _rsaCtrl.text = rsaAmt.toStringAsFixed(2);
+
+      // ==========================================================
+      // SOT
+      // ==========================================================
+
+      final sotAmt =
+          double.tryParse(
+            c['sot_amt']?.toString() ?? c['sot']?.toString() ?? '0',
+          ) ??
+          0;
+
+      _sotAmtCtrl.text = sotAmt.toStringAsFixed(2);
+
+      // ==========================================================
+      // OTHER 1 / 2 / 3
+      // ==========================================================
+
+      _oth1Ctrl.text = c['ot_cap1']?.toString() ?? '';
+
+      _oth2Ctrl.text = c['ot_cap2']?.toString() ?? '';
+
+      _oth3Ctrl.text = c['ot_cap3']?.toString() ?? '';
+
+      _amt1Ctrl.text = _f(c['ot_amt1'] ?? 0);
+
+      _amt2Ctrl.text = _f(c['ot_amt2'] ?? 0);
+
+      _amt3Ctrl.text = _f(c['ot_amt3'] ?? 0);
+
+      // ==========================================================
+      // SCRAPPAGE
+      //
+      // IMPORTANT:
+      // API returns actual percentage.
+      // Example:
+      // scrapper = 26
+      //
+      // It is NOT simply a boolean.
+      // ==========================================================
+
+      final scrapperValue =
+          double.tryParse(c['scrapper']?.toString() ?? '0') ?? 0;
+
+      if (scrapperValue > 0) {
+        _scrappage = true;
+
+        // If your project has a scrappage controller,
+        // use it here.
+        //
+        // _scrappageCtrl.text =
+        //     scrapperValue.toStringAsFixed(2);
+
+        _customerFinancialFields.add('scrappage');
+      } else {
+        _scrappage = false;
+
+        // If controller exists:
+        //
+        // _scrappageCtrl.text = '0';
+      }
+
+      // ==========================================================
+      // TCS CALCULATION FLAG
+      // ==========================================================
+
+      final tcsCal = c['tcscal']?.toString().trim().toUpperCase() ?? '';
+
+      if (tcsCal == 'TRUE') {
+        _customerFinancialFields.add('tcscal');
+
+        // If your Flutter code has a TCS boolean, assign it here.
+        //
+        // _tcsCalculate = true;
+      } else if (tcsCal == 'FALSE') {
+        // If your Flutter code has a TCS boolean:
+        //
+        // _tcsCalculate = false;
+      }
+
+      // ==========================================================
+      // CITY / AREA
+      // ==========================================================
+
+      _cityName = c['city']?.toString() ?? '';
+
+      _cityId = c['cityunq']?.toString();
+
+      _areaName = c['area']?.toString() ?? '';
+
+      _areaId = c['areaunq']?.toString();
+
+      // ==========================================================
+      // APPLY OTHER EXISTING CUSTOMER FINANCIAL DATA
+      // ==========================================================
+
+      _applyChallanFinancialData(c);
     });
-    _loadReceiptGrid(id);
-    _recalculateAspNet();
+
+    // ============================================================
+    // LOAD DEPENDENT VARIANTS
+    // ============================================================
+
+    if (_modelId != null && _modelId!.isNotEmpty) {
+      try {
+        final variants = await ApiService.getChallanVariants(_modelId!);
+
+        if (!mounted) return;
+
+        setState(() {
+          _variants = variants;
+        });
+
+        // ========================================================
+        // LOAD COLORS
+        // ========================================================
+
+        if (_variantId != null && _variantId!.isNotEmpty) {
+          final colors = await ApiService.getChallanColors(_variantId!);
+
+          if (!mounted) return;
+
+          setState(() {
+            _colors = colors;
+          });
+
+          // ======================================================
+          // LOAD VINs
+          // ======================================================
+
+          if (_colorId != null && _colorId!.isNotEmpty) {
+            final vins = await ApiService.getChallanVins(
+              variantId: _variantId!,
+              colorId: _colorId!,
+              challanType: _challanType,
+            );
+
+            if (!mounted) return;
+
+            setState(() {
+              _vins = vins;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('_onCustomerSelected cascade ERROR: $e');
+      }
+    }
+
+    // ============================================================
+    // LOAD VARIANT MASTER DETAILS
+    //
+    // IMPORTANT:
+    // Preserve customer-specific values such as:
+    //   insdis
+    //   scrappage
+    //   ep
+    //   rti
+    //   cm
+    //   trc
+    //   etc.
+    // ============================================================
+
+    if (_variantId != null && _variantId!.isNotEmpty) {
+      await _fetchVariantDetails(_variantId!, preserveCustomerValues: true);
+    }
+
+    // ============================================================
+    // LOAD HPN CHILD BRANCHES
+    // ============================================================
+
+    if (_hpnParentId != null && _hpnParentId!.isNotEmpty) {
+      await _loadHpnBranches(_hpnParentId!);
+    }
+
+    // ============================================================
+    // FETCH OWN RTO
+    // ============================================================
+
+    if (_branchId != null && _branchId!.isNotEmpty && _rtoCityId == null) {
+      await _fetchOwnRtoCity(_branchId!);
+    }
+
+    // ============================================================
+    // LOAD CUSTOMER RECEIPTS
+    // ============================================================
+
+    await _loadReceiptGrid(id);
+
+    // ============================================================
+    // FINAL ASP.NET CALCULATION
+    // ============================================================
+
+    if (mounted) {
+      _recalculateAspNet();
+    }
   }
+
+  // Future<void> _onCustomerSelected(String? id) async {
+  //   if (id == null || id.isEmpty) return;
+
+  //   final c = _customers.firstWhere(
+  //     (e) => (e['data'] ?? e['value'] ?? e['id']).toString() == id,
+  //     orElse: () => <String, dynamic>{},
+  //   );
+
+  //   if (c.isEmpty) {
+  //     setState(() => _custId = id);
+  //     _loadReceiptGrid(id);
+  //     return;
+  //   }
+
+  //   setState(() {
+  //     // ─────────────────────────────────────────────
+  //     // CUSTOMER
+  //     // ASP.NET:
+  //     // ui.item.data
+  //     // ─────────────────────────────────────────────
+  //     _custId = id;
+
+  //     // ─────────────────────────────────────────────
+  //     // VEHICLE
+  //     // ASP.NET:
+  //     // model / variant / color / va_29
+  //     // ─────────────────────────────────────────────
+  //     _modelId = c['va_26']?.toString();
+  //     _variantId = c['va_27']?.toString();
+  //     _colorId = c['va_28']?.toString();
+  //     _vinNo = c['va_29']?.toString();
+
+  //     // ─────────────────────────────────────────────
+  //     // ENGINE
+  //     // ASP.NET: sp_54
+  //     // ─────────────────────────────────────────────
+  //     _engineCtrl.text = c['sp_54']?.toString() ?? '';
+
+  //     // ─────────────────────────────────────────────
+  //     // CUSTOMER DETAILS
+  //     // ASP.NET m1_11, m1_50, m1_47, m1_48,
+  //     // m1_40, m1_37, m1_51
+  //     // ─────────────────────────────────────────────
+  //     _addressCtrl.text =
+  //         c['m1_11']?.toString() ?? c['address']?.toString() ?? '';
+
+  //     _emailCtrl.text = c['m1_50']?.toString() ?? c['email']?.toString() ?? '';
+
+  //     _mobileCtrl.text =
+  //         c['m1_47']?.toString() ?? c['mobile']?.toString() ?? '';
+
+  //     _aadharCtrl.text =
+  //         c['m1_48']?.toString() ?? c['aadhar']?.toString() ?? '';
+
+  //     _panCtrl.text =
+  //         c['m1_40']?.toString() ??
+  //         c['panno']?.toString() ??
+  //         c['pan']?.toString() ??
+  //         '';
+
+  //     _gstinCtrl.text = c['m1_37']?.toString() ?? c['gstin']?.toString() ?? '';
+
+  //     _title = c['m1_51']?.toString().isNotEmpty == true
+  //         ? c['m1_51'].toString()
+  //         : (c['title']?.toString().isNotEmpty == true
+  //               ? c['title'].toString()
+  //               : 'MR');
+
+  //     // ─────────────────────────────────────────────
+  //     // NOMINEE / RELATION / AGE
+  //     // ASP.NET: sp_871 (nominee), sp_872 (age), sp_873 (relation)
+  //     // ─────────────────────────────────────────────
+  //     _nomineeCtrl.text = c['nominee']?.toString() ?? '';
+  //     _ageCtrl.text = c['age']?.toString() ?? '';
+  //     final relRaw = c['relation']?.toString() ?? '';
+  //     if (relRaw.isNotEmpty) _relation = relRaw;
+
+  //     // ─────────────────────────────────────────────
+  //     // FATHER NAME
+  //     // ─────────────────────────────────────────────
+  //     _fatherCtrl.text = c['fathername']?.toString() ?? '';
+
+  //     // ─────────────────────────────────────────────
+  //     // SC
+  //     // ASP.NET: scname / va_20 (scunq)
+  //     // ─────────────────────────────────────────────
+  //     _scCtrl.text = c['scname']?.toString() ?? '';
+
+  //     // ─────────────────────────────────────────────
+  //     // TL / MANAGER
+  //     // ASP.NET: tlname / managername from sp_73
+  //     // ─────────────────────────────────────────────
+  //     _tlCtrl.text = c['tlname']?.toString() ?? c['tl']?.toString() ?? '';
+  //     _managerCtrl.text =
+  //         c['managername']?.toString() ?? c['manager']?.toString() ?? '';
+
+  //     // ─────────────────────────────────────────────
+  //     // EP / RTI / CM  (Insurance add-ons)
+  //     // ASP.NET: SP_791 (ep), sp_792 (rti), sp_793 (cm)
+  //     // ─────────────────────────────────────────────
+  //     final epRaw = _f(c['ep']);
+  //     final rtiRaw = _f(c['rti']);
+  //     final cmRaw = _f(c['cm']);
+  //     _epCtrl.text = epRaw;
+  //     _rtiCtrl.text = rtiRaw;
+  //     _cmCtrl.text = cmRaw;
+  //     _epAdd = (double.tryParse(epRaw) ?? 0) > 0;
+  //     _rtiAdd = (double.tryParse(rtiRaw) ?? 0) > 0;
+  //     _cmAdd = (double.tryParse(cmRaw) ?? 0) > 0;
+
+  //     // ─────────────────────────────────────────────
+  //     // INSURANCE DISCOUNT (insdis)
+  //     // ASP.NET: sp_803
+  //     // ─────────────────────────────────────────────
+  //     final insDis = c['insdis']?.toString() ?? '';
+  //     if (insDis.isNotEmpty) _insDisCtrl.text = _f(insDis);
+
+  //     // ─────────────────────────────────────────────
+  //     // INSURANCE IN/OUT
+  //     // ASP.NET: sp_790 (insinout) → 'in'/'out'
+  //     // ─────────────────────────────────────────────
+  //     final insInOut = c['insinout']?.toString().trim().toLowerCase() ?? '';
+  //     if (insInOut == 'in') {
+  //       _insType = 'In House';
+  //     } else if (insInOut == 'out') {
+  //       _insType = 'Out House';
+  //     }
+
+  //     // ─────────────────────────────────────────────
+  //     // RTO IN/OUT
+  //     // ASP.NET: sp_828 (rtoinout)
+  //     // ─────────────────────────────────────────────
+  //     final rtoInOut = c['rtoinout']?.toString().trim().toLowerCase() ?? '';
+  //     if (rtoInOut == 'in') {
+  //       _rtoFrom = 'In House';
+  //     } else if (rtoInOut == 'out') {
+  //       _rtoFrom = 'Out House';
+  //     }
+
+  //     // ─────────────────────────────────────────────
+  //     // RTO CITY (pre-filled from booking)
+  //     // ASP.NET: sp_839 (rtocity unq), rtocityname
+  //     // ─────────────────────────────────────────────
+  //     final rtoCityFromCust = c['rtocity']?.toString() ?? '';
+  //     if (rtoCityFromCust.isNotEmpty) _rtoCityId = rtoCityFromCust;
+
+  //     // ─────────────────────────────────────────────
+  //     // TRC
+  //     // ASP.NET: sp_840 (trc amount from booking)
+  //     // ─────────────────────────────────────────────
+  //     final trcRaw = c['trc']?.toString() ?? '';
+  //     if (trcRaw.isNotEmpty) _trcCtrl.text = _f(trcRaw);
+
+  //     // ─────────────────────────────────────────────
+  //     // HPN / HYPOTHECATION
+  //     // ASP.NET: sp_688 (hpn parent unq), sp_689 (hpn child unq),
+  //     //          hp_7 (hpn name), hp_c_3 (hpn child name)
+  //     // ─────────────────────────────────────────────
+  //     _hpnParentId =
+  //         c['hpnunq']?.toString() ??
+  //         c['sp_688']?.toString() ??
+  //         c['sp_774']?.toString();
+  //     _hpnChildId = c['sp_689']?.toString() ?? c['sp_775']?.toString();
+  //     _hpnId = c['hpn']?.toString(); // display name
+  //     _hypCtrl.text = c['hpnchild']?.toString() ?? '';
+
+  //     // ─────────────────────────────────────────────
+  //     // FINANCE TYPE
+  //     // ─────────────────────────────────────────────
+  //     final financeRaw = c['finance']?.toString().trim().toLowerCase() ?? '';
+  //     if (financeRaw == 'in') {
+  //       _finType = 'In House';
+  //     } else if (financeRaw == 'out') {
+  //       _finType = 'Out House';
+  //     } else if (financeRaw == 'cash') {
+  //       _finType = 'Cash';
+  //     } else {
+  //       _finType = 'In House';
+  //     }
+  //     _loanAmtCtrl.text = _f(
+  //       c['loanamt'] ?? c['netdisbured'] ?? c['sp_537'] ?? c['bankamt'],
+  //     );
+  //     _netDisCtrl.text = _f(
+  //       c['netdisbured'] ?? c['loanamt'] ?? c['sp_537'] ?? c['bankamt'],
+  //     );
+
+  //     // ─────────────────────────────────────────────
+  //     // BRANCH (from booking record)
+  //     // ASP.NET: branchid, branchname
+  //     // ─────────────────────────────────────────────
+  //     final custBranchId = c['branchid']?.toString() ?? '';
+  //     if (custBranchId.isNotEmpty && _branchId == null) {
+  //       _branchId = custBranchId;
+  //     }
+  //     _branchNameCtrl.text =
+  //         c['branchname']?.toString() ??
+  //         c['branch']?.toString() ??
+  //         c['m1_53']?.toString() ??
+  //         '';
+
+  //     // ─────────────────────────────────────────────
+  //     // DISCOUNT VALUES (from sp_73 booking record)
+  //     // ASP.NET: sp_779 (corporate), sp_781 (exchange),
+  //     //          sp_783 (loyality), sp_785 (dealer), sp_787 (scheme)
+  //     // Only set when > 0 so manual entries are preserved
+  //     // ─────────────────────────────────────────────
+  //     final corp = double.tryParse(c['corporate']?.toString() ?? '0') ?? 0;
+  //     final exch = double.tryParse(c['exchange']?.toString() ?? '0') ?? 0;
+  //     final loy = double.tryParse(c['loyality']?.toString() ?? '0') ?? 0;
+  //     final deal = double.tryParse(c['dealer']?.toString() ?? '0') ?? 0;
+  //     final scheme = double.tryParse(c['scheme']?.toString() ?? '0') ?? 0;
+
+  //     if (corp > 0) {
+  //       _corpValCtrl.text = corp.toStringAsFixed(2);
+  //       _corpYn = 'Yes';
+  //     }
+  //     if (exch > 0) {
+  //       _exchValCtrl.text = exch.toStringAsFixed(2);
+  //       _exchYn = 'Yes';
+  //     }
+  //     if (loy > 0) {
+  //       _loyValCtrl.text = loy.toStringAsFixed(2);
+  //       _loyYn = 'Yes';
+  //     }
+  //     if (deal > 0) {
+  //       _dealValCtrl.text = deal.toStringAsFixed(2);
+  //       _dealYn = 'Yes';
+  //     }
+  //     if (scheme > 0) _schemesCtrl.text = scheme.toStringAsFixed(2);
+
+  //     // ─────────────────────────────────────────────
+  //     // WARRANTY / RSA / SOT (from sp_73)
+  //     // ASP.NET: sp_848 (wrty_amt), sp_864 (rsa), sp_863 (sot_amt)
+  //     // ─────────────────────────────────────────────
+  //     final wrtyAmt =
+  //         double.tryParse(
+  //           c['wrty_amt']?.toString() ?? c['warranty']?.toString() ?? '0',
+  //         ) ??
+  //         0;
+  //     final rsaAmt = double.tryParse(c['rsa']?.toString() ?? '0') ?? 0;
+  //     final sotAmt =
+  //         double.tryParse(
+  //           c['sot_amt']?.toString() ?? c['sot']?.toString() ?? '0',
+  //         ) ??
+  //         0;
+
+  //     if (wrtyAmt > 0) _warrantyCtrl.text = wrtyAmt.toStringAsFixed(2);
+  //     if (rsaAmt > 0) _rsaCtrl.text = rsaAmt.toStringAsFixed(2);
+  //     if (sotAmt > 0) _sotAmtCtrl.text = sotAmt.toStringAsFixed(2);
+
+  //     // ─────────────────────────────────────────────
+  //     // OTHER CAPTIONS & AMOUNTS (from sp_73)
+  //     // ASP.NET: ot_cap1/2/3, ot_amt1/2/3
+  //     // ─────────────────────────────────────────────
+  //     final ot1 = c['ot_cap1']?.toString() ?? '';
+  //     final ot2 = c['ot_cap2']?.toString() ?? '';
+  //     final ot3 = c['ot_cap3']?.toString() ?? '';
+  //     final otAmt1 = c['ot_amt1']?.toString() ?? '0';
+  //     final otAmt2 = c['ot_amt2']?.toString() ?? '0';
+  //     final otAmt3 = c['ot_amt3']?.toString() ?? '0';
+  //     if (ot1.isNotEmpty) _oth1Ctrl.text = ot1;
+  //     if (ot2.isNotEmpty) _oth2Ctrl.text = ot2;
+  //     if (ot3.isNotEmpty) _oth3Ctrl.text = ot3;
+  //     if ((double.tryParse(otAmt1) ?? 0) > 0) _amt1Ctrl.text = _f(otAmt1);
+  //     if ((double.tryParse(otAmt2) ?? 0) > 0) _amt2Ctrl.text = _f(otAmt2);
+  //     if ((double.tryParse(otAmt3) ?? 0) > 0) _amt3Ctrl.text = _f(otAmt3);
+
+  //     // ─────────────────────────────────────────────
+  //     // SCRAPPAGE (pa_109)
+  //     // ASP.NET: scrapper (bool flag)
+  //     // ─────────────────────────────────────────────
+  //     final scrapper = c['scrapper']?.toString().toUpperCase();
+  //     if (scrapper == 'TRUE' || scrapper == '1') _scrappage = true;
+
+  //     // ─────────────────────────────────────────────
+  //     // CITY / AREA
+  //     // ASP.NET: city / cityunq, area / areaunq
+  //     // ─────────────────────────────────────────────
+  //     _cityName = c['city']?.toString() ?? '';
+  //     _cityId = c['cityunq']?.toString();
+  //     _areaName = c['area']?.toString() ?? '';
+  //     _areaId = c['areaunq']?.toString();
+
+  //     _applyChallanFinancialData(c);
+  //   });
+
+  //   // Load the dependent dropdowns exactly like ASP.NET
+  //   if (_modelId != null && _modelId!.isNotEmpty) {
+  //     try {
+  //       final variants = await ApiService.getChallanVariants(_modelId!);
+
+  //       if (!mounted) return;
+
+  //       setState(() {
+  //         _variants = variants;
+  //       });
+
+  //       if (_variantId != null && _variantId!.isNotEmpty) {
+  //         final colors = await ApiService.getChallanColors(_variantId!);
+
+  //         if (!mounted) return;
+
+  //         setState(() {
+  //           _colors = colors;
+  //         });
+
+  //         if (_colorId != null && _colorId!.isNotEmpty) {
+  //           final vins = await ApiService.getChallanVins(
+  //             variantId: _variantId!,
+  //             colorId: _colorId!,
+  //             challanType: _challanType,
+  //           );
+
+  //           if (!mounted) return;
+
+  //           setState(() {
+  //             _vins = vins;
+  //           });
+  //         }
+  //       }
+  //     } catch (e) {
+  //       debugPrint('_onCustomerSelected cascade ERROR: $e');
+  //     }
+  //   }
+
+  //   // Load variant pricing/details
+  //   if (_variantId != null && _variantId!.isNotEmpty) {
+  //     await _fetchVariantDetails(_variantId!);
+  //   }
+
+  //   // Load HPN child branches
+  //   if (_hpnParentId != null && _hpnParentId!.isNotEmpty) {
+  //     await _loadHpnBranches(_hpnParentId!);
+  //   }
+
+  //   // Fetch own RTO for the customer's branch (if not already set by user)
+  //   if (_branchId != null && _branchId!.isNotEmpty && _rtoCityId == null) {
+  //     await _fetchOwnRtoCity(_branchId!);
+  //   }
+
+  //   // Load customer receipt information
+  //   await _loadReceiptGrid(id);
+
+  //   // Recalculate ASP.NET totals
+  //   _recalculateAspNet();
+  // }
 
   void _onStateSelected(String? id) {
     setState(() => _stateId = id);
@@ -1235,7 +2683,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _set(_gstAmtCtrl, gstAmount, decimals: 0);
       _set(_insAmtFinalCtrl, beforeGst);
       _set(_finalInsCtrl, finalInsurance, decimals: 0);
-      _set(_thirdPartyCtrl, thirdParty, decimals: 0);
+      // _set(_thirdPartyCtrl, thirdParty, decimals: 0);
     }
 
     // ASP.NET final challan amount (sp_521).
@@ -1322,9 +2770,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
             horizontal: 24,
             vertical: 40,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -1337,7 +2783,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   decoration: const BoxDecoration(
                     color: Color(0xFF1A8BBF),
                     borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(4)),
+                      top: Radius.circular(4),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -1356,8 +2803,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           cityCtrl.dispose();
                           Navigator.pop(ctx);
                         },
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ],
                   ),
@@ -1365,15 +2815,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                 // ── Body ──────────────────────────────────────────
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // State — dropdown, auto-filled from form
                       Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const SizedBox(
                             width: 56,
@@ -1390,8 +2838,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           Expanded(
                             child: SizedBox(
                               height: 34,
-                              child:
-                                  DropdownButtonFormField<String>(
+                              child: DropdownButtonFormField<String>(
                                 value: selStateId,
                                 isDense: true,
                                 isExpanded: true,
@@ -1399,67 +2846,58 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                   fontSize: 13,
                                   color: Color(0xFF333333),
                                 ),
-                                decoration:
-                                    const InputDecoration(
+                                decoration: const InputDecoration(
                                   isDense: true,
-                                  contentPadding:
-                                      EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 8),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
                                   border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color:
-                                            Color(0xFFCCCCCC)),
+                                      color: Color(0xFFCCCCCC),
+                                    ),
                                   ),
-                                  enabledBorder:
-                                      OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color:
-                                            Color(0xFFCCCCCC)),
+                                      color: Color(0xFFCCCCCC),
+                                    ),
                                   ),
-                                  focusedBorder:
-                                      OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color: Color(0xFF1A8BBF),
-                                        width: 1.5),
+                                      color: Color(0xFF1A8BBF),
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                                 items: [
-                                  const DropdownMenuItem<
-                                      String>(
+                                  const DropdownMenuItem<String>(
                                     value: null,
-                                    child: Text('-- Select --',
-                                        style: TextStyle(
-                                            fontSize: 13)),
+                                    child: Text(
+                                      '-- Select --',
+                                      style: TextStyle(fontSize: 13),
+                                    ),
                                   ),
                                   ..._states.map(
-                                    (s) =>
-                                        DropdownMenuItem<String>(
-                                      value: s['data']
-                                          ?.toString(),
+                                    (s) => DropdownMenuItem<String>(
+                                      value: s['data']?.toString(),
                                       child: Text(
-                                        s['value']
-                                                ?.toString() ??
-                                            '',
-                                        style: const TextStyle(
-                                            fontSize: 13),
-                                        overflow:
-                                            TextOverflow.ellipsis,
+                                        s['value']?.toString() ?? '',
+                                        style: const TextStyle(fontSize: 13),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ),
                                 ],
-                                onChanged: (v) =>
-                                    setDlg(() => selStateId = v),
+                                onChanged: (v) => setDlg(() => selStateId = v),
                               ),
                             ),
                           ),
@@ -1469,8 +2907,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                       // City — plain text input (user types new city)
                       Row(
-                        crossAxisAlignment:
-                            CrossAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const SizedBox(
                             width: 56,
@@ -1490,40 +2927,37 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                               child: TextField(
                                 controller: cityCtrl,
                                 autofocus: true,
-                                style:
-                                    const TextStyle(fontSize: 13),
-                                decoration:
-                                    const InputDecoration(
+                                style: const TextStyle(fontSize: 13),
+                                decoration: const InputDecoration(
                                   isDense: true,
-                                  contentPadding:
-                                      EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 8),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
                                   border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color:
-                                            Color(0xFFCCCCCC)),
+                                      color: Color(0xFFCCCCCC),
+                                    ),
                                   ),
-                                  enabledBorder:
-                                      OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color:
-                                            Color(0xFFCCCCCC)),
+                                      color: Color(0xFFCCCCCC),
+                                    ),
                                   ),
-                                  focusedBorder:
-                                      OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.all(
-                                            Radius.circular(3)),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.all(
+                                      Radius.circular(3),
+                                    ),
                                     borderSide: BorderSide(
-                                        color: Color(0xFF1A8BBF),
-                                        width: 1.5),
+                                      color: Color(0xFF1A8BBF),
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -1538,8 +2972,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                 // ── Footer ────────────────────────────────────────
                 Padding(
-                  padding:
-                      const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Row(
                     children: [
                       ElevatedButton(
@@ -1547,39 +2980,31 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                             ? null
                             : () async {
                                 if (selStateId == null) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                          const SnackBar(
-                                    content: Text(
-                                        'Please select a State'),
-                                    behavior:
-                                        SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please select a State'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                   return;
                                 }
                                 if (cityCtrl.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                          const SnackBar(
-                                    content: Text(
-                                        'Please enter City name'),
-                                    behavior:
-                                        SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please enter City name'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                   return;
                                 }
 
                                 // Resolve state display name from ID
                                 final stateRow = _states.firstWhere(
-                                  (s) =>
-                                      s['data']?.toString() ==
-                                      selStateId,
+                                  (s) => s['data']?.toString() == selStateId,
                                   orElse: () => {},
                                 );
                                 final stateName =
-                                    (stateRow['value'] ??
-                                            selStateId ??
-                                            '')
+                                    (stateRow['value'] ?? selStateId ?? '')
                                         .toString();
                                 final cityName = cityCtrl.text
                                     .trim()
@@ -1590,26 +3015,21 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                   // Insert via A_SP_FOR_ACCOUNTMASTER
                                   // and get back the refreshed city list
                                   final refreshed =
-                                      await ApiService
-                                          .saveChallanCity(
-                                    cityName: cityName,
-                                    stateName: stateName,
-                                  );
+                                      await ApiService.saveChallanCity(
+                                        cityName: cityName,
+                                        stateName: stateName,
+                                      );
 
                                   // Find the new city entry
-                                  final newCity =
-                                      refreshed.firstWhere(
+                                  final newCity = refreshed.firstWhere(
                                     (c) =>
-                                        (c['value'] ??
-                                                c['sp_578'] ??
-                                                '')
+                                        (c['value'] ?? c['sp_578'] ?? '')
                                             .toString()
                                             .toUpperCase() ==
                                         cityName,
-                                    orElse: () =>
-                                        refreshed.isNotEmpty
-                                            ? refreshed.last
-                                            : {},
+                                    orElse: () => refreshed.isNotEmpty
+                                        ? refreshed.last
+                                        : {},
                                   );
 
                                   if (!mounted) return;
@@ -1617,34 +3037,33 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                     _cities = refreshed;
                                     _stateId = selStateId;
                                     if (newCity.isNotEmpty) {
-                                      _cityId = (newCity['data'] ??
-                                              newCity['sp_572'])
-                                          ?.toString();
-                                      _cityName = (newCity[
-                                                  'value'] ??
-                                              newCity['sp_578'] ??
-                                              cityName)
-                                          .toString();
+                                      _cityId =
+                                          (newCity['data'] ?? newCity['sp_572'])
+                                              ?.toString();
+                                      _cityName =
+                                          (newCity['value'] ??
+                                                  newCity['sp_578'] ??
+                                                  cityName)
+                                              .toString();
                                     }
                                     _areaId = null;
                                     _areaName = '';
                                   });
 
                                   cityCtrl.dispose();
-                                  if (ctx.mounted)
-                                    Navigator.pop(ctx);
+                                  if (ctx.mounted) Navigator.pop(ctx);
                                 } catch (e) {
                                   setDlg(() => saving = false);
                                   if (!mounted) return;
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: Text(
-                                        'Error: ${e.toString().replaceAll('Exception: ', '')}'),
-                                    backgroundColor:
-                                        const Color(0xFFE53935),
-                                    behavior:
-                                        SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                                      ),
+                                      backgroundColor: const Color(0xFFE53935),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
@@ -1652,21 +3071,25 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 9),
+                            horizontal: 20,
+                            vertical: 9,
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(3)),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                           textStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         child: saving
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white),
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
                             : const Text('Save'),
                       ),
@@ -1683,13 +3106,16 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           foregroundColor: Colors.white,
                           elevation: 0,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 9),
+                            horizontal: 20,
+                            vertical: 9,
+                          ),
                           shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(3)),
+                            borderRadius: BorderRadius.circular(3),
+                          ),
                           textStyle: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         child: const Text('Cancel'),
                       ),
@@ -1719,9 +3145,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
             horizontal: 24,
             vertical: 40,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
@@ -1733,8 +3157,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
                   decoration: const BoxDecoration(
                     color: Color(0xFF1A8BBF),
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -1797,20 +3222,25 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                 vertical: 8,
                               ),
                               border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3)),
-                                borderSide:
-                                    BorderSide(color: Color(0xFFCCCCCC)),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(3),
+                                ),
+                                borderSide: BorderSide(
+                                  color: Color(0xFFCCCCCC),
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3)),
-                                borderSide:
-                                    BorderSide(color: Color(0xFFCCCCCC)),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(3),
+                                ),
+                                borderSide: BorderSide(
+                                  color: Color(0xFFCCCCCC),
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(3)),
+                                borderRadius: BorderRadius.all(
+                                  Radius.circular(3),
+                                ),
                                 borderSide: BorderSide(
                                   color: Color(0xFF1A8BBF),
                                   width: 1.5,
@@ -1837,13 +3267,12 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                             : () async {
                                 final name = areaCtrl.text.trim();
                                 if (name.isEmpty) {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(const SnackBar(
-                                    content:
-                                        Text('Please fill out Area'),
-                                    behavior:
-                                        SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Please fill out Area'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                   return;
                                 }
 
@@ -1853,15 +3282,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                   // and get back the refreshed area list
                                   final refreshed =
                                       await ApiService.saveChallanArea(
-                                    areaName: name.toUpperCase(),
-                                  );
+                                        areaName: name.toUpperCase(),
+                                      );
 
                                   // Find the newly inserted area
                                   final newArea = refreshed.firstWhere(
                                     (a) =>
-                                        (a['value'] ??
-                                                a['sp_217'] ??
-                                                '')
+                                        (a['value'] ?? a['sp_217'] ?? '')
                                             .toString()
                                             .toUpperCase() ==
                                         name.toUpperCase(),
@@ -1874,13 +3301,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                   setState(() {
                                     _areas = refreshed;
                                     if (newArea.isNotEmpty) {
-                                      _areaId = (newArea['data'] ??
-                                              newArea['sp_212'])
-                                          ?.toString();
-                                      _areaName = (newArea['value'] ??
-                                              newArea['sp_217'] ??
-                                              name)
-                                          .toString();
+                                      _areaId =
+                                          (newArea['data'] ?? newArea['sp_212'])
+                                              ?.toString();
+                                      _areaName =
+                                          (newArea['value'] ??
+                                                  newArea['sp_217'] ??
+                                                  name)
+                                              .toString();
                                     } else {
                                       // fallback: just show typed name
                                       _areaId = null;
@@ -1893,15 +3321,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                 } catch (e) {
                                   setDlg(() => saving = false);
                                   if (!mounted) return;
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(SnackBar(
-                                    content: Text(
-                                        'Error: ${e.toString().replaceAll('Exception: ', '')}'),
-                                    backgroundColor:
-                                        const Color(0xFFE53935),
-                                    behavior:
-                                        SnackBarBehavior.floating,
-                                  ));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                                      ),
+                                      backgroundColor: const Color(0xFFE53935),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
                                 }
                               },
                         style: ElevatedButton.styleFrom(
@@ -3462,8 +4890,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   );
                   setState(() {
                     _cityId = v;
-                    _cityName =
-                        (city['value'] ?? city['sp_578'] ?? v).toString();
+                    _cityName = (city['value'] ?? city['sp_578'] ?? v)
+                        .toString();
                     _areaId = null;
                     _areaName = '';
                   });
@@ -3491,8 +4919,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   );
                   setState(() {
                     _areaId = v;
-                    _areaName =
-                        (area['value'] ?? area['sp_217'] ?? v).toString();
+                    _areaName = (area['value'] ?? area['sp_217'] ?? v)
+                        .toString();
                   });
                 }),
               ),
@@ -3563,18 +4991,27 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         ),
         _vg,
         _r3(
-          _dropMapField('Model', _modelId, _models, _onModel,
-              disabled: true),
+          _dropMapField('Model', _modelId, _models, _onModel, disabled: true),
           _loadingVar
               ? _loadBox()
-              : _dropMapField('Variant', _variantId, _variants, _onVariant,
-                  disabled: true),
+              : _dropMapField(
+                  'Variant',
+                  _variantId,
+                  _variants,
+                  _onVariant,
+                  disabled: true,
+                ),
           Column(
             children: [
               _loadingCol
                   ? _loadBox()
-                  : _dropMapField('Color', _colorId, _colors, _onColor,
-                      disabled: true),
+                  : _dropMapField(
+                      'Color',
+                      _colorId,
+                      _colors,
+                      _onColor,
+                      disabled: true,
+                    ),
               const SizedBox(height: 7),
               _loadingVin
                   ? _loadBox()
@@ -3650,10 +5087,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   }
 
   // ── Finance section ───────────────────────────────────────────────────────
+  // ── Finance section ───────────────────────────────────────────────────────
   Widget _secFinance() => Column(
     children: [
-      // Row 1: Finance type + loan amount
       _r4(
+        // ─────────────────────────────────────────────────────────────
+        // FINANCE TYPE
+        // ─────────────────────────────────────────────────────────────
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3663,99 +5103,241 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               children: [
                 _radio('In House', _finType, (v) {
                   if (v == null) return;
-                  setState(() => _finType = v);
+
+                  setState(() {
+                    _finType = 'In House';
+                  });
+
                   _recalculateAspNet();
                 }),
+
                 _radio('Out House', _finType, (v) {
                   if (v == null) return;
-                  setState(() => _finType = v);
+
+                  setState(() {
+                    _finType = 'Out House';
+                  });
+
                   _recalculateAspNet();
                 }),
-                _radio('Cash', _finType, (v) => setState(() => _finType = v!)),
+
+                _radio('Cash', _finType, (v) {
+                  if (v == null) return;
+
+                  setState(() {
+                    _finType = 'Cash';
+                  });
+
+                  _recalculateAspNet();
+                }),
               ],
             ),
           ],
         ),
-        _num('Loan Amount', _loanAmtCtrl),
-        _num('Net Disbursed Amt', _netDisCtrl),
-        _txt('Branch Name', _branchNameCtrl),
+
+        // ─────────────────────────────────────────────────────────────
+        // LOAN AMOUNT
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _num('Loan Amount', _loanAmtCtrl, ro: _financeFieldsDisabled),
+
+        // ─────────────────────────────────────────────────────────────
+        // NET DISBURSED AMOUNT
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _num('Net Disbursed Amount', _netDisCtrl, ro: _financeFieldsDisabled),
+
+        // ─────────────────────────────────────────────────────────────
+        // BRANCH NAME
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
+          if (v == null) return;
+
+          setState(() {
+            _hpnChildId = v;
+
+            final selected = _hpnBranches.firstWhere(
+              (e) => e['data']?.toString() == v.toString(),
+              orElse: () => <String, dynamic>{},
+            );
+
+            _branchNameCtrl.text = selected['value']?.toString() ?? '';
+          });
+
+          _recalculateAspNet();
+        }, disabled: _financeFieldsDisabled),
       ),
+
       _vg,
-      // Row 2: HPN parent + child branch (only when In House / Out House)
-      if (_finType != 'Cash') ...[
-        _r4(
-          // HPN parent dropdown
-          _dropMapField('HPN / Financer', _hpnParentId, _hpnList, (v) {
-            setState(() {
-              _hpnParentId = v;
-              _hpnChildId = null;
-              _hpnBranches = [];
-            });
-            if (v != null && v.isNotEmpty) _loadHpnBranches(v);
-          }),
-          // HPN child branch dropdown — populated after parent is chosen
-          _hpnBranches.isEmpty
-              ? _txt('HPN Branch', _hypCtrl)
-              : _dropMapField('HPN Branch', _hpnChildId, _hpnBranches, (v) {
-                  setState(() => _hpnChildId = v);
-                }),
-          const SizedBox(),
-          const SizedBox(),
-        ),
-      ],
+
+      // ─────────────────────────────────────────────────────────────
+      // HYPOTHECATION / LESSOR
+      //
+      // Cash  -> Disabled
+      // In/Out -> Enabled
+      // ─────────────────────────────────────────────────────────────
+      _dropMapField(
+        'Hypothecation / Lessor',
+        _hpnParentId,
+        _hpnList,
+        (v) {
+          if (v == null) return;
+
+          setState(() {
+            _hpnParentId = v;
+            _hpnChildId = null;
+            _hpnBranches = [];
+            _branchNameCtrl.clear();
+          });
+
+          _loadHpnBranches(v);
+
+          _recalculateAspNet();
+        },
+        disabled: _financeFieldsDisabled,
+      ),
     ],
   );
 
   // ── Discounts section ─────────────────────────────────────────────────────
   Widget _secDiscounts() => Column(
     children: [
-      // header row
-      Row(
-        children: [
-          const Expanded(flex: 5, child: SizedBox()),
-          Expanded(flex: 2, child: Center(child: _lbl('Given'))),
-          Expanded(flex: 3, child: Center(child: _lbl('Ex-Showroom'))),
-        ],
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final mobile = constraints.maxWidth < 600;
+
+          if (mobile) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                children: [
+                  const Expanded(flex: 4, child: SizedBox()),
+
+                  const Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: Text(
+                        'Amount',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5F6F85),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const Expanded(
+                    flex: 5,
+                    child: Center(
+                      child: Text(
+                        'Given',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5F6F85),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Row(
+            children: [
+              const Expanded(flex: 3, child: SizedBox()),
+              Expanded(flex: 2, child: Center(child: _lbl('Amount'))),
+              Expanded(flex: 2, child: Center(child: _lbl('Given'))),
+              Expanded(flex: 3, child: Center(child: _lbl('Ex-Showroom'))),
+            ],
+          );
+        },
       ),
+
       const SizedBox(height: 4),
+
       _discRow(
         'Corporate',
         _corpYn,
-        (v) => setState(() => _corpYn = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _corpYn = v);
+          _recalculateAspNet();
+        },
         _corpValCtrl,
         _corpGiven,
-        (v) => setState(() => _corpGiven = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _corpGiven = v);
+          _recalculateAspNet();
+        },
         _exShowCtrl,
         'Ex-Showroom',
       ),
+
       _discRow(
         'Exchange',
         _exchYn,
-        (v) => setState(() => _exchYn = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _exchYn = v);
+          _recalculateAspNet();
+        },
         _exchValCtrl,
         _exchGiven,
-        (v) => setState(() => _exchGiven = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _exchGiven = v);
+          _recalculateAspNet();
+        },
         _schemesCtrl,
         'Schemes Less',
       ),
+
       _discRow(
         'Dealer Discount',
         _dealYn,
-        (v) => setState(() => _dealYn = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _dealYn = v);
+          _recalculateAspNet();
+        },
         _dealValCtrl,
         _dealGiven,
-        (v) => setState(() => _dealGiven = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _dealGiven = v);
+          _recalculateAspNet();
+        },
         _subTotalCtrl,
         'SubTotal',
         ro: true,
       ),
+
       _discRow(
         'Loyalty',
         _loyYn,
-        (v) => setState(() => _loyYn = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _loyYn = v);
+          _recalculateAspNet();
+        },
         _loyValCtrl,
         _loyGiven,
-        (v) => setState(() => _loyGiven = v!),
+        (v) {
+          if (v == null) return;
+          setState(() => _loyGiven = v);
+          _recalculateAspNet();
+        },
         null,
         '',
       ),
@@ -3775,58 +5357,89 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   }) => LayoutBuilder(
     builder: (context, constraints) {
       final mobile = constraints.maxWidth < 600;
+
+      // ==========================================================
+      // MOBILE
+      // ==========================================================
       if (mobile) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(bottom: 7),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // --------------------------------------------------
+              // MAIN ROW
+              // --------------------------------------------------
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Discount name
                   Expanded(
+                    flex: 4,
                     child: Text(
                       lbl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11.5,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  _radio('Yes', yn, onYn),
-                  _radio('No', yn, onYn),
-                ],
-              ),
-              const SizedBox(height: 7),
-              _num('Amount', amtC),
-              const SizedBox(height: 7),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Given',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
+
+                  const SizedBox(width: 5),
+
+                  // Amount
+                  Expanded(flex: 3, child: _num('', amtC)),
+
+                  const SizedBox(width: 5),
+
+                  // Given
+                  Expanded(
+                    flex: 5,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _radio('Yes', given, onGiven),
+                        _radio('No', given, onGiven),
+                      ],
                     ),
                   ),
-                  _radio('Yes', given, onGiven),
-                  _radio('No', given, onGiven),
                 ],
               ),
+
+              // --------------------------------------------------
+              // RIGHT SIDE VALUE
+              // --------------------------------------------------
               if (rightC != null) ...[
-                const SizedBox(height: 7),
-                _num(rightLbl, rightC, ro: ro),
+                const SizedBox(height: 3),
+
+                Row(
+                  children: [
+                    const Spacer(flex: 4),
+
+                    Expanded(flex: 3, child: const SizedBox()),
+
+                    const SizedBox(width: 5),
+
+                    Expanded(flex: 5, child: _num(rightLbl, rightC, ro: ro)),
+                  ],
+                ),
               ],
             ],
           ),
         );
       }
+
+      // ==========================================================
+      // DESKTOP / TABLET
+      // ==========================================================
+
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Discount
             Expanded(
               flex: 3,
               child: Row(
@@ -3840,12 +5453,18 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                       ),
                     ),
                   ),
+
                   _radio('Yes', yn, onYn),
+
                   _radio('No', yn, onYn),
                 ],
               ),
             ),
+
+            // Amount
             Expanded(flex: 2, child: _num('', amtC)),
+
+            // Given
             Expanded(
               flex: 2,
               child: Row(
@@ -3856,6 +5475,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 ],
               ),
             ),
+
+            // Right calculated value
             Expanded(
               flex: 3,
               child: rightC != null
@@ -5208,12 +6829,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 color: displayLabel == null
                     ? (isDark ? Colors.white38 : const Color(0xFF9AA3AF))
                     : disabled
-                        ? (isDark
-                            ? Colors.white54
-                            : const Color(0xFF6B7888))
-                        : (isDark
-                            ? Colors.white
-                            : const Color(0xFF1A2740)),
+                    ? (isDark ? Colors.white54 : const Color(0xFF6B7888))
+                    : (isDark ? Colors.white : const Color(0xFF1A2740)),
               ),
             ),
           ),
@@ -5365,11 +6982,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         onChanged: fn,
         activeColor: _primary,
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: const VisualDensity(horizontal: -3, vertical: -3),
+        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
       ),
       Text(
         val,
-        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
       ),
     ],
   );

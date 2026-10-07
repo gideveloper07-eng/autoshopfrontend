@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -200,7 +203,9 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xffF4F7FC),
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : const Color(0xffF4F7FC),
 
       appBar: AppBar(
         backgroundColor: const Color(0xff1769D5),
@@ -1057,7 +1062,8 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: valueColor ??
+                    color:
+                        valueColor ??
                         (isDark
                             ? AppColors.textPrimaryDark
                             : const Color(0xff202636)),
@@ -1072,6 +1078,57 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
         ],
       ),
     );
+  }
+
+  String getApiErrorMessage(dynamic error) {
+    String message = error.toString();
+
+    // Remove "Exception: "
+    if (message.startsWith("Exception: ")) {
+      message = message.substring("Exception: ".length);
+    }
+
+    // Try to extract JSON response from:
+    // Update Receipt API failed: HTTP 400
+    // {"success":false,"message":"Receipt used in Allocation",...}
+
+    final jsonStart = message.indexOf('{');
+
+    if (jsonStart >= 0) {
+      try {
+        final jsonText = message.substring(jsonStart);
+
+        final decoded = jsonDecode(jsonText);
+
+        if (decoded is Map<String, dynamic>) {
+          // First priority: API message
+          final apiMessage = decoded["message"];
+
+          if (apiMessage != null && apiMessage.toString().trim().isNotEmpty) {
+            return apiMessage.toString().trim();
+          }
+
+          // Second priority: data[0].err
+          final data = decoded["data"];
+
+          if (data is List && data.isNotEmpty) {
+            final first = data.first;
+
+            if (first is Map<String, dynamic>) {
+              final err = first["err"];
+
+              if (err != null && err.toString().trim().isNotEmpty) {
+                return err.toString().trim();
+              }
+            }
+          }
+        }
+      } catch (_) {
+        // Ignore JSON parsing error
+      }
+    }
+
+    return message;
   }
 
   // ==========================================================
@@ -1098,7 +1155,15 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
       final reqType = value(item["request_type"]);
 
-      final valTo = value(item["value_to"]);
+      final rawValTo = item["value_to"];
+
+      final String? valTo =
+          rawValTo == null ||
+              rawValTo.toString().trim().isEmpty ||
+              rawValTo.toString().trim().toLowerCase() == "null" ||
+              rawValTo.toString().trim() == "-"
+          ? null
+          : rawValTo.toString().trim();
 
       final receiptNo = value(item["receipt_no"]);
 
@@ -1120,21 +1185,18 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
       // ==================================================
       // VALIDATION
       // ==================================================
+      // ==================================================
+      // VALIDATION
+      // ==================================================
 
-      if (requestUnqid == "-" || requestUnqid.trim().isEmpty) {
-        throw Exception("Request Unqid not found");
-      }
+      final normalizedReqType = reqType.trim().toLowerCase();
 
-      if (recptUnqid == "-" || recptUnqid.trim().isEmpty) {
-        throw Exception("Receipt Unqid not found");
-      }
-
-      if (reqType == "-" || reqType.trim().isEmpty) {
-        throw Exception("Request type not found");
-      }
-
-      if (valTo == "-" || valTo.trim().isEmpty) {
-        throw Exception("Value To not found");
+      // Value To is NOT required for Cancel.
+      // For all other request types, Value To is required.
+      if (normalizedReqType != "cancel") {
+        if (valTo == null || valTo.trim().isEmpty) {
+          throw Exception("Value To not found");
+        }
       }
 
       // ==================================================
@@ -1192,11 +1254,37 @@ class _CombinedReceiptScreenState extends State<CombinedReceiptScreen> {
 
       if (!mounted) return;
 
+      final errorMessage = getApiErrorMessage(e);
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Update failed: $e"),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          content: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  errorMessage,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: const Duration(seconds: 4),
         ),
       );
     }
