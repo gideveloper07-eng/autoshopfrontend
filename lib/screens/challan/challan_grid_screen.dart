@@ -4,7 +4,7 @@ import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'challan_edit_new_screen.dart';
-import 'challan_form_screen.dart';
+import 'challan_form_screen.dartxxx';
 
 /// Challan grid — responsive horizontal-scroll table.
 /// Header and body use separate controllers that mirror each other via
@@ -628,7 +628,10 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Date
                 Text(
                   _date(row),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -645,14 +648,20 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Type
                 Text(
                   _v(row, 'sp_558').isEmpty ? '-' : _v(row, 'sp_558'),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 // Customer Name
                 Text(
                   _v(row, 'sp_469').isEmpty ? '-' : _v(row, 'sp_469'),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -670,7 +679,10 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Variant
                 Text(
                   _v(row, 'sp_471').isEmpty ? '-' : _v(row, 'sp_471'),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

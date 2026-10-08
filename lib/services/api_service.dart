@@ -2773,6 +2773,50 @@ class ApiService {
     }
   }
 
+  static Future<Map<String, dynamic>?> getChallanInsuranceCalculation({
+    required String insuranceCompanyId,
+    required String challanDate,
+    required String modelId,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return null;
+      }
+
+      final uri = Uri.parse(
+        "$baseUrl/api/challan/new/insurance-calculation"
+        "?insuranceCompanyId=${Uri.encodeComponent(insuranceCompanyId)}"
+        "&challanDate=${Uri.encodeComponent(challanDate)}"
+        "&modelId=${Uri.encodeComponent(modelId)}",
+      );
+
+      final res = await http
+          .get(uri, headers: {"Authorization": "Bearer $token"})
+          .timeout(const Duration(seconds: 30));
+
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body);
+
+        if (body["success"] == true && body["data"] != null) {
+          return Map<String, dynamic>.from(body["data"]);
+        }
+      }
+
+      print(
+        "getChallanInsuranceCalculation "
+        "ERROR: ${res.statusCode} ${res.body}",
+      );
+
+      return null;
+    } catch (e) {
+      print("getChallanInsuranceCalculation ERROR: $e");
+
+      return null;
+    }
+  }
+
   /// Fetches model-wise booking / sale counts for today or yesterday.
   /// [type]:   'booking' or 'sale'
   /// [period]: 'today'   or 'yesterday'

@@ -142,24 +142,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   // ── Insurance ─────────────────────────────────────────────────────────────
   String _insType = 'In House';
   bool _epAdd = false, _rtiAdd = false, _cmAdd = false;
-
-  // Insurance master percentages. These are loaded from the insurance
-  // company master and are applied to the percentage fields only when the
-  // corresponding Amount Add checkbox is checked, matching ASP.NET.
-  double? _epMasterRate;
-  double? _rtiMasterRate;
-  double? _cmMasterRate;
   final _insDisCtrl = TextEditingController();
   final _insExShowCtrl = TextEditingController(text: '0.00');
   final _cessCtrl = TextEditingController(text: '0');
-  final _cessAmtCtrl = TextEditingController(text: '0.00');
   final _idvCtrl = TextEditingController(text: '5');
   final _idvAmtCtrl = TextEditingController(text: '0.00');
   final _afterIdvCtrl = TextEditingController(text: '0.00');
   final _insAmtCtrl = TextEditingController(text: '0.00');
-  // Display-only Insurance Amount after applying Insurance % (OD amount).
-  // Final Insurance Amount is kept separately in _finalInsCtrl/_insAmtFinalCtrl.
-  final _insCalcAmtCtrl = TextEditingController(text: '0.00');
   final _insPerCtrl = TextEditingController(text: '0.00');
   final _finalInsCtrl = TextEditingController(text: '0.00');
   final _disAmtCtrl = TextEditingController(text: '0.00');
@@ -198,29 +187,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   final _greenTaxCtrl = TextEditingController(text: '0.00');
   final _regFeeCtrl = TextEditingController(text: '0.00');
   final _hpnRtoCtrl = TextEditingController(text: '0.00');
-  // Master HPN amount from RTO data. Cash finance displays/uses zero.
-  double _hpnMasterAmount = 0.0;
-
-  void _setHpnRtoMaster(dynamic value) {
-    _hpnMasterAmount = double.tryParse(value?.toString() ?? '') ?? 0.0;
-    _hpnRtoCtrl.text = _finType == 'Cash' ? '0.00' : _f(_hpnMasterAmount);
-  }
-
   final _dupCtrl = TextEditingController(text: '0.00');
   final _smartCtrl = TextEditingController(text: '0.00');
   final _otherRtoCtrl = TextEditingController(text: '0.00');
   final _bhPerCtrl = TextEditingController(text: '0.00');
   final _bhYearCtrl = TextEditingController();
-
-  // BH calculation master values from RH_PA.
-  // Jchallan.js uses:
-  //   bhyearpa      -> completion/period denominator (normally 15)
-  //   bhmultiplepa  -> BH multiplier (normally 1.25)
-  //   bhaftergstamt -> whether the GST-inclusive BH formula is used.
-  double _bhPayYear = 15.0;
-  double _bhYearMultiple = 1.25;
-  bool _bhAfterGst = false;
-
   final _rtoTempCtrl = TextEditingController(text: '0.00');
   final _rtoAmtCtrl = TextEditingController(text: '0.00');
 
@@ -359,12 +330,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _insDisCtrl,
       _insExShowCtrl,
       _cessCtrl,
-      _cessAmtCtrl,
       _idvCtrl,
       _idvAmtCtrl,
       _afterIdvCtrl,
       _insAmtCtrl,
-      _insCalcAmtCtrl,
       _insPerCtrl,
       _finalInsCtrl,
       _disAmtCtrl,
@@ -738,12 +707,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _insType = insTypeRaw == 'in' ? 'In House' : 'Out House';
       _insExShowCtrl.text = _f(d['insshowroom']);
       _cessCtrl.text = _f(d['CESS'] ?? d['cess']);
-      _cessAmtCtrl.text = _f(d['Amount'] ?? d['amount'] ?? d['cessamt']);
       _idvCtrl.text = _f(d['Idv'] ?? d['idv']);
       _idvAmtCtrl.text = _f(d['IdvAmount'] ?? d['idvamount']);
       _afterIdvCtrl.text = _f(d['afteridvamt']);
       _insAmtCtrl.text = _f(d['InsperAmount'] ?? d['insperamount']);
-      _insCalcAmtCtrl.text = _f(d['InsperAmount'] ?? d['insperamount']);
       _insPerCtrl.text = _f(
         d['InsurancePercentage'] ?? d['insurancepercentage'],
       );
@@ -791,24 +758,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _rtoSurCtrl.text = _f(d['RTOTaxSurcharge'] ?? d['rtotaxsurcharge']);
       _greenTaxCtrl.text = _f(d['GreenTax'] ?? d['greentax']);
       _regFeeCtrl.text = _f(d['RegFee'] ?? d['regfee']);
-      _setHpnRtoMaster(d['HPN'] ?? d['hpn']);
+      _hpnRtoCtrl.text = _f(d['HPN'] ?? d['hpn']);
       _dupCtrl.text = _f(d['Duplicate'] ?? d['duplicate']);
       _smartCtrl.text = _f(d['SmartCard'] ?? d['smartcard']);
       _otherRtoCtrl.text = _f(d['Other'] ?? d['other']);
       _rtoTempCtrl.text = _f(d['RTO TEMP'] ?? d['rto temp']);
       _bhPerCtrl.text = _f(d['bhperc']);
       _bhYearCtrl.text = d['bhyear']?.toString() ?? '';
-
-      _bhPayYear = double.tryParse(d['bhpayear']?.toString() ?? '') ?? 15.0;
-      _bhYearMultiple =
-          double.tryParse(d['bhyearmultiple']?.toString() ?? '') ?? 1.25;
-
-      final bhAfterGstRaw = d['bhaftergst']?.toString().trim().toLowerCase();
-      _bhAfterGst =
-          bhAfterGstRaw == 'true' ||
-          bhAfterGstRaw == '1' ||
-          bhAfterGstRaw == 'yes';
-
       _rtoAmtCtrl.text = _f(d['RTOAmount'] ?? d['rtoamount']);
 
       // ── others ──
@@ -896,30 +852,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _receiptFinanceAmt =
             double.tryParse(result['fiTotal']?['fiamt']?.toString() ?? '0') ??
             0;
-        // Cash finance => receipt Customer Amt must always be zero.
-        // The receipt API may still return the booking/customer receipt total,
-        // but it must not be treated as Customer Amt for Cash finance.
-        final customerReceived =
+        _receiptCustAmt =
             double.tryParse(result['custTotal']?['camt']?.toString() ?? '0') ??
             0;
-
-        _receiptCustAmt = _finType.trim().toLowerCase() == 'cash'
-            ? 0.0
-            : customerReceived;
-
-        // Customer Received Amt is the actual customer receipt total.
-        // Do NOT leave this field at zero for Cash finance.
-        _customerReceivedCtrl.text = customerReceived.toStringAsFixed(2);
-
         _loadingReceipts = false;
       });
-
-      // Pre-fill received amounts from actual receipt totals.
+      // Pre-fill received amounts from actual receipt totals
       setState(() {
         _receivedCtrl.text = _receiptTotal.toStringAsFixed(2);
-
-        // Customer Balance must immediately use the pre-filled
-        // Customer Received Amt.
         _recalculateAspNet();
       });
     } catch (e) {
@@ -1083,8 +1023,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
     _cessCtrl.text = _f(d['CESS'] ?? d['cess']);
 
-    _cessAmtCtrl.text = _f(d['Amount'] ?? d['amount'] ?? d['cessamt']);
-
     _idvCtrl.text = _f(d['Idv'] ?? d['idv']);
 
     _idvAmtCtrl.text = _f(d['IdvAmount'] ?? d['idvamount']);
@@ -1197,7 +1135,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
     _regFeeCtrl.text = _f(d['RegFee'] ?? d['regfee']);
 
-    _setHpnRtoMaster(d['HPN'] ?? d['hpn']);
+    _hpnRtoCtrl.text = _f(d['HPN'] ?? d['hpn']);
 
     _dupCtrl.text = _f(d['Duplicate'] ?? d['duplicate']);
 
@@ -1357,7 +1295,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         if (!preserveCustomerValues ||
             !_customerFinancialFields.contains('hpn')) {
           if (d['hpn'] != null) {
-            _setHpnRtoMaster(d['hpn']);
+            _hpnRtoCtrl.text = _f(d['hpn']);
           }
         }
 
@@ -1450,31 +1388,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         }
 
         // ======================================================
-        // BH CALCULATION MASTER
-        // ======================================================
-        if (d['bhpayear'] != null) {
-          _bhPayYear = double.tryParse(d['bhpayear'].toString()) ?? 15.0;
-        }
-
-        if (d['bhyearmultiple'] != null) {
-          _bhYearMultiple =
-              double.tryParse(d['bhyearmultiple'].toString()) ?? 1.25;
-        }
-
-        if (d['bhaftergst'] != null) {
-          final raw = d['bhaftergst'].toString().trim().toLowerCase();
-          _bhAfterGst = raw == 'true' || raw == '1' || raw == 'yes';
-        }
-
-        debugPrint(
-          'BH MASTER => rate=${_bhPerCtrl.text}, '
-          'year=${_bhYearCtrl.text}, '
-          'payYear=$_bhPayYear, '
-          'multiple=$_bhYearMultiple, '
-          'afterGST=$_bhAfterGst',
-        );
-
-        // ======================================================
         // GST
         // ======================================================
 
@@ -1548,17 +1461,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
             !_customerFinancialFields.contains('kp')) {
           if (d['kp'] != null) {
             _kpCtrl.text = _f(d['kp']);
-          }
-        }
-
-        // ======================================================
-        // PAID DRIVER
-        // ======================================================
-
-        if (!preserveCustomerValues ||
-            !_customerFinancialFields.contains('paiddriver')) {
-          if (d['paiddriver'] != null) {
-            _paidDrvCtrl.text = _f(d['paiddriver']);
           }
         }
 
@@ -1710,12 +1612,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         // EP
         // -------------------------------------------------------
         if (d['ep'] != null) {
-          _epMasterRate = double.tryParse(d['ep'].toString());
-          if (_epAdd) {
-            _epCtrl.text = _f(d['ep']);
-          } else {
-            _epCtrl.text = '0.00';
-          }
+          _epCtrl.text = _f(d['ep']);
         }
 
         // -------------------------------------------------------
@@ -1736,24 +1633,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         // RTI
         // -------------------------------------------------------
         if (d['rti'] != null) {
-          _rtiMasterRate = double.tryParse(d['rti'].toString());
-          if (_rtiAdd) {
-            _rtiCtrl.text = _f(d['rti']);
-          } else {
-            _rtiCtrl.text = '0.00';
-          }
+          _rtiCtrl.text = _f(d['rti']);
         }
 
         // -------------------------------------------------------
         // CM
         // -------------------------------------------------------
         if (d['cm'] != null) {
-          _cmMasterRate = double.tryParse(d['cm'].toString());
-          if (_cmAdd) {
-            _cmCtrl.text = _f(d['cm']);
-          } else {
-            _cmCtrl.text = '0.00';
-          }
+          _cmCtrl.text = _f(d['cm']);
         }
 
         // -------------------------------------------------------
@@ -1851,16 +1738,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _modelId = c['va_26']?.toString();
 
       _variantId = c['va_27']?.toString();
-
-      _insuranceCompanyId =
-          (c['inscmpyid'] ??
-                  c['insurancecompanyid'] ??
-                  c['insuranceCompanyId'] ??
-                  c['inscompanyid'])
-              ?.toString()
-              .trim();
-
-      debugPrint('Customer Insurance Company ID = $_insuranceCompanyId');
 
       _colorId = c['va_28']?.toString();
 
@@ -2803,7 +2680,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _rtoSurCtrl.text = _f(row['rtax'] ?? row['sp_340']);
         _greenTaxCtrl.text = _f(row['rgreen'] ?? row['sp_341']);
         _regFeeCtrl.text = _f(row['rreg'] ?? row['sp_342']);
-        _setHpnRtoMaster(row['rhpn'] ?? row['sp_343']);
+        _hpnRtoCtrl.text = _f(row['rhpn'] ?? row['sp_343']);
         _dupCtrl.text = _f(row['rduplicate'] ?? row['sp_344']);
         _smartCtrl.text = _f(row['rsmartcard'] ?? row['sp_345']);
         _otherRtoCtrl.text = _f(row['rother'] ?? row['sp_346']);
@@ -2878,55 +2755,19 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         : (remainder >= 1 ? (rtoExShow - remainder + 1000) : rtoExShow);
 
     var rtoAmount = 0.0;
-
     if (_rtoFrom == 'BH') {
-      // ============================================================
-      // BH RTO CALCULATION - MATCHES Jchallan(5).js
-      // ============================================================
-      //
-      // Jchallan.js:
-      //   if bhaftergstamt == True:
-      //     rto = rtamt * bhperc / 100
-      //             * bhmultiplepa * bhyear / bhyearpa
-      //
-      //   else:
-      //     gst = CGST + SGST
-      //     taxonbh = rtamt / (100 + cess + gst) * 100
-      //     rto = taxonbh * bhperc / 100
-      //             * bhmultiplepa / bhyearpa * bhyear
-      //
+      // BH master contains additional year/multiple factors. The API layer
+      // will populate BH-specific fields; use the available BH rate/year here.
       final bhRate = _d(_bhPerCtrl);
       final bhYear = _d(_bhYearCtrl);
-      final bhPayYear = _bhPayYear > 0 ? _bhPayYear : 15.0;
-      final bhMultiple = _bhYearMultiple > 0 ? _bhYearMultiple : 1.25;
-
-      if (bhRate > 0 && bhYear > 0) {
-        if (_bhAfterGst) {
-          rtoAmount = rtamt * bhRate / 100 * bhMultiple * bhYear / bhPayYear;
-        } else {
-          final cess = _d(_cessCtrl);
-          final gstRate = double.tryParse(_gstUnq ?? '') ?? 0.0;
-          final cgst = gstRate / 2;
-          final sgst = gstRate / 2;
-          final gstAmount = cgst + sgst;
-
-          final taxOnBh = (rtamt / (100 + cess + gstAmount)) * 100;
-
-          rtoAmount = taxOnBh * bhRate / 100 * bhMultiple / bhPayYear * bhYear;
-        }
-
-        // The legacy screen's displayed BH RTO amount includes the
-        // applicable fixed RTO charges in addition to the BH tax.
-        // For the shown case this is: 10395 + 2500 + 600 + 100 = 13595.
-        rtoAmount +=
-            _d(_greenTaxCtrl) +
-            _d(_regFeeCtrl) +
-            (_finType == 'Cash' ? 0.0 : _d(_hpnRtoCtrl)) +
-            _d(_dupCtrl) +
-            _d(_smartCtrl) +
-            _d(_otherRtoCtrl) +
-            _d(_rtoTempCtrl);
-      }
+      rtoAmount = bhYear > 0 ? rtamt * bhRate / 100 * bhYear : 0.0;
+      _set(_rtoRateCtrl, 0);
+      _set(_rtoSurCtrl, 0);
+      _set(_greenTaxCtrl, 0);
+      _set(_hpnRtoCtrl, 0);
+      _set(_dupCtrl, 0);
+      _set(_smartCtrl, 0);
+      _set(_otherRtoCtrl, 0);
     } else if (_rtoFrom == 'Out House') {
       rtoAmount = 0.0;
     } else {
@@ -2943,17 +2784,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           surcharge +
           _d(_greenTaxCtrl) +
           _d(_regFeeCtrl) +
-          (_finType == 'Cash' ? 0.0 : _d(_hpnRtoCtrl)) +
+          _d(_hpnRtoCtrl) +
           _d(_dupCtrl) +
           _d(_smartCtrl) +
           _d(_otherRtoCtrl) +
           _d(_rtoTempCtrl);
     }
-    // Jchallan.js uses toFixed(0) for BH RTO and toFixed(0) after
-    // the normal RTO calculation as well; the UI keeps In House/Out House
-    // at two decimals in the Flutter form, so only BH is forced to whole
-    // number here.
-    _set(_rtoAmtCtrl, rtoAmount, decimals: _rtoFrom == 'BH' ? 0 : 2);
+    _set(_rtoAmtCtrl, rtoAmount);
 
     // Insurance calculation from Jchallan.js.
     // ============================================================
@@ -2967,15 +2804,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     // ============================================================
 
     if (_insType == 'Out House') {
-      // Out-house insurance is not calculated by the ASP.NET insurance block.
       for (final c in [
-        _cessAmtCtrl,
+        _cessCtrl,
         _idvAmtCtrl,
         _afterIdvCtrl,
         _insAmtCtrl,
+        _insPerCtrl,
         _disAmtCtrl,
         _afterDisCtrl,
-        _cngAmtCtrl,
+        _thirdPartyCtrl,
         _paAmtCtrl,
         _zdAmtCtrl,
         _epAmtCtrl,
@@ -2992,139 +2829,210 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _set(c, 0);
       }
     } else {
-      // ============================================================
+      // ==========================================================
       // INSURANCE EX-SHOWROOM
-      // ============================================================
+      // ==========================================================
+
       final insExShow = _d(_insExShowCtrl) == 0 ? subtotal : _d(_insExShowCtrl);
+
       _set(_insExShowCtrl, insExShow);
 
-      // ============================================================
+      // ==========================================================
       // CESS
-      // ASP.NET: txt_sp_504 = round(ex-showroom * cess / 100, 0)
-      // ============================================================
+      // ASP.NET: txt_sp_502 = 0
+      // ==========================================================
+
       final cess = _d(_cessCtrl);
-      final cessAmount = double.parse(
-        (insExShow * cess / 100).toStringAsFixed(0),
-      );
-      _set(_cessAmtCtrl, cessAmount);
+
+      final cessAmountRaw = insExShow * cess / 100;
+
+      // ASP.NET uses toFixed(0)
+      final cessAmount = double.parse(cessAmountRaw.toStringAsFixed(0));
+
+      _set(_cessCtrl, cess);
+      _set(_idvAmtCtrl, 0);
+
+      // ==========================================================
+      // CESS SUBTOTAL
+      // ==========================================================
 
       final cessSubtotal = insExShow + cessAmount;
 
-      // ============================================================
-      // IDV / AFTER IDV
-      // ASP.NET stores After IDV rounded to 0 decimals.
-      // ============================================================
+      // ==========================================================
+      // IDV
+      // ASP.NET: txt_sp_505 = 5
+      // ==========================================================
+
       var idvPct = _d(_idvCtrl);
+
       if (idvPct <= 0) {
         idvPct = 5.0;
-        _set(_idvCtrl, idvPct);
+        _set(_idvCtrl, 5);
       }
 
       final idvAmount = cessSubtotal * idvPct / 100;
-      final afterIdv = double.parse(
-        (cessSubtotal - idvAmount).toStringAsFixed(0),
-      );
+
+      // ==========================================================
+      // AFTER IDV
+      // ASP.NET rounds this to 0 decimals
+      // ==========================================================
+
+      final afterIdvRaw = cessSubtotal - idvAmount;
+
+      final afterIdv = double.parse(afterIdvRaw.toStringAsFixed(0));
 
       _set(_idvAmtCtrl, idvAmount);
       _set(_afterIdvCtrl, afterIdv, decimals: 0);
 
-      // ============================================================
-      // OD / INSURANCE AMOUNT
-      // ============================================================
-      final insuranceRate = _d(_insPerCtrl);
-      final insuranceAmount = double.parse(
-        (afterIdv * insuranceRate / 100).toStringAsFixed(0),
-      );
-      // The ASP.NET layout shows the Amount field beside After IDV as 0.
-      // Keep the calculated OD amount in the local variable for the
-      // Discount/After Discount calculation, but do not display it here.
-      _set(_insAmtCtrl, 0, decimals: 2);
-      _set(_insCalcAmtCtrl, insuranceAmount, decimals: 0);
+      // ==========================================================
+      // INSURANCE %
+      // ==========================================================
 
-      // ============================================================
-      // DISCOUNT / AFTER DISCOUNT
-      // ============================================================
-      final discountPct = _d(_insDisCtrl);
-      final discountAmount = double.parse(
-        (insuranceAmount * discountPct / 100).toStringAsFixed(0),
+      final insuranceRate = _d(_insPerCtrl);
+
+      final insuranceAmountRaw = afterIdv * insuranceRate / 100;
+
+      final insuranceAmount = double.parse(
+        insuranceAmountRaw.toStringAsFixed(0),
       );
+
+      _set(_insAmtCtrl, insuranceAmount, decimals: 0);
+
+      // ==========================================================
+      // INSURANCE DISCOUNT
+      // ==========================================================
+
+      final discountPct = _d(_insDisCtrl);
+
+      final discountAmountRaw = insuranceAmount * discountPct / 100;
+
+      final discountAmount = double.parse(discountAmountRaw.toStringAsFixed(0));
+
       final afterDiscount = insuranceAmount - discountAmount;
 
       _set(_disAmtCtrl, discountAmount, decimals: 0);
+
       _set(_afterDisCtrl, afterDiscount, decimals: 0);
 
-      // ============================================================
+      // ==========================================================
       // CNG
-      // ============================================================
+      // ==========================================================
+
       final cngPct = _d(_cngPerCtrl);
+
       final cngAmount = afterDiscount * cngPct / 100;
+
       _set(_cngAmtCtrl, cngAmount);
 
-      // ============================================================
-      // PA COVER AMOUNT
-      // ASP.NET txt_sp_542 = After Discount + Third Party + PA Cover
-      // ============================================================
-      final paCover = _d(_paCoverCtrl);
-      final thirdParty = _d(_thirdPartyCtrl);
-      final paAmount = double.parse(
-        (afterDiscount + thirdParty + paCover).toStringAsFixed(0),
-      );
-      _set(_paAmtCtrl, paAmount, decimals: 0);
+      // ==========================================================
+      // PA COVER
+      // ==========================================================
 
-      // ============================================================
+      final paCover = _d(_paCoverCtrl);
+
+      //      _set(_paAmtCtrl, afterZd, decimals: 0);
+
+      // ==========================================================
       // EP
-      // ASP.NET calculates the percentage amount; unchecked EP is 0
-      // in the Flutter UI, matching the current screen behavior.
-      // ============================================================
+      // ONLY IF EP ADD IS CHECKED
+      // ==========================================================
+
       final epRate = _epAdd ? _d(_epCtrl) : 0.0;
+
       final epAmount = afterIdv * epRate / 100;
+
       _set(_epAmtCtrl, epAmount);
 
-      // ============================================================
+      // ==========================================================
       // ZD
-      // ============================================================
+      // ==========================================================
+
       final zdRate = _d(_zdCtrl);
+
       final zdAmount = afterIdv * zdRate / 100;
+
       _set(_zdAmtCtrl, zdAmount);
 
-      // ============================================================
+      // ==========================================================
       // RTI
-      // ============================================================
+      // ONLY IF RTI ADD IS CHECKED
+      // ==========================================================
+
       final rtiRate = _rtiAdd ? _d(_rtiCtrl) : 0.0;
+
       final rtiAmount = afterIdv * rtiRate / 100;
+
       _set(_rtiAmtCtrl, rtiAmount);
 
-      // ============================================================
+      // ==========================================================
       // CM
-      // ============================================================
+      // ONLY IF CM ADD IS CHECKED
+      // ==========================================================
+
       final cmRate = _cmAdd ? _d(_cmCtrl) : 0.0;
+
       final cmAmount = afterIdv * cmRate / 100;
+
       _set(_cmAmtCtrl, cmAmount);
 
-      // ============================================================
-      // KP / AFTER ZD
-      // ASP.NET txt_sp_517 = round(ZD + EP + PB + KP, 0)
-      // ============================================================
-      final pb = _d(_pbCtrl);
-      final kp = _d(_kpCtrl);
-      final afterZd = double.parse(
-        (zdAmount + epAmount + pb + kp).toStringAsFixed(0),
-      );
-      _set(_kpAmtCtrl, afterZd, decimals: 0);
+      // ==========================================================
+      // PB + KP
+      // ==========================================================
 
-      // ============================================================
+      final pb = _d(_pbCtrl);
+
+      final kp = _d(_kpCtrl);
+
+      // ==========================================================
+      // AFTER ZD
+      //
+      // ASP.NET:
+      //
+      // zdpbkb + epamt + PB + KP
+      //
+      // This is the "Amount" beside PA Cover.
+      // ==========================================================
+
+      final afterZd = zdAmount + epAmount + pb + kp;
+
+      _set(_paAmtCtrl, afterZd, decimals: 0);
+
+      // ==========================================================
+      // PA COVER IS STILL THE PA COVER VALUE
+      // ==========================================================
+
+      _set(_paCoverCtrl, paCover);
+
+      // ==========================================================
       // PAID DRIVER
-      // ASP.NET txt_sp_516 comes from the master/insurance data.
-      // ============================================================
+      // ==========================================================
+
       final paidDriver = _d(_paidDrvCtrl);
 
-      // ============================================================
-      // BEFORE GST / AFTER PD
-      // ASP.NET txt_sp_543
-      // ============================================================
+      _set(_afterPdCtrl, paidDriver, decimals: 2);
+
+      // ==========================================================
+      // THIRD PARTY TOTAL
+      //
+      // ASP.NET:
+      //
+      // After Discount
+      // + Third Party
+      // + PA Cover
+      // ==========================================================
+
+      final thirdPartyTotal = afterDiscount + _d(_thirdPartyCtrl) + paCover;
+
+      // Do NOT overwrite Third Party input field.
+      // The ASP.NET page keeps txt_sp_511 as the master value.
+
+      // ==========================================================
+      // BEFORE GST
+      // ==========================================================
+
       final beforeGst =
           afterDiscount +
-          thirdParty +
+          _d(_thirdPartyCtrl) +
           paCover +
           afterZd +
           paidDriver +
@@ -3132,40 +3040,41 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           cmAmount +
           cngAmount;
 
-      _set(_afterPdCtrl, beforeGst);
+      _set(_insAmtFinalCtrl, beforeGst);
 
-      // ============================================================
+      // ==========================================================
       // GST
-      // ASP.NET txt_sp_518 is the GST percentage.
-      // ============================================================
+      // ==========================================================
+
       final gstRate = double.tryParse(_gstUnq ?? '') ?? 0.0;
+
       final cgstRate = gstRate / 2;
+
       final sgstRate = gstRate / 2;
+
       final cgstAmount = beforeGst * cgstRate / 100;
+
       final sgstAmount = beforeGst * sgstRate / 100;
+
       final gstAmount = cgstAmount + sgstAmount;
 
       _set(_cgstCtrl, cgstAmount);
       _set(_sgstCtrl, sgstAmount);
       _set(_gstAmtCtrl, gstAmount, decimals: 0);
 
-      // ============================================================
-      // FINAL INSURANCE AMOUNT
-      // ASP.NET: before GST + GST - NCB
-      // ============================================================
+      // ==========================================================
+      // FINAL INSURANCE
+      //
+      // ASP.NET:
+      //
+      // beforeGST + GST - NCB
+      // ==========================================================
+
       final finalInsurance = beforeGst + gstAmount - _d(_ncbCtrl);
 
-      _set(_finalInsCtrl, finalInsurance, decimals: 0);
-      _set(_insAmtFinalCtrl, finalInsurance, decimals: 0);
+      _set(_insAmtFinalCtrl, beforeGst);
 
-      debugPrint(
-        'INSURANCE RESULT => beforeGST=${beforeGst.toStringAsFixed(2)}, '
-        'GST=${gstAmount.toStringAsFixed(2)}, '
-        'Final=${finalInsurance.toStringAsFixed(2)}, '
-        'PaidDriver=${paidDriver.toStringAsFixed(2)}, '
-        'PA=${paAmount.toStringAsFixed(0)}, '
-        'AfterZD=${afterZd.toStringAsFixed(0)}',
-      );
+      _set(_finalInsCtrl, finalInsurance + _d(_addLessCtrl), decimals: 0);
     }
 
     // ASP.NET final challan amount (sp_521).
@@ -3187,11 +3096,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
     final received = _d(_receivedCtrl);
     _set(_balanceCtrl, total - received);
-    // Customer Balance is reduced by the actual Customer Received Amt.
-    // Cash finance does NOT mean Customer Received Amt is zero.
-    final customerReceived = _d(_customerReceivedCtrl);
-
-    _set(_customerBalanceCtrl, total - _d(_loanAmtCtrl) - customerReceived);
+    _set(
+      _customerBalanceCtrl,
+      total - _d(_loanAmtCtrl) - _d(_customerReceivedCtrl),
+    );
     _set(_hpnBalanceCtrl, _d(_hpnRtoCtrl) - _d(_hpnReceivedCtrl));
   }
 
@@ -4278,7 +4186,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_548': _insType == 'In House' ? 'in' : 'out',
         'sp_520': _finalInsCtrl.text,
         'sp_502': _cessCtrl.text,
-        'sp_504': _cessAmtCtrl.text,
         'sp_505': _idvCtrl.text,
         'sp_506': _idvAmtCtrl.text,
         'sp_507': _insPerCtrl.text,
@@ -4293,7 +4200,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_514': _pbCtrl.text,
         'sp_515': _kpCtrl.text,
         'sp_516': _paidDrvCtrl.text,
-        'sp_517': _kpAmtCtrl.text,
+        'sp_517': _afterPdCtrl.text,
         'sp_600': _rtiCtrl.text,
         'sp_601': _rtiAmtCtrl.text,
         'sp_602': _cmCtrl.text,
@@ -4303,12 +4210,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_518': _gstUnq ?? '',
         'sp_519': _gstAmtCtrl.text,
         'sp_539': _afterIdvCtrl.text,
-        'sp_540': _insExShowCtrl.text,
-        'sp_541': _afterDisCtrl.text,
-        'sp_542': _paAmtCtrl.text,
-        'sp_543': _afterPdCtrl.text,
         'sp_634': _cngPerCtrl.text,
         'sp_635': _cngAmtCtrl.text,
+        'sp_540': _paAmtCtrl.text,
         'sp_544': _addLessCtrl.text,
         'sp_615': _ncbCtrl.text,
         'sp_560': _insExShowCtrl.text,
@@ -4320,7 +4224,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_493': _rtoSurCtrl.text,
         'sp_494': _greenTaxCtrl.text,
         'sp_495': _regFeeCtrl.text,
-        'sp_496': _finType == 'Cash' ? '0.00' : _hpnRtoCtrl.text,
+        'sp_496': _hpnRtoCtrl.text,
         'sp_497': _dupCtrl.text,
         'sp_498': _smartCtrl.text,
         'sp_499': _otherRtoCtrl.text,
@@ -4353,6 +4257,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_581': _rejRemarkCtrl.text,
         'sp_591': '0',
         'sp_592': '0',
+        'sp_504': _subTotalCtrl.text,
       };
 
       if (_isEditing) {
@@ -5592,7 +5497,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                   setState(() {
                     _finType = 'In House';
-                    _hpnRtoCtrl.text = _f(_hpnMasterAmount);
                   });
 
                   _recalculateAspNet();
@@ -5603,7 +5507,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                   setState(() {
                     _finType = 'Out House';
-                    _hpnRtoCtrl.text = _f(_hpnMasterAmount);
                   });
 
                   _recalculateAspNet();
@@ -5614,14 +5517,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
                   setState(() {
                     _finType = 'Cash';
-
-                    // Cash finance:
-                    // HPN must be zero.
-                    _hpnRtoCtrl.text = '0.00';
-
-                    // Keep Customer Received Amt as the actual receipt amount.
-                    // Only the receipt-summary Customer Amt is zero for Cash.
-                    _receiptCustAmt = 0.0;
                   });
 
                   _recalculateAspNet();
@@ -6050,70 +5945,17 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         spacing: 8,
         runSpacing: 4,
         children: [
-          _chk('EP Amount Add', _epAdd, (v) async {
-            final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox change -> inscalculationdata(prefix).
-            // The master EP percentage is loaded there, then cal() uses
-            // that percentage only when the checkbox is ON.
-            setState(() => _epAdd = checked);
-
-            if (_insuranceCompanyId != null &&
-                _insuranceCompanyId!.trim().isNotEmpty &&
-                _modelId != null &&
-                _modelId!.trim().isNotEmpty) {
-              await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _epCtrl.text = checked && _epMasterRate != null
-                    ? _f(_epMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
-            }
+          _chk('EP Amount Add', _epAdd, (v) {
+            setState(() => _epAdd = v ?? false);
+            _recalculateAspNet();
           }),
-          _chk('RTI Amount Add', _rtiAdd, (v) async {
-            final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox1 change -> inscalculationdata(prefix).
-            setState(() => _rtiAdd = checked);
-
-            if (_insuranceCompanyId != null &&
-                _insuranceCompanyId!.trim().isNotEmpty &&
-                _modelId != null &&
-                _modelId!.trim().isNotEmpty) {
-              await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _rtiCtrl.text = checked && _rtiMasterRate != null
-                    ? _f(_rtiMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
-            }
+          _chk('RTI Amount Add', _rtiAdd, (v) {
+            setState(() => _rtiAdd = v ?? false);
+            _recalculateAspNet();
           }),
-          _chk('CM Amount Add', _cmAdd, (v) async {
-            final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox2 change -> inscalculationdata(prefix).
-            setState(() => _cmAdd = checked);
-
-            if (_insuranceCompanyId != null &&
-                _insuranceCompanyId!.trim().isNotEmpty &&
-                _modelId != null &&
-                _modelId!.trim().isNotEmpty) {
-              await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _cmCtrl.text = checked && _cmMasterRate != null
-                    ? _f(_cmMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
-            }
+          _chk('CM Amount Add', _cmAdd, (v) {
+            setState(() => _cmAdd = v ?? false);
+            _recalculateAspNet();
           }),
         ],
       ),
@@ -6122,7 +5964,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'CESS',
         _cessCtrl,
         'Amount',
-        _cessAmtCtrl,
+        _paAmtCtrl,
         'IDV',
         _idvCtrl,
         'IDV Amount',
@@ -6137,7 +5979,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'Insurance %',
         _insPerCtrl,
         'Insurance Amount',
-        c4: _insCalcAmtCtrl,
+        c4: _finalInsCtrl,
       ),
       _vg,
       _i4(
@@ -6341,11 +6183,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 setState(() => _rtoFrom = v);
                 _recalculateAspNet();
               }),
-              _radio('BH', _rtoFrom, (v) {
-                if (v == null) return;
-                setState(() => _rtoFrom = v);
-                _recalculateAspNet();
-              }),
+              _radio('BH', _rtoFrom, (v) => setState(() => _rtoFrom = v!)),
             ],
           );
           final scrap = Row(
