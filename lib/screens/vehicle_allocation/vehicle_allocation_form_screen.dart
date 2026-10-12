@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../services/api_service.dart';
+
 import '../../services/activity_service.dart';
+import '../../services/api_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Vehicle Allocation Form Screen
@@ -1537,51 +1538,48 @@ class _VehicleAllocationFormScreenState
           ),
         ),
         // Save button — admin only
-        if (_isAdmin) ...[
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton.icon(
-              onPressed: (_saving || _isLocked) ? null : _onSave,
-              icon: _saving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.save_rounded),
-              label: Text(
-                _saving
-                    ? 'Saving...'
-                    : _isLocked
-                    ? 'Select a Customer First'
-                    : (isEdit ? 'Update' : 'Save Allocation'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
+        // if (_isAdmin) ...[
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: ElevatedButton.icon(
+            onPressed: (_saving || _isLocked) ? null : _onSave,
+            icon: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.save_rounded),
+            label: Text(
+              _saving
+                  ? 'Saving...'
+                  : _isLocked
+                  ? 'Select a Customer First'
+                  : (isEdit ? 'Update' : 'Save Allocation'),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _primary,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: isDark
+                  ? const Color(0xFF1A2535)
+                  : const Color(0xFFD1E3FF),
+              disabledForegroundColor: isDark
+                  ? const Color(0xFF4A5A6A)
+                  : const Color(0xFF8A9BB0),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primary,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: isDark
-                    ? const Color(0xFF1A2535)
-                    : const Color(0xFFD1E3FF),
-                disabledForegroundColor: isDark
-                    ? const Color(0xFF4A5A6A)
-                    : const Color(0xFF8A9BB0),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
-              ),
+              elevation: 2,
             ),
           ),
-        ],
+        ),
+        // ],
       ],
     );
   }

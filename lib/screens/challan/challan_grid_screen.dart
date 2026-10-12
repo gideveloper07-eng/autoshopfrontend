@@ -4,7 +4,7 @@ import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
 import 'challan_edit_new_screen.dart';
-import 'challan_form_screen.dartxxx';
+import 'challan_form_screen.dart';
 
 /// Challan grid — responsive horizontal-scroll table.
 /// Header and body use separate controllers that mirror each other via
@@ -581,7 +581,13 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
           _cell('Variant', align: TextAlign.left),
           _cell('Net Amount', align: TextAlign.right),
           _cell('Status', align: TextAlign.center),
-          _cell('Action', align: TextAlign.center),
+          Visibility(
+            visible: false,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: _cell('Action', align: TextAlign.center),
+          ),
         ],
         isHeader: true,
       ),
@@ -727,31 +733,37 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                         ),
                       ),
                 // Action — 3 icon buttons, always fits in _cAction width
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _iconBtn(
-                      Icons.edit_outlined,
-                      const Color(0xFF1A56DB),
-                      () => _edit(row),
-                      'Edit',
-                    ),
-                    const SizedBox(width: 3),
-                    _iconBtn(
-                      Icons.print_outlined,
-                      const Color(0xFF059669),
-                      () => _print(row),
-                      'Print',
-                    ),
-                    const SizedBox(width: 3),
-                    _iconBtn(
-                      Icons.delete_outline_rounded,
-                      const Color(0xFFDC2626),
-                      () => _delete(row),
-                      'Del',
-                    ),
-                  ],
+                Visibility(
+                  visible: false,
+                  maintainSize: true,
+                  maintainAnimation: true,
+                  maintainState: true,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _iconBtn(
+                        Icons.edit_outlined,
+                        const Color(0xFF1A56DB),
+                        () => _edit(row),
+                        'Edit',
+                      ),
+                      const SizedBox(width: 3),
+                      _iconBtn(
+                        Icons.print_outlined,
+                        const Color(0xFF059669),
+                        () => _print(row),
+                        'Print',
+                      ),
+                      const SizedBox(width: 3),
+                      _iconBtn(
+                        Icons.delete_outline_rounded,
+                        const Color(0xFFDC2626),
+                        () => _delete(row),
+                        'Del',
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -22,6 +22,8 @@ class ChallanFormScreen extends StatefulWidget {
 
 class _ChallanFormScreenState extends State<ChallanFormScreen>
     with SingleTickerProviderStateMixin {
+  List<Map<String, dynamic>> _accessoryGridRows = [];
+  bool _loadingAccessoryGrid = false;
   // ── Theme colors ──────────────────────────────────────────────────────────
   static const Color _accent = Color(0xFF0D5BB5); // MyAutoShop accent blue
   static const Color _primary = Color(0xFF0A1B32);
@@ -82,6 +84,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   List<Map<String, dynamic>> _rtoCities = [];
   List<Map<String, dynamic>> _hpnList = [];
   List<Map<String, dynamic>> _insuranceCos = [];
+  List<Map<String, dynamic>> _otherOptions = [];
 
   // ── Selected IDs ──────────────────────────────────────────────────────────
   String? _custId, _modelId, _variantId, _colorId, _vinNo;
@@ -149,7 +152,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   double? _epMasterRate;
   double? _rtiMasterRate;
   double? _cmMasterRate;
-  final _insDisCtrl = TextEditingController();
+  final _insDisCtrl = TextEditingController(text: '0.00');
   final _insExShowCtrl = TextEditingController(text: '0.00');
   final _cessCtrl = TextEditingController(text: '0');
   final _cessAmtCtrl = TextEditingController(text: '0.00');
@@ -246,6 +249,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   final _sotAmtCtrl = TextEditingController(text: '0.00');
   final _fastTagCtrl = TextEditingController(text: '0.00');
   final _tcsCtrl = TextEditingController(text: '0.00');
+  double _tcsPercentage = 0.0;
+  bool _tcsCal = false;
   final _totalCtrl = TextEditingController(text: '0.00');
 
   // ── Receipt / balance totals ───────────────────────────────────────────────
@@ -303,6 +308,71 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       debugPrint('❌ Error reading branch from JWT: $e');
       return null;
     }
+  }
+
+  Future<void> _loadAccessoriesAmount(String customerId) async {
+    if (customerId.trim().isEmpty) return;
+
+    try {
+      final data = await ApiService.getAccessoriesAmount(customerId);
+
+      debugPrint('LOAD ACCESSORIES AMOUNT DATA: $data');
+
+      if (!mounted) return;
+
+      final companyAmount =
+          double.tryParse((data['companyAccessories'] ?? 0).toString()) ?? 0.0;
+
+      final ownAmount =
+          double.tryParse((data['ownAccessories'] ?? 0).toString()) ?? 0.0;
+
+      setState(() {
+        _compAccCtrl.text = companyAmount.toStringAsFixed(2);
+        _ownAccCtrl.text = ownAmount.toStringAsFixed(2);
+        _accAmtCtrl.text = (companyAmount + ownAmount).toStringAsFixed(2);
+      });
+
+      debugPrint('Company Accessories: ${_compAccCtrl.text}');
+      debugPrint('Own Accessories: ${_ownAccCtrl.text}');
+      debugPrint('Total Accessories: ${_accAmtCtrl.text}');
+    } catch (e, stackTrace) {
+      debugPrint('LOAD ACCESSORIES AMOUNT ERROR: $e');
+      debugPrint(stackTrace.toString());
+    }
+  }
+
+  Widget _accessoryAmountRow(String label, String amount) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F6FF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFD7E3F4)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF0A1B32),
+              ),
+            ),
+          ),
+          Text(
+            '₹ $amount',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0D5BB5),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -474,6 +544,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         ),
         ApiService.getChallanCities(),
         ApiService.getChallanAreas(),
+        ApiService.getChallanOthers(),
       ]);
 
       if (!mounted) return;
@@ -543,7 +614,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _models = r[1] as List<Map<String, dynamic>>;
         _rtoCities = r[2] as List<Map<String, dynamic>>;
         _hpnList = r[3] as List<Map<String, dynamic>>;
-
+        _otherOptions = r[10] as List<Map<String, dynamic>>;
         _states = states;
 
         _branches = branches;
@@ -828,6 +899,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _warrantyCtrl.text = _f(d['WarrantyAmount'] ?? d['warrantyamount']);
       _warrantyYrCtrl.text = d['WarrantyYear']?.toString() ?? '';
       _fastTagCtrl.text = _f(d['fasttag']);
+      final tcsCalRaw = d['tcscal']?.toString().trim().toUpperCase() ?? '';
+
+      _tcsCal = tcsCalRaw == 'TRUE' || tcsCalRaw == '1' || tcsCalRaw == 'YES';
       _tcsCtrl.text = _f(d['tcs']);
       _totalCtrl.text = _f(d['netamount']);
 
@@ -939,6 +1013,43 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     }
   }
 
+  Future<void> _loadAccessoriesGrid() async {
+    final customerId = (_custId ?? '').trim();
+
+    if (customerId.isEmpty) {
+      _snack('Please select a customer first');
+      return;
+    }
+
+    setState(() {
+      _loadingAccessoryGrid = true;
+      _accessoryGridRows = [];
+    });
+
+    try {
+      final rows = await ApiService.getAccessoriesGrid(customerId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _accessoryGridRows = rows;
+      });
+
+      debugPrint('ACCESSORIES GRID ROWS: ${rows.length}');
+      debugPrint('ACCESSORIES GRID DATA: $rows');
+
+      _showAccessoriesDialog();
+    } catch (e) {
+      if (mounted) {
+        _snack('Unable to load accessories: $e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingAccessoryGrid = false);
+      }
+    }
+  }
+
   // ── Cascade dropdowns ─────────────────────────────────────────────────────
   Future<void> _onModel(String? id) async {
     setState(() {
@@ -980,6 +1091,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       if (mounted) setState(() => _loadingCol = false);
     }
     await _fetchVariantDetails(id);
+    await _fetchRtoTrc();
   }
 
   Future<void> _onColor(String? id) async {
@@ -1569,7 +1681,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         if (!preserveCustomerValues ||
             !_customerFinancialFields.contains('rti')) {
           if (d['rti'] != null) {
-            _rtiCtrl.text = _f(d['rti']);
+            _rtiMasterRate = double.tryParse(d['rti'].toString());
+          }
+
+          _rtiCtrl.text = _rtiAdd && _rtiMasterRate != null
+              ? _f(_rtiMasterRate)
+              : '0.00';
+
+          if (!_rtiAdd) {
+            _rtiAmtCtrl.text = '0.00';
           }
         }
 
@@ -1580,7 +1700,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         if (!preserveCustomerValues ||
             !_customerFinancialFields.contains('cm')) {
           if (d['cm'] != null) {
-            _cmCtrl.text = _f(d['cm']);
+            _cmMasterRate = double.tryParse(d['cm'].toString());
+          }
+
+          _cmCtrl.text = _cmAdd && _cmMasterRate != null
+              ? _f(_cmMasterRate)
+              : '0.00';
+
+          if (!_cmAdd) {
+            _cmAmtCtrl.text = '0.00';
           }
         }
 
@@ -1591,7 +1719,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         if (!preserveCustomerValues ||
             !_customerFinancialFields.contains('ep')) {
           if (d['ep'] != null) {
-            _epCtrl.text = _f(d['ep']);
+            _epMasterRate = double.tryParse(d['ep'].toString());
+          }
+
+          _epCtrl.text = _epAdd && _epMasterRate != null
+              ? _f(_epMasterRate)
+              : '0.00';
+
+          if (!_epAdd) {
+            _epAmtCtrl.text = '0.00';
           }
         }
       });
@@ -1709,15 +1845,23 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         // -------------------------------------------------------
         // EP
         // -------------------------------------------------------
-        if (d['ep'] != null) {
+        /*if (d['ep'] != null) {
           _epMasterRate = double.tryParse(d['ep'].toString());
           if (_epAdd) {
             _epCtrl.text = _f(d['ep']);
           } else {
             _epCtrl.text = '0.00';
           }
+        }*/
+        // EP
+        // EP
+        if (d['ep'] != null) {
+          _epMasterRate = double.tryParse(d['ep'].toString());
         }
-
+        _epCtrl.text = _epAdd && _epMasterRate != null
+            ? _f(_epMasterRate)
+            : '0.00';
+        if (!_epAdd) _epAmtCtrl.text = '0.00';
         // -------------------------------------------------------
         // PB
         // -------------------------------------------------------
@@ -1735,27 +1879,42 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         // -------------------------------------------------------
         // RTI
         // -------------------------------------------------------
-        if (d['rti'] != null) {
+        /* if (d['rti'] != null) {
           _rtiMasterRate = double.tryParse(d['rti'].toString());
           if (_rtiAdd) {
             _rtiCtrl.text = _f(d['rti']);
           } else {
             _rtiCtrl.text = '0.00';
           }
+        }*/
+        // RTI
+        if (d['rti'] != null) {
+          _rtiMasterRate = double.tryParse(d['rti'].toString());
         }
+        _rtiCtrl.text = _rtiAdd && _rtiMasterRate != null
+            ? _f(_rtiMasterRate)
+            : '0.00';
+        if (!_rtiAdd) _rtiAmtCtrl.text = '0.00';
 
         // -------------------------------------------------------
         // CM
         // -------------------------------------------------------
-        if (d['cm'] != null) {
+        /*if (d['cm'] != null) {
           _cmMasterRate = double.tryParse(d['cm'].toString());
           if (_cmAdd) {
             _cmCtrl.text = _f(d['cm']);
           } else {
             _cmCtrl.text = '0.00';
           }
+        }*/
+        // CM
+        if (d['cm'] != null) {
+          _cmMasterRate = double.tryParse(d['cm'].toString());
         }
-
+        _cmCtrl.text = _cmAdd && _cmMasterRate != null
+            ? _f(_cmMasterRate)
+            : '0.00';
+        if (!_cmAdd) _cmAmtCtrl.text = '0.00';
         // -------------------------------------------------------
         // NCB
         // -------------------------------------------------------
@@ -1803,28 +1962,52 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   Future<void> _onCustomerSelected(String? id) async {
     if (id == null || id.isEmpty) return;
 
+    debugPrint('CUSTOMER SELECTED - ID: $id');
+
     // ============================================================
+
     // RESET CUSTOMER-SPECIFIC FIELD TRACKING
+
     // ============================================================
 
     _customerFinancialFields.clear();
 
     // ============================================================
+
     // FIND CUSTOMER
+
     // ============================================================
 
     final c = _customers.firstWhere(
       (e) => (e['data'] ?? e['value'] ?? e['id']).toString() == id,
+
       orElse: () => <String, dynamic>{},
     );
+
     debugPrint('========================================');
+
     debugPrint('CUSTOMER SELECTED');
+
     debugPrint('CUSTOMER DATA = $c');
+
     debugPrint('========================================');
+
     if (c.isEmpty) {
       setState(() => _custId = id);
 
+      // LOAD CUSTOMER RECEIPTS
+
       await _loadReceiptGrid(id);
+
+      // DEBUG: CHECK ACCESSORIES AMOUNT API
+
+      debugPrint('CUSTOMER SELECTED: $id');
+
+      debugPrint('CALLING ACCESSORIES AMOUNT API...');
+
+      await _loadAccessoriesAmount(id);
+
+      // FINAL ASP.NET CALCULATION
 
       if (mounted) {
         _recalculateAspNet();
@@ -1834,18 +2017,24 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     }
 
     // ============================================================
+
     // CUSTOMER + VEHICLE + FINANCIAL DATA
+
     // ============================================================
 
     setState(() {
       // ==========================================================
+
       // CUSTOMER
+
       // ==========================================================
 
       _custId = id;
 
       // ==========================================================
+
       // VEHICLE
+
       // ==========================================================
 
       _modelId = c['va_26']?.toString();
@@ -1867,13 +2056,17 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _vinNo = c['va_29']?.toString();
 
       // ==========================================================
+
       // ENGINE
+
       // ==========================================================
 
       _engineCtrl.text = c['sp_54']?.toString() ?? '';
 
       // ==========================================================
+
       // CUSTOMER DETAILS
+
       // ==========================================================
 
       _addressCtrl.text =
@@ -1896,7 +2089,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _gstinCtrl.text = c['m1_37']?.toString() ?? c['gstin']?.toString() ?? '';
 
       // ==========================================================
+
       // TITLE
+
       // ==========================================================
 
       final titleRaw = c['m1_51']?.toString().trim() ?? '';
@@ -1910,7 +2105,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // NOMINEE / RELATION / AGE
+
       // ==========================================================
 
       _nomineeCtrl.text = c['nominee']?.toString() ?? '';
@@ -1924,19 +2121,25 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // FATHER NAME
+
       // ==========================================================
 
       _fatherCtrl.text = c['fathername']?.toString() ?? '';
 
       // ==========================================================
+
       // SALES CONSULTANT
+
       // ==========================================================
 
       _scCtrl.text = c['scname']?.toString() ?? '';
 
       // ==========================================================
+
       // TL / MANAGER
+
       // ==========================================================
 
       _tlCtrl.text = c['tlname']?.toString() ?? c['tl']?.toString() ?? '';
@@ -1945,10 +2148,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           c['managername']?.toString() ?? c['manager']?.toString() ?? '';
 
       // ==========================================================
+
       // EP / RTI / CM
+
       //
+
       // Only overwrite if customer API actually contains a value.
+
       // Empty string should NOT destroy master values.
+
       // ==========================================================
 
       final epValue = c['ep'];
@@ -1988,7 +2196,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // INSURANCE DISCOUNT
+
       // ==========================================================
 
       final insDisValue = c['insdis'];
@@ -2000,7 +2210,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // INSURANCE IN / OUT
+
       // ==========================================================
 
       final insInOut = c['insinout']?.toString().trim().toLowerCase() ?? '';
@@ -2012,10 +2224,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // RTO IN / OUT
+
       //
+
       // Only map explicit textual values.
+
       // Do NOT assume "0.00" means In House/Out House.
+
       // ==========================================================
 
       final rtoInOut = c['rtoinout']?.toString().trim().toLowerCase() ?? '';
@@ -2029,7 +2246,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // RTO CITY
+
       // ==========================================================
 
       final rtoCityFromCust = c['rtocity']?.toString() ?? '';
@@ -2039,11 +2258,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // RTO CITY NAME
+
       // ==========================================================
 
       // ==========================================================
+
       // TRC
+
       // ==========================================================
 
       final trcValue = c['trc'];
@@ -2055,7 +2278,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // HPN / HYPOTHECATION
+
       // ==========================================================
 
       _hpnParentId =
@@ -2070,7 +2295,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _hypCtrl.text = c['hpnchild']?.toString() ?? '';
 
       // ==========================================================
+
       // FINANCE TYPE
+
       // ==========================================================
 
       final financeRaw = c['finance']?.toString().trim().toLowerCase() ?? '';
@@ -2086,7 +2313,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // LOAN AMOUNT
+
       // ==========================================================
 
       _loanAmtCtrl.text = _f(
@@ -2094,7 +2323,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       );
 
       // ==========================================================
+
       // NET DISBURSED
+
       // ==========================================================
 
       _netDisCtrl.text = _f(
@@ -2102,10 +2333,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       );
 
       // ==========================================================
+
       // BRANCH
+
       //
+
       // IMPORTANT:
+
       // Always replace previous customer's branch.
+
       // ==========================================================
 
       final custBranchId = c['branchid']?.toString() ?? '';
@@ -2121,7 +2357,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           '';
 
       // ==========================================================
+
       // CORPORATE
+
       // ==========================================================
 
       final corp = double.tryParse(c['corporate']?.toString() ?? '0') ?? 0;
@@ -2132,11 +2370,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _corpYn = 'Yes';
       } else {
         _corpValCtrl.text = '0';
+
         _corpYn = 'No';
       }
 
       // ==========================================================
+
       // EXCHANGE
+
       // ==========================================================
 
       final exch = double.tryParse(c['exchange']?.toString() ?? '0') ?? 0;
@@ -2147,11 +2388,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _exchYn = 'Yes';
       } else {
         _exchValCtrl.text = '0';
+
         _exchYn = 'No';
       }
 
       // ==========================================================
+
       // LOYALTY
+
       // ==========================================================
 
       final loy = double.tryParse(c['loyality']?.toString() ?? '0') ?? 0;
@@ -2162,11 +2406,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _loyYn = 'Yes';
       } else {
         _loyValCtrl.text = '0';
+
         _loyYn = 'No';
       }
 
       // ==========================================================
+
       // DEALER
+
       // ==========================================================
 
       final deal = double.tryParse(c['dealer']?.toString() ?? '0') ?? 0;
@@ -2177,14 +2424,20 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _dealYn = 'Yes';
       } else {
         _dealValCtrl.text = '0';
+
         _dealYn = 'No';
       }
 
       // ==========================================================
+
       // SCHEME
+
       //
+
       // API may return [0, 0].
+
       // Do not try to double.parse("[0, 0]").
+
       // ==========================================================
 
       final schemeValue = c['scheme'];
@@ -2204,7 +2457,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       }
 
       // ==========================================================
+
       // WARRANTY
+
       // ==========================================================
 
       final wrtyAmt =
@@ -2216,16 +2471,21 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _warrantyCtrl.text = wrtyAmt.toStringAsFixed(2);
 
       // ==========================================================
+
       // WARRANTY YEAR
+
       // ==========================================================
 
       if (c['warranty'] != null) {
         // Keep existing warranty-year logic if your API provides
+
         // a separate year field.
       }
 
       // ==========================================================
+
       // RSA
+
       // ==========================================================
 
       final rsaAmt = double.tryParse(c['rsa']?.toString() ?? '0') ?? 0;
@@ -2233,7 +2493,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _rsaCtrl.text = rsaAmt.toStringAsFixed(2);
 
       // ==========================================================
+
       // SOT
+
       // ==========================================================
 
       final sotAmt =
@@ -2245,7 +2507,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _sotAmtCtrl.text = sotAmt.toStringAsFixed(2);
 
       // ==========================================================
+
       // OTHER 1 / 2 / 3
+
       // ==========================================================
 
       _oth1Ctrl.text = c['ot_cap1']?.toString() ?? '';
@@ -2261,14 +2525,23 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _amt3Ctrl.text = _f(c['ot_amt3'] ?? 0);
 
       // ==========================================================
+
       // SCRAPPAGE
+
       //
+
       // IMPORTANT:
+
       // API returns actual percentage.
+
       // Example:
+
       // scrapper = 26
+
       //
+
       // It is NOT simply a boolean.
+
       // ==========================================================
 
       final scrapperValue =
@@ -2278,9 +2551,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _scrappage = true;
 
         // If your project has a scrappage controller,
+
         // use it here.
+
         //
+
         // _scrappageCtrl.text =
+
         //     scrapperValue.toStringAsFixed(2);
 
         _customerFinancialFields.add('scrappage');
@@ -2288,30 +2565,33 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _scrappage = false;
 
         // If controller exists:
+
         //
+
         // _scrappageCtrl.text = '0';
       }
 
       // ==========================================================
+
       // TCS CALCULATION FLAG
+
       // ==========================================================
 
+      // TCS CALCULATION FLAG
       final tcsCal = c['tcscal']?.toString().trim().toUpperCase() ?? '';
 
-      if (tcsCal == 'TRUE') {
-        _customerFinancialFields.add('tcscal');
+      _tcsCal = tcsCal == 'TRUE' || tcsCal == '1' || tcsCal == 'YES';
 
-        // If your Flutter code has a TCS boolean, assign it here.
-        //
-        // _tcsCalculate = true;
-      } else if (tcsCal == 'FALSE') {
-        // If your Flutter code has a TCS boolean:
-        //
-        // _tcsCalculate = false;
+      if (_tcsCal) {
+        _customerFinancialFields.add('tcscal');
+      } else {
+        _customerFinancialFields.remove('tcscal');
       }
 
       // ==========================================================
+
       // CITY / AREA
+
       // ==========================================================
 
       _cityName = c['city']?.toString() ?? '';
@@ -2323,14 +2603,18 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _areaId = c['areaunq']?.toString();
 
       // ==========================================================
+
       // APPLY OTHER EXISTING CUSTOMER FINANCIAL DATA
+
       // ==========================================================
 
       _applyChallanFinancialData(c);
     });
 
     // ============================================================
+
     // LOAD DEPENDENT VARIANTS
+
     // ============================================================
 
     if (_modelId != null && _modelId!.isNotEmpty) {
@@ -2344,7 +2628,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         });
 
         // ========================================================
+
         // LOAD COLORS
+
         // ========================================================
 
         if (_variantId != null && _variantId!.isNotEmpty) {
@@ -2357,13 +2643,17 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           });
 
           // ======================================================
+
           // LOAD VINs
+
           // ======================================================
 
           if (_colorId != null && _colorId!.isNotEmpty) {
             final vins = await ApiService.getChallanVins(
               variantId: _variantId!,
+
               colorId: _colorId!,
+
               challanType: _challanType,
             );
 
@@ -2380,26 +2670,41 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     }
 
     // ============================================================
+
     // LOAD VARIANT MASTER DETAILS
+
     //
+
     // IMPORTANT:
+
     // Preserve customer-specific values such as:
+
     //   insdis
+
     //   scrappage
+
     //   ep
+
     //   rti
+
     //   cm
+
     //   trc
+
     //   etc.
+
     // ============================================================
 
     if (_variantId != null && _variantId!.isNotEmpty) {
       await _fetchVariantDetails(_variantId!, preserveCustomerValues: true);
+
       await _fetchInsuranceCalculation();
     }
 
     // ============================================================
+
     // LOAD HPN CHILD BRANCHES
+
     // ============================================================
 
     if (_hpnParentId != null && _hpnParentId!.isNotEmpty) {
@@ -2407,21 +2712,37 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     }
 
     // ============================================================
+
     // FETCH OWN RTO
+
     // ============================================================
 
     if (_branchId != null && _branchId!.isNotEmpty && _rtoCityId == null) {
       await _fetchOwnRtoCity(_branchId!);
     }
 
+    // Fetch TRC even when the RTO city was already populated.
+    await _fetchRtoTrc();
+
     // ============================================================
+
     // LOAD CUSTOMER RECEIPTS
+
     // ============================================================
 
     await _loadReceiptGrid(id);
 
     // ============================================================
+
+    // LOAD ACCESSORIES AMOUNTS AFTER CUSTOMER DATA/RECEIPTS
+    debugPrint('CUSTOMER ID: $id');
+    debugPrint('STARTING ACCESSORIES AMOUNT API');
+    await _loadAccessoriesAmount(id);
+    // FETCH TCS WHEN CUSTOMER IS SELECTED
+    debugPrint('FETCHING TCS FOR CHALLAN DATE: $_challanDate');
+    await _fetchTcsForDate(_challanDate);
     // FINAL ASP.NET CALCULATION
+
     // ============================================================
 
     if (mounted) {
@@ -2807,8 +3128,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _dupCtrl.text = _f(row['rduplicate'] ?? row['sp_344']);
         _smartCtrl.text = _f(row['rsmartcard'] ?? row['sp_345']);
         _otherRtoCtrl.text = _f(row['rother'] ?? row['sp_346']);
-        _trcCtrl.text = _f(row['trc'] ?? row['sp_347']);
+        _trcCtrl.text = '0.00';
       });
+      await _fetchRtoTrc();
       _recalculateAspNet();
     } catch (e) {
       print('_fetchOwnRtoCity ERROR: $e');
@@ -2822,11 +3144,94 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     _recalculateAspNet();
   }
 
-  void _onRtoCitySelected(String? id) {
-    setState(() => _rtoCityId = id);
-    // The RTO master lookup is wired in ApiService in the next layer.
-    // Keep the selected master ID here and recalculate immediately.
-    _recalculateAspNet();
+  Future<void> _onRtoCitySelected(String? id) async {
+    if (id == null || id.isEmpty) {
+      setState(() {
+        _rtoCityId = null;
+        _trcCtrl.text = '0.00';
+      });
+      //_recalculateAspNet();
+      return;
+    }
+
+    final selectedRto = _rtoCities.firstWhere(
+      (item) => (item['data'] ?? item['sp_332'] ?? '').toString() == id,
+      orElse: () => <String, dynamic>{},
+    );
+
+    setState(() {
+      _rtoCityId = id;
+
+      if (selectedRto.isNotEmpty) {
+        _rtoRateCtrl.text = _f(selectedRto['rrate'] ?? selectedRto['sp_339']);
+        _rtoSurCtrl.text = _f(selectedRto['rtax'] ?? selectedRto['sp_340']);
+        _greenTaxCtrl.text = _f(selectedRto['rgreen'] ?? selectedRto['sp_341']);
+        _regFeeCtrl.text = _f(selectedRto['rreg'] ?? selectedRto['sp_342']);
+        _setHpnRtoMaster(selectedRto['rhpn'] ?? selectedRto['sp_343']);
+        _dupCtrl.text = _f(selectedRto['rduplicate'] ?? selectedRto['sp_344']);
+        _smartCtrl.text = _f(
+          selectedRto['rsmartcard'] ?? selectedRto['sp_345'],
+        );
+        _otherRtoCtrl.text = _f(selectedRto['rother'] ?? selectedRto['sp_346']);
+      }
+
+      // Clear the old TRC amount until the city/variant lookup completes.
+      _trcCtrl.text = '0.00';
+    });
+
+    // Equivalent to the original JavaScript:
+    // rtotrc(prefix)
+
+    await _fetchRtoTrc();
+
+    //_recalculateAspNet();
+  }
+
+  Future<void> _fetchRtoTrc() async {
+    final cityId = _rtoCityId;
+    final variantId = _variantId;
+
+    debugPrint('========== FETCH RTO TRC ==========');
+    debugPrint('RTO City ID: $cityId');
+    debugPrint('Variant ID : $variantId');
+
+    if (cityId == null || cityId.isEmpty) {
+      debugPrint('TRC NOT FETCHED: RTO city ID is empty');
+      return;
+    }
+
+    if (variantId == null || variantId.isEmpty) {
+      debugPrint('TRC NOT FETCHED: Variant ID is empty');
+      return;
+    }
+
+    try {
+      debugPrint('Calling ApiService.getRtoTrc...');
+
+      final result = await ApiService.getRtoTrc(
+        prefix: 'rh_',
+        rtoCityId: cityId,
+        variantId: variantId,
+      );
+
+      debugPrint('RTO TRC API RESPONSE: $result');
+
+      if (!mounted) return;
+
+      // Ignore an old response if the user selected another city or variant.
+      if (cityId != _rtoCityId || variantId != _variantId) return;
+
+      setState(() {
+        _trcCtrl.text = _f(result['trc'] ?? 0);
+      });
+
+      debugPrint('TRC AMOUNT UPDATED: ${_trcCtrl.text}');
+
+      // _recalculateAspNet();
+    } catch (e, stackTrace) {
+      debugPrint('FETCH RTO TRC ERROR: $e');
+      debugPrint(stackTrace.toString());
+    }
   }
 
   String _f(dynamic v) =>
@@ -2854,8 +3259,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     // TCS: ASP.NET applies it when the applicable subtotal exceeds 10 lakh.
     // The percentage comes from the master/API layer; until it is supplied,
     // preserve an explicitly entered TCS value.
-    if (subtotal <= 1000000) _set(_tcsCtrl, 0);
+    // if (subtotal <= 1000000) _set(_tcsCtrl, 0);
+    // TCS CALCULATION — MATCH LEGACY ASP.NET
+    final tcsSubtotal = _tcsCal ? _d(_subTotalCtrl) : exShow;
 
+    final tcsAmount = tcsSubtotal > 1000000
+        ? (tcsSubtotal * _tcsPercentage / 100).roundToDouble()
+        : 0.0;
+
+    _set(_tcsCtrl, tcsAmount);
     // RTO calculation from Jchallan.js.
     var rtoExShow = _d(_rtoExShowCtrl);
     if (rtoExShow <= 0) {
@@ -3223,16 +3635,24 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   Future<void> _fetchTcsForDate(DateTime date) async {
     try {
       final dateStr =
-          '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+          '${date.day.toString().padLeft(2, '0')}/'
+          '${date.month.toString().padLeft(2, '0')}/'
+          '${date.year}';
+
       final tcs = await ApiService.getChallanTcsData(dateStr);
+
       if (!mounted) return;
+
       setState(() {
-        if (tcs > 0) {
-          _tcsCtrl.text = tcs.toStringAsFixed(2);
-        }
+        _tcsPercentage = tcs;
       });
+
+      _recalculateAspNet();
+
+      debugPrint('TCS Percentage: $_tcsPercentage');
+      debugPrint('TCS Amount: ${_tcsCtrl.text}');
     } catch (e) {
-      print('_fetchTcsForDate ERROR: $e');
+      debugPrint('_fetchTcsForDate ERROR: $e');
     }
   }
 
@@ -4051,7 +4471,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                     child: Row(
                       children: [
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             final rtoCity = rtoCityCtrl.text.trim();
                             final mainCity = mainCityCtrl.text.trim();
 
@@ -4063,38 +4483,57 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                               return;
                             }
 
-                            setState(() {
-                              _cityName = mainCity;
+                            try {
+                              // Call the API to save the city in SQL Server.
+                              final refreshedCities =
+                                  await ApiService.saveRtoCity(
+                                    rtoCity: rtoCity,
+                                    mainCity: mainCity,
+                                    charges: Map<String, bool>.from(
+                                      selectedCharges,
+                                    ),
+                                  );
 
-                              // Try to select an existing RTO city returned by
-                              // the API. If no exact match exists, keep the
-                              // typed value for the current challan.
-                              final match = _rtoCities.firstWhere((e) {
-                                final value = (e['data'] ?? e['value'] ?? '')
-                                    .toString()
-                                    .trim();
-                                final label =
-                                    (e['name'] ?? e['text'] ?? e['label'] ?? '')
+                              if (!mounted || !ctx.mounted) return;
+
+                              // Find the newly saved RTO city.
+                              final match = refreshedCities.firstWhere(
+                                (row) =>
+                                    (row['value'] ?? row['sp_337'] ?? '')
                                         .toString()
-                                        .trim();
-                                return value == rtoCity ||
-                                    label.toLowerCase() ==
-                                        rtoCity.toLowerCase();
-                              }, orElse: () => <String, dynamic>{});
+                                        .trim()
+                                        .toUpperCase() ==
+                                    rtoCity.toUpperCase(),
+                                orElse: () => <String, dynamic>{},
+                              );
 
-                              if (match.isNotEmpty) {
-                                _rtoCityId =
-                                    (match['data'] ??
-                                            match['value'] ??
-                                            match['id'])
-                                        ?.toString();
-                              }
-                            });
+                              setState(() {
+                                _rtoCities = refreshedCities;
+                                _cityName = mainCity;
 
-                            rtoCityCtrl.dispose();
-                            mainCityCtrl.dispose();
-                            Navigator.pop(ctx);
+                                if (match.isNotEmpty) {
+                                  _rtoCityId =
+                                      (match['data'] ?? match['sp_332'])
+                                          ?.toString();
+                                }
+                              });
+
+                              rtoCityCtrl.dispose();
+                              mainCityCtrl.dispose();
+                              Navigator.pop(ctx);
+
+                              _snack('RTO city saved successfully');
+                            } catch (e) {
+                              if (!mounted) return;
+
+                              _snack(
+                                'Failed to save RTO city: '
+                                '${e.toString().replaceFirst('Exception: ', '')}',
+                                isError: true,
+                              );
+                            }
                           },
+
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF1675D1),
@@ -4208,22 +4647,31 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   );
 
   // ── Save / Update ─────────────────────────────────────────────────────────
-  Future<void> _save() async {
-    _recalculateAspNet();
+  Future<void> _challansavelatest() async {
+    // _recalculateAspNet();
+
     if (!_formKey.currentState!.validate()) return;
+
     if (_custId == null) {
       _snack('Please select a customer', isError: true);
       return;
     }
+
     if (_vinNo == null && !_isEditing) {
       _snack('Please select a VIN', isError: true);
       return;
     }
+
     setState(() => _saving = true);
+
     try {
       final payload = <String, dynamic>{
         'prefix': 'rh_',
-        'pageno': _stateId ?? '',
+
+        // City and area
+        'pageno': _cityId ?? '',
+        'sp_465': _areaId ?? '',
+
         'sp_462': _isEditing ? _editUnq : '0',
         'sp_463': '',
         'sp_464': '',
@@ -4241,7 +4689,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_538': _title,
         'sp_524': _addressCtrl.text,
         'sp_526': _mobileCtrl.text,
-        'sp_525': _emailCtrl.text,
+
+        // Customer details
+        'sp_525': _fatherCtrl.text,
         'sp_527': _aadharCtrl.text,
         'sp_528': _panCtrl.text,
         'sp_532': _gstinCtrl.text,
@@ -4252,6 +4702,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_529': _nomineeCtrl.text,
         'sp_530': _ageCtrl.text,
         'sp_531': _relation,
+
+        // Finance
         'sp_547': _finType == 'Cash'
             ? 'Cash'
             : (_finType == 'In House' ? 'in' : 'out'),
@@ -4260,21 +4712,25 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_536': _branchNameCtrl.text,
         'sp_537': _loanAmtCtrl.text,
         'sp_561': _loanAmtCtrl.text,
-        'sp_483': _corpYn == 'Yes' ? 'in' : 'out',
+
+        // Discounts
+        'sp_483': _corpYn,
         'sp_484': _corpValCtrl.text,
         'sp_485': _corpGiven,
-        'sp_486': _exchYn == 'Yes' ? 'In' : 'out',
+        'sp_486': _exchYn,
         'sp_487': _exchValCtrl.text,
         'sp_488': _exchGiven,
-        'sp_611': _dealYn == 'Yes' ? 'in' : 'out',
+        'sp_611': _dealYn,
         'sp_612': _dealValCtrl.text,
         'sp_613': _dealGiven,
-        'sp_489': _loyYn == 'Yes' ? 'In' : 'out',
+        'sp_489': _loyYn,
         'sp_490': _loyValCtrl.text,
         'sp_491': _loyGiven,
         'sp_482': _exShowCtrl.text,
         'sp_522': _schemesCtrl.text,
         'sp_503': _subTotalCtrl.text,
+
+        // Insurance
         'sp_548': _insType == 'In House' ? 'in' : 'out',
         'sp_520': _finalInsCtrl.text,
         'sp_502': _cessCtrl.text,
@@ -4282,7 +4738,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_505': _idvCtrl.text,
         'sp_506': _idvAmtCtrl.text,
         'sp_507': _insPerCtrl.text,
-        'sp_508': _insAmtCtrl.text,
+        'sp_508': _insCalcAmtCtrl.text,
+        'sp_509': _insDisCtrl.text.trim().isEmpty
+            ? '30'
+            : _insDisCtrl.text.trim(),
         'sp_510': _disAmtCtrl.text,
         'sp_511': _thirdPartyCtrl.text,
         'sp_512': _paCoverCtrl.text,
@@ -4303,7 +4762,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_518': _gstUnq ?? '',
         'sp_519': _gstAmtCtrl.text,
         'sp_539': _afterIdvCtrl.text,
-        'sp_540': _insExShowCtrl.text,
+        'sp_540': _insAmtCtrl.text,
         'sp_541': _afterDisCtrl.text,
         'sp_542': _paAmtCtrl.text,
         'sp_543': _afterPdCtrl.text,
@@ -4312,6 +4771,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_544': _addLessCtrl.text,
         'sp_615': _ncbCtrl.text,
         'sp_560': _insExShowCtrl.text,
+
+        // RTO
         'sp_533': _rtoCityId ?? '',
         'sp_534': _rtoFrom == 'In House'
             ? 'in'
@@ -4330,7 +4791,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_637': _bhYearCtrl.text,
         'sp_549': _rtoExShowCtrl.text,
         'sp_653': _scrappage ? '1' : '0',
+
+        // Keep unchanged until the calculated scrappage amount is identified.
         'sp_654': '0',
+
+        // Other amounts
         'sp_617': _oth1Ctrl.text,
         'sp_620': _amt1Ctrl.text,
         'sp_618': _oth2Ctrl.text,
@@ -4348,6 +4813,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_474': _fastTagCtrl.text,
         'sp_476': _tcsCtrl.text,
         'sp_521': _totalCtrl.text,
+
+        // Remarks
         'sp_616': _remarkCtrl.text,
         'sp_585': _appRemarkCtrl.text,
         'sp_581': _rejRemarkCtrl.text,
@@ -4356,14 +4823,18 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       };
 
       if (_isEditing) {
-        await ApiService.updateChallan(payload);
         if (!mounted) return;
+
         _snack('Challan updated — No. $_challanNo');
       } else {
+        print('Flutter sp_483: ${payload['sp_483']}');
+        print('Flutter sp_509: ${payload['sp_509']}');
+        print('Flutter sp_510: ${payload['sp_510']}');
         await ApiService.saveChallanNew(payload);
         if (!mounted) return;
         _snack('Challan saved — No. $_challanNo');
       }
+
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
@@ -5072,7 +5543,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         );
 
         final saveButton = ElevatedButton.icon(
-          onPressed: _saving ? null : _save,
+          // onPressed: _saving ? null : _challansavelatest,
+          onPressed: _saving
+              ? null
+              : _challansavelatest, // Call the new method for saving
           icon: _saving
               ? const SizedBox(
                   width: 18,
@@ -5418,7 +5892,29 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _vg,
         _r3(
           _txt('Location', _locationCtrl, readOnly: true),
-          _txt('Mobile No.', _mobileCtrl, inputType: TextInputType.phone),
+
+          _txt(
+            'Mobile No.',
+            _mobileCtrl,
+            inputType: TextInputType.phone,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(10),
+            ],
+            validator: (value) {
+              final mobile = (value ?? '').trim();
+
+              // Keep the field optional, but validate it if entered.
+              if (mobile.isEmpty) return null;
+
+              if (!RegExp(r'^[6-9][0-9]{9}$').hasMatch(mobile)) {
+                return 'Enter a valid 10-digit mobile number';
+              }
+
+              return null;
+            },
+          ),
+
           Column(
             children: [
               _txt(
@@ -5465,7 +5961,32 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         ),
         _vg,
         _r3(
-          _txt('GST No.', _gstinCtrl, inputFormatters: [UpperCaseFormatter()]),
+          _txt(
+            'GST No.',
+            _gstinCtrl,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              UpperCaseFormatter(),
+              LengthLimitingTextInputFormatter(15),
+            ],
+            validator: (value) {
+              final gstin = (value ?? '').trim().toUpperCase();
+
+              // GSTIN remains optional; validate only when entered.
+              if (gstin.isEmpty) return null;
+
+              final gstinRegex = RegExp(
+                r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$',
+              );
+
+              if (!gstinRegex.hasMatch(gstin)) {
+                return 'Enter a valid 15-character GSTIN';
+              }
+
+              return null;
+            },
+          ),
+
           _txt('SC Name', _scCtrl, readOnly: true),
           Column(
             children: [
@@ -5648,198 +6169,208 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _num('Net Disbursed Amount', _netDisCtrl, ro: _financeFieldsDisabled),
 
         // ─────────────────────────────────────────────────────────────
-        // BRANCH NAME
+        // HYPOTHECATION / LESSOR
         //
         // Cash  -> Disabled
         // In/Out -> Enabled
         // ─────────────────────────────────────────────────────────────
-        _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
-          if (v == null) return;
+        _dropMapField(
+          'Hypothecation / Lessor',
+          _hpnParentId,
+          _hpnList,
+          (v) {
+            if (v == null) return;
 
-          setState(() {
-            _hpnChildId = v;
+            setState(() {
+              _hpnParentId = v;
+              _hpnChildId = null;
+              _hpnBranches = [];
+              _branchNameCtrl.clear();
+            });
 
-            final selected = _hpnBranches.firstWhere(
-              (e) => e['data']?.toString() == v.toString(),
-              orElse: () => <String, dynamic>{},
-            );
+            _loadHpnBranches(v);
 
-            _branchNameCtrl.text = selected['value']?.toString() ?? '';
-          });
-
-          _recalculateAspNet();
-        }, disabled: _financeFieldsDisabled),
+            _recalculateAspNet();
+          },
+          disabled: _financeFieldsDisabled,
+        ),
       ),
 
       _vg,
 
       // ─────────────────────────────────────────────────────────────
-      // HYPOTHECATION / LESSOR
+      // BRANCH NAME
       //
       // Cash  -> Disabled
       // In/Out -> Enabled
       // ─────────────────────────────────────────────────────────────
-      _dropMapField(
-        'Hypothecation / Lessor',
-        _hpnParentId,
-        _hpnList,
-        (v) {
-          if (v == null) return;
+      _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
+        if (v == null) return;
 
-          setState(() {
-            _hpnParentId = v;
-            _hpnChildId = null;
-            _hpnBranches = [];
-            _branchNameCtrl.clear();
-          });
+        setState(() {
+          _hpnChildId = v;
 
-          _loadHpnBranches(v);
+          final selected = _hpnBranches.firstWhere(
+            (e) => e['data']?.toString() == v.toString(),
+            orElse: () => <String, dynamic>{},
+          );
 
-          _recalculateAspNet();
-        },
-        disabled: _financeFieldsDisabled,
-      ),
+          _branchNameCtrl.text = selected['value']?.toString() ?? '';
+        });
+
+        _recalculateAspNet();
+      }, disabled: _financeFieldsDisabled),
     ],
   );
 
   // ── Discounts section ─────────────────────────────────────────────────────
-  Widget _secDiscounts() => Column(
-    children: [
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final mobile = constraints.maxWidth < 600;
 
-          if (mobile) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(
-                children: [
-                  const Expanded(flex: 4, child: SizedBox()),
+  // ── Discounts section ─────────────────────────────────────────────
+  Widget _secDiscounts() => LayoutBuilder(
+    builder: (context, constraints) {
+      final mobile = constraints.maxWidth < 600;
 
-                  const Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: Text(
-                        'Amount',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5F6F85),
-                        ),
-                      ),
-                    ),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Column headings
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                const Expanded(flex: 4, child: SizedBox()),
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: mobile
+                        ? const Text(
+                            'Amount',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF5F6F85),
+                            ),
+                          )
+                        : _lbl('Amount'),
                   ),
-
-                  const Expanded(
-                    flex: 5,
-                    child: Center(
-                      child: Text(
-                        'Given',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5F6F85),
-                        ),
-                      ),
-                    ),
+                ),
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: mobile
+                        ? const Text(
+                            'Given',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF5F6F85),
+                            ),
+                          )
+                        : _lbl('Given'),
                   ),
-                ],
-              ),
-            );
-          }
+                ),
+              ],
+            ),
+          ),
 
-          return Row(
-            children: [
-              const Expanded(flex: 3, child: SizedBox()),
-              Expanded(flex: 2, child: Center(child: _lbl('Amount'))),
-              Expanded(flex: 2, child: Center(child: _lbl('Given'))),
-              Expanded(flex: 3, child: Center(child: _lbl('Ex-Showroom'))),
-            ],
-          );
-        },
-      ),
+          const SizedBox(height: 4),
 
-      const SizedBox(height: 4),
+          // 1. Corporate
+          _discRow(
+            'Corporate',
+            _corpYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _corpYn = v);
+              _recalculateAspNet();
+            },
+            _corpValCtrl,
+            _corpGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _corpGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
 
-      _discRow(
-        'Corporate',
-        _corpYn,
-        (v) {
-          if (v == null) return;
-          setState(() => _corpYn = v);
-          _recalculateAspNet();
-        },
-        _corpValCtrl,
-        _corpGiven,
-        (v) {
-          if (v == null) return;
-          setState(() => _corpGiven = v);
-          _recalculateAspNet();
-        },
-        _exShowCtrl,
-        'Ex-Showroom',
-      ),
+          // 2. Exchange
+          _discRow(
+            'Exchange',
+            _exchYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _exchYn = v);
+              _recalculateAspNet();
+            },
+            _exchValCtrl,
+            _exchGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _exchGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
 
-      _discRow(
-        'Exchange',
-        _exchYn,
-        (v) {
-          if (v == null) return;
-          setState(() => _exchYn = v);
-          _recalculateAspNet();
-        },
-        _exchValCtrl,
-        _exchGiven,
-        (v) {
-          if (v == null) return;
-          setState(() => _exchGiven = v);
-          _recalculateAspNet();
-        },
-        _schemesCtrl,
-        'Schemes Less',
-      ),
+          // 3. Dealer Discount
+          _discRow(
+            'Dealer Discount',
+            _dealYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _dealYn = v);
+              _recalculateAspNet();
+            },
+            _dealValCtrl,
+            _dealGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _dealGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
 
-      _discRow(
-        'Dealer Discount',
-        _dealYn,
-        (v) {
-          if (v == null) return;
-          setState(() => _dealYn = v);
-          _recalculateAspNet();
-        },
-        _dealValCtrl,
-        _dealGiven,
-        (v) {
-          if (v == null) return;
-          setState(() => _dealGiven = v);
-          _recalculateAspNet();
-        },
-        _subTotalCtrl,
-        'SubTotal',
-        ro: true,
-      ),
+          // 4. Loyalty
+          _discRow(
+            'Loyalty',
+            _loyYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _loyYn = v);
+              _recalculateAspNet();
+            },
+            _loyValCtrl,
+            _loyGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _loyGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
 
-      _discRow(
-        'Loyalty',
-        _loyYn,
-        (v) {
-          if (v == null) return;
-          setState(() => _loyYn = v);
-          _recalculateAspNet();
-        },
-        _loyValCtrl,
-        _loyGiven,
-        (v) {
-          if (v == null) return;
-          setState(() => _loyGiven = v);
-          _recalculateAspNet();
-        },
-        null,
-        '',
-      ),
-    ],
+          const SizedBox(height: 5),
+
+          // Calculated fields shown after all discount rows
+          _num('Ex-Showroom', _exShowCtrl),
+          const SizedBox(height: 8),
+
+          _num('Schemes Less', _schemesCtrl),
+          const SizedBox(height: 8),
+
+          _num('SubTotal', _subTotalCtrl, ro: true),
+        ],
+      );
+    },
   );
 
+  // ── Responsive discount row ──────────────────────────────────────
   Widget _discRow(
     String lbl,
     String yn,
@@ -5854,88 +6385,57 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     builder: (context, constraints) {
       final mobile = constraints.maxWidth < 600;
 
-      // ==========================================================
-      // MOBILE
-      // ==========================================================
       if (mobile) {
+        // MOBILE: label, amount and Given stay on one row.
         return Padding(
-          padding: const EdgeInsets.only(bottom: 7),
-          child: Column(
+          padding: const EdgeInsets.only(bottom: 9),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // --------------------------------------------------
-              // MAIN ROW
-              // --------------------------------------------------
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Discount name
-                  Expanded(
-                    flex: 4,
-                    child: Text(
-                      lbl,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  lbl,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
-
-                  const SizedBox(width: 5),
-
-                  // Amount
-                  Expanded(flex: 3, child: _num('', amtC)),
-
-                  const SizedBox(width: 5),
-
-                  // Given
-                  Expanded(
-                    flex: 5,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        _radio('Yes', given, onGiven),
-                        _radio('No', given, onGiven),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
 
-              // --------------------------------------------------
-              // RIGHT SIDE VALUE
-              // --------------------------------------------------
-              if (rightC != null) ...[
-                const SizedBox(height: 3),
+              const SizedBox(width: 6),
 
-                Row(
-                  children: [
-                    const Spacer(flex: 4),
+              Expanded(flex: 3, child: _num('', amtC)),
 
-                    Expanded(flex: 3, child: const SizedBox()),
+              const SizedBox(width: 5),
 
-                    const SizedBox(width: 5),
-
-                    Expanded(flex: 5, child: _num(rightLbl, rightC, ro: ro)),
-                  ],
+              Expanded(
+                flex: 5,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _radio('Yes', given, onGiven),
+                      _radio('No', given, onGiven),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ],
           ),
         );
       }
 
-      // ==========================================================
-      // DESKTOP / TABLET
-      // ==========================================================
-
+      // DESKTOP / TABLET: retain the existing four-column layout.
       return Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Discount
             Expanded(
               flex: 3,
               child: Row(
@@ -5949,18 +6449,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                       ),
                     ),
                   ),
-
                   _radio('Yes', yn, onYn),
-
                   _radio('No', yn, onYn),
                 ],
               ),
             ),
 
-            // Amount
             Expanded(flex: 2, child: _num('', amtC)),
 
-            // Given
             Expanded(
               flex: 2,
               child: Row(
@@ -5972,7 +6468,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               ),
             ),
 
-            // Right calculated value
             Expanded(
               flex: 3,
               child: rightC != null
@@ -6052,11 +6547,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         children: [
           _chk('EP Amount Add', _epAdd, (v) async {
             final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox change -> inscalculationdata(prefix).
-            // The master EP percentage is loaded there, then cal() uses
-            // that percentage only when the checkbox is ON.
             setState(() => _epAdd = checked);
 
             if (_insuranceCompanyId != null &&
@@ -6064,20 +6554,22 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 _modelId != null &&
                 _modelId!.trim().isNotEmpty) {
               await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _epCtrl.text = checked && _epMasterRate != null
-                    ? _f(_epMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
             }
+
+            if (!mounted) return;
+
+            setState(() {
+              _epCtrl.text = _epAdd && _epMasterRate != null
+                  ? _f(_epMasterRate)
+                  : '0.00';
+
+              if (!_epAdd) _epAmtCtrl.text = '0.00';
+            });
+
+            _recalculateAspNet();
           }),
           _chk('RTI Amount Add', _rtiAdd, (v) async {
             final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox1 change -> inscalculationdata(prefix).
             setState(() => _rtiAdd = checked);
 
             if (_insuranceCompanyId != null &&
@@ -6085,20 +6577,22 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 _modelId != null &&
                 _modelId!.trim().isNotEmpty) {
               await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _rtiCtrl.text = checked && _rtiMasterRate != null
-                    ? _f(_rtiMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
             }
+
+            if (!mounted) return;
+
+            setState(() {
+              _rtiCtrl.text = _rtiAdd && _rtiMasterRate != null
+                  ? _f(_rtiMasterRate)
+                  : '0.00';
+
+              if (!_rtiAdd) _rtiAmtCtrl.text = '0.00';
+            });
+
+            _recalculateAspNet();
           }),
           _chk('CM Amount Add', _cmAdd, (v) async {
             final checked = v ?? false;
-
-            // ASP.NET Jchallan(5).js:
-            // Checkbox2 change -> inscalculationdata(prefix).
             setState(() => _cmAdd = checked);
 
             if (_insuranceCompanyId != null &&
@@ -6106,14 +6600,19 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                 _modelId != null &&
                 _modelId!.trim().isNotEmpty) {
               await _fetchInsuranceCalculation();
-            } else {
-              setState(() {
-                _cmCtrl.text = checked && _cmMasterRate != null
-                    ? _f(_cmMasterRate)
-                    : '0.00';
-              });
-              _recalculateAspNet();
             }
+
+            if (!mounted) return;
+
+            setState(() {
+              _cmCtrl.text = _cmAdd && _cmMasterRate != null
+                  ? _f(_cmMasterRate)
+                  : '0.00';
+
+              if (!_cmAdd) _cmAmtCtrl.text = '0.00';
+            });
+
+            _recalculateAspNet();
           }),
         ],
       ),
@@ -6428,15 +6927,64 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   );
 
   // ── Others section ────────────────────────────────────────────────────────
-  Widget _secOthers() => Column(
-    children: [
-      _r2t('Other 1', _oth1Ctrl, 'Amount 1', _amt1Ctrl),
-      _vg,
-      _r2t('Other 2', _oth2Ctrl, 'Amount 2', _amt2Ctrl),
-      _vg,
-      _r2t('Other 3', _oth3Ctrl, 'Amount 3', _amt3Ctrl),
-    ],
-  );
+
+  Widget _secOthers() {
+    Widget otherRow(
+      String label,
+      TextEditingController otherCtrl,
+      TextEditingController amountCtrl,
+    ) {
+      final currentValue = otherCtrl.text.trim();
+
+      // Preserve the current selection when it exists in the API options.
+      final selectedValue =
+          _otherOptions.any(
+            (item) => (item['data'] ?? '').toString() == currentValue,
+          )
+          ? currentValue
+          : null;
+
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final dropdown = _dropMapField<String>(
+            label,
+            selectedValue,
+            _otherOptions,
+            (value) {
+              setState(() {
+                otherCtrl.text = value ?? '';
+              });
+            },
+          );
+
+          final amountField = _num('Amount', amountCtrl);
+
+          if (constraints.maxWidth < 600) {
+            return Column(children: [dropdown, _vg, amountField]);
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: dropdown),
+              const SizedBox(width: 8),
+              Expanded(child: amountField),
+            ],
+          );
+        },
+      );
+    }
+
+    return Column(
+      children: [
+        otherRow('Other 1', _oth1Ctrl, _amt1Ctrl),
+        _vg,
+        otherRow('Other 2', _oth2Ctrl, _amt2Ctrl),
+        _vg,
+        otherRow('Other 3', _oth3Ctrl, _amt3Ctrl),
+      ],
+    );
+  }
 
   Widget _r2t(
     String l1,
@@ -6460,63 +7008,183 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
   // ── Company Accessories Dialog ───────────────────────────────────────────
   void _showAccessoriesDialog() {
-    final partNoCtrl = TextEditingController();
-    final ownNameCtrl = TextEditingController();
-    final issueQtyCtrl = TextEditingController(text: '0');
-    final requiredQtyCtrl = TextEditingController(text: '0');
-    final mrpCtrl = TextEditingController(text: '0.00');
-    final qtyCtrl = TextEditingController(text: '0');
-    final hmiAmountCtrl = TextEditingController(text: '0.00');
-    final ownAmountCtrl = TextEditingController(text: '0.00');
-
     final hmiDiscountCtrl = TextEditingController(text: '0.00');
     final ownDiscountCtrl = TextEditingController(text: '0.00');
 
-    double number(TextEditingController c) =>
-        double.tryParse(c.text.trim()) ?? 0.0;
+    // The API rows come from A_SP_FOR_Challan with what = gridaccdata.
+    // Read keys defensively because SQL/JSON aliases can vary in casing.
+    dynamic field(Map<String, dynamic> row, String key, [String? alternate]) {
+      if (row.containsKey(key)) return row[key];
+      final match = row.entries.where(
+        (entry) => entry.key.toLowerCase() == key.toLowerCase(),
+      );
+      if (match.isNotEmpty) return match.first.value;
 
-    void recalc(StateSetter setDlg) {
-      final qty = number(qtyCtrl);
-      final mrp = number(mrpCtrl);
-
-      if (qty > 0 && mrp > 0) {
-        hmiAmountCtrl.text = (qty * mrp).toStringAsFixed(2);
+      if (alternate != null) {
+        if (row.containsKey(alternate)) return row[alternate];
+        final alternateMatch = row.entries.where(
+          (entry) => entry.key.toLowerCase() == alternate.toLowerCase(),
+        );
+        if (alternateMatch.isNotEmpty) return alternateMatch.first.value;
       }
-
-      setDlg(() {});
+      return '';
     }
 
-    showDialog(
+    String textValue(
+      Map<String, dynamic> row,
+      String key, [
+      String? alternate,
+    ]) {
+      final value = field(row, key, alternate);
+      return value == null ? '' : value.toString();
+    }
+
+    double amountValue(Map<String, dynamic> row, String key) {
+      final value = field(row, key);
+      return double.tryParse(value?.toString() ?? '') ?? 0.0;
+    }
+
+    double sumColumn(String key) {
+      return _accessoryGridRows.fold<double>(
+        0.0,
+        (total, row) => total + amountValue(row, key),
+      );
+    }
+
+    double discountValue(TextEditingController controller) =>
+        double.tryParse(controller.text.trim()) ?? 0.0;
+
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
-          final hmiAmount = number(hmiAmountCtrl);
-          final hmiDiscount = number(hmiDiscountCtrl);
-          final ownAmount = number(ownAmountCtrl);
-          final ownDiscount = number(ownDiscountCtrl);
+          final hmiAmount = sumColumn('Hamt');
+          final ownAmount = sumColumn('OAMT');
+          final hmiDiscount = discountValue(hmiDiscountCtrl);
+          final ownDiscount = discountValue(ownDiscountCtrl);
+          final hmiTotal = (hmiAmount - hmiDiscount).clamp(
+            0.0,
+            double.infinity,
+          );
+          final ownTotal = (ownAmount - ownDiscount).clamp(
+            0.0,
+            double.infinity,
+          );
+          final screenWidth = MediaQuery.sizeOf(ctx).width;
+          final mobile = screenWidth < 700;
 
-          final hmiTotal = (hmiAmount - hmiDiscount).clamp(0, double.infinity);
-          final ownTotal = (ownAmount - ownDiscount).clamp(0, double.infinity);
+          Widget accessoryCard(Map<String, dynamic> item, int index) {
+            final partNo = textValue(item, 'item');
+            final name = textValue(item, 'itemname');
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$partNo  •  $name',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF0A1B32),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 14,
+                      runSpacing: 6,
+                      children: [
+                        Text('Issue Qty: ${textValue(item, 'qty')}'),
+                        Text('Required Qty: ${textValue(item, 'reqqty')}'),
+                        Text('MRP: ${textValue(item, 'mrp')}'),
+                        Text('Stock Qty: ${textValue(item, 'qins')}'),
+                        Text('HMI Amount: ${textValue(item, 'Hamt')}'),
+                        Text('Own Amount: ${textValue(item, 'OAMT')}'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          Widget amountSummaryField(String label, String value) {
+            return _dialogAmountField(label, value);
+          }
+
+          Widget discountField(String label, TextEditingController controller) {
+            return _dialogEditableAmountField(label, controller, setDlg);
+          }
+
+          Widget totalsSection() {
+            final hmiFields = [
+              amountSummaryField('HMI Amount', hmiAmount.toStringAsFixed(2)),
+              discountField('HMI Discount Amount', hmiDiscountCtrl),
+              amountSummaryField(
+                'HMI Total Amount',
+                hmiTotal.toStringAsFixed(2),
+              ),
+            ];
+            final ownFields = [
+              amountSummaryField('OWN Amount', ownAmount.toStringAsFixed(2)),
+              discountField('OWN Discount Amount', ownDiscountCtrl),
+              amountSummaryField(
+                'OWN Total Amount',
+                ownTotal.toStringAsFixed(2),
+              ),
+            ];
+
+            Widget fieldsRow(List<Widget> fields) {
+              if (mobile) {
+                return Column(
+                  children: fields
+                      .map(
+                        (widget) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: widget,
+                        ),
+                      )
+                      .toList(),
+                );
+              }
+              return Row(
+                children: [
+                  for (var i = 0; i < fields.length; i++) ...[
+                    Expanded(child: fields[i]),
+                    if (i < fields.length - 1) const SizedBox(width: 10),
+                  ],
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                fieldsRow(hmiFields),
+                const SizedBox(height: 8),
+                fieldsRow(ownFields),
+              ],
+            );
+          }
 
           return Dialog(
             backgroundColor: Colors.white,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 28,
-              vertical: 24,
+            insetPadding: EdgeInsets.symmetric(
+              horizontal: mobile ? 10 : 28,
+              vertical: 18,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: 1050,
-                maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+                maxWidth: 1200,
+                maxHeight: MediaQuery.sizeOf(ctx).height * 0.90,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -6556,246 +7224,91 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                       ],
                     ),
                   ),
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+                      child: _accessoryGridRows.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text(
+                                  'No accessories found for this customer.',
+                                ),
+                              ),
+                            )
+                          : mobile
+                          ? ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: _accessoryGridRows.length,
+                              itemBuilder: (context, index) => accessoryCard(
+                                _accessoryGridRows[index],
+                                index,
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SingleChildScrollView(
+                                child: DataTable(
+                                  headingRowHeight: 38,
+                                  dataRowMinHeight: 42,
+                                  dataRowMaxHeight: 58,
+                                  columnSpacing: 14,
+                                  horizontalMargin: 8,
+                                  headingTextStyle: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF0A1B32),
+                                  ),
+                                  columns: const [
+                                    DataColumn(label: Text('Part No')),
+                                    DataColumn(
+                                      label: Text('Own Accessories Name'),
+                                    ),
+                                    DataColumn(label: Text('Issue Qty')),
+                                    DataColumn(label: Text('Required Qty')),
+                                    DataColumn(label: Text('MRP')),
+                                    DataColumn(label: Text('Qty')),
+                                    DataColumn(label: Text('HMI Amount')),
+                                    DataColumn(label: Text('Own Amount')),
+                                  ],
+                                  rows: _accessoryGridRows.map((item) {
+                                    String value(String key) {
+                                      final result = item[key];
+                                      return result == null
+                                          ? ''
+                                          : result.toString();
+                                    }
 
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final mobile = constraints.maxWidth < 600;
-                        final mobileFields = <Widget>[
-                          _dialogField('Part No', partNoCtrl),
-                          _dialogField('Own Accessories Name', ownNameCtrl),
-                          _dialogField('Issue Qty', issueQtyCtrl, number: true),
-                          _dialogField(
-                            'Required Qty',
-                            requiredQtyCtrl,
-                            number: true,
-                          ),
-                          _dialogField(
-                            'MRP',
-                            mrpCtrl,
-                            number: true,
-                            onChanged: (_) => recalc(setDlg),
-                          ),
-                          _dialogField(
-                            'Qty',
-                            qtyCtrl,
-                            number: true,
-                            onChanged: (_) => recalc(setDlg),
-                          ),
-                          _dialogField(
-                            'HMI Amount',
-                            hmiAmountCtrl,
-                            number: true,
-                            onChanged: (_) => setDlg(() {}),
-                          ),
-                          _dialogField(
-                            'Own Amount',
-                            ownAmountCtrl,
-                            number: true,
-                            onChanged: (_) => setDlg(() {}),
-                          ),
-                        ];
-                        if (mobile) {
-                          return ConstrainedBox(
-                            constraints: const BoxConstraints(maxHeight: 390),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                children: mobileFields
-                                    .map(
-                                      (w) => Padding(
-                                        padding: const EdgeInsets.only(
-                                          bottom: 8,
+                                    return DataRow(
+                                      cells: [
+                                        DataCell(Text(value('item'))),
+                                        DataCell(
+                                          SizedBox(
+                                            width: 190,
+                                            child: Text(
+                                              value('itemname'),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
                                         ),
-                                        child: w,
-                                      ),
-                                    )
-                                    .toList(),
+                                        DataCell(Text(value('qty'))),
+                                        DataCell(Text(value('reqqty'))),
+                                        DataCell(Text(value('mrp'))),
+                                        DataCell(Text(value('qty'))),
+                                        DataCell(Text(value('Hamt'))),
+                                        DataCell(Text(value('OAMT'))),
+                                      ],
+                                    );
+                                  }).toList(),
+                                ),
                               ),
                             ),
-                          );
-                        }
-                        return SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: DataTable(
-                            headingRowHeight: 38,
-                            dataRowMinHeight: 48,
-                            dataRowMaxHeight: 54,
-                            columnSpacing: 10,
-                            horizontalMargin: 4,
-                            headingTextStyle: const TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0A1B32),
-                            ),
-                            columns: const [
-                              DataColumn(label: Text('Part No')),
-                              DataColumn(label: Text('Own Accessories Name')),
-                              DataColumn(label: Text('Issue Qty')),
-                              DataColumn(label: Text('Required Qty')),
-                              DataColumn(label: Text('MRP')),
-                              DataColumn(label: Text('Qty')),
-                              DataColumn(label: Text('HMI Amount')),
-                              DataColumn(label: Text('Own Amount')),
-                            ],
-                            rows: [
-                              DataRow(
-                                cells: [
-                                  DataCell(
-                                    SizedBox(
-                                      width: 150,
-                                      child: _dialogField('', partNoCtrl),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 180,
-                                      child: _dialogField('', ownNameCtrl),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 70,
-                                      child: _dialogField(
-                                        '',
-                                        issueQtyCtrl,
-                                        number: true,
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 82,
-                                      child: _dialogField(
-                                        '',
-                                        requiredQtyCtrl,
-                                        number: true,
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 100,
-                                      child: _dialogField(
-                                        '',
-                                        mrpCtrl,
-                                        number: true,
-                                        onChanged: (_) => recalc(setDlg),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 70,
-                                      child: _dialogField(
-                                        '',
-                                        qtyCtrl,
-                                        number: true,
-                                        onChanged: (_) => recalc(setDlg),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 110,
-                                      child: _dialogField(
-                                        '',
-                                        hmiAmountCtrl,
-                                        number: true,
-                                        onChanged: (_) => setDlg(() {}),
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(
-                                    SizedBox(
-                                      width: 110,
-                                      child: _dialogField(
-                                        '',
-                                        ownAmountCtrl,
-                                        number: true,
-                                        onChanged: (_) => setDlg(() {}),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
                     ),
                   ),
-
                   Padding(
                     padding: const EdgeInsets.fromLTRB(18, 4, 18, 12),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final mobile = constraints.maxWidth < 600;
-                        final hmiFields = [
-                          _dialogAmountField(
-                            'HMI Amount',
-                            hmiAmount.toStringAsFixed(2),
-                          ),
-                          _dialogEditableAmountField(
-                            'HMI Discount Amount',
-                            hmiDiscountCtrl,
-                            setDlg,
-                          ),
-                          _dialogAmountField(
-                            'HMI Total Amount',
-                            hmiTotal.toStringAsFixed(2),
-                          ),
-                        ];
-                        final ownFields = [
-                          _dialogAmountField(
-                            'OWN Amount',
-                            ownAmount.toStringAsFixed(2),
-                          ),
-                          _dialogEditableAmountField(
-                            'OWN Discount Amount',
-                            ownDiscountCtrl,
-                            setDlg,
-                          ),
-                          _dialogAmountField(
-                            'OWN Total Amount',
-                            ownTotal.toStringAsFixed(2),
-                          ),
-                        ];
-                        Widget line(List<Widget> fields) {
-                          if (mobile) {
-                            return Column(
-                              children: fields
-                                  .map(
-                                    (w) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 8),
-                                      child: w,
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          }
-                          return Row(
-                            children: [
-                              for (int i = 0; i < fields.length; i++) ...[
-                                Expanded(child: fields[i]),
-                                if (i < fields.length - 1)
-                                  const SizedBox(width: 10),
-                              ],
-                            ],
-                          );
-                        }
-
-                        return Column(
-                          children: [
-                            line(hmiFields),
-                            const SizedBox(height: 10),
-                            line(ownFields),
-                          ],
-                        );
-                      },
-                    ),
+                    child: totalsSection(),
                   ),
-
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
@@ -6805,69 +7318,49 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                         bottom: Radius.circular(8),
                       ),
                     ),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final mobile = constraints.maxWidth < 380;
-                        final cancel = OutlinedButton(
+                    child: Wrap(
+                      alignment: WrapAlignment.end,
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        OutlinedButton(
                           onPressed: () => Navigator.pop(ctx),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: const Color(0xFFC0392B),
                             side: const BorderSide(color: Color(0xFFC0392B)),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 22,
-                              vertical: 10,
-                            ),
-                            minimumSize: const Size(0, 44),
+                            minimumSize: const Size(90, 44),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(6),
                             ),
                           ),
                           child: const Text('Cancel'),
-                        );
-                        final save = ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _compAccCtrl.text = hmiTotal.toStringAsFixed(2);
-                              _ownAccCtrl.text = ownTotal.toStringAsFixed(2);
-                              _accAmtCtrl.text = (hmiTotal + ownTotal)
-                                  .toStringAsFixed(2);
-                            });
-                            Navigator.pop(ctx);
-                            _snack('Accessories details saved');
-                          },
-                          icon: const Icon(Icons.save_rounded, size: 17),
-                          label: const Text('Save'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _secondary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 22,
-                              vertical: 10,
-                            ),
-                            minimumSize: const Size(0, 44),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
+                        ),
+                        Visibility(
+                          visible: false,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _compAccCtrl.text = hmiTotal.toStringAsFixed(2);
+                                _ownAccCtrl.text = ownTotal.toStringAsFixed(2);
+                                _accAmtCtrl.text = (hmiTotal + ownTotal)
+                                    .toStringAsFixed(2);
+                              });
+                              Navigator.pop(ctx);
+                              _snack('Accessories details saved');
+                            },
+                            icon: const Icon(Icons.save_rounded, size: 17),
+                            label: const Text('Save'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _secondary,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(100, 44),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(6),
+                              ),
                             ),
                           ),
-                        );
-                        return mobile
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  cancel,
-                                  const SizedBox(height: 8),
-                                  save,
-                                ],
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  cancel,
-                                  const SizedBox(width: 10),
-                                  save,
-                                ],
-                              );
-                      },
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -6877,14 +7370,6 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         },
       ),
     ).then((_) {
-      partNoCtrl.dispose();
-      ownNameCtrl.dispose();
-      issueQtyCtrl.dispose();
-      requiredQtyCtrl.dispose();
-      mrpCtrl.dispose();
-      qtyCtrl.dispose();
-      hmiAmountCtrl.dispose();
-      ownAmountCtrl.dispose();
       hmiDiscountCtrl.dispose();
       ownDiscountCtrl.dispose();
     });
@@ -6987,7 +7472,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           children: [
             Expanded(child: _num('Company Accessories', _compAccCtrl)),
             const SizedBox(width: 6),
-            _plusBtn(_showAccessoriesDialog),
+            _plusBtn(_loadAccessoriesGrid),
           ],
         ),
         _num('Own Accessories', _ownAccCtrl),
@@ -7004,7 +7489,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               child: _dropStrField(
                 '',
                 _sotType,
-                ['SOT', 'Accessories']
+                ['SOT', 'Fitment', 'Painting', 'Labour Charge', 'Other Charge']
                     .map(
                       (t) => DropdownMenuItem(
                         value: t,
@@ -7318,12 +7803,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     TextInputType? inputType,
     List<TextInputFormatter>? inputFormatters,
     bool readOnly = false,
+    String? Function(String?)? validator,
   }) => TextFormField(
     controller: ctrl,
     maxLines: maxLines,
     keyboardType: inputType,
     inputFormatters: inputFormatters,
     readOnly: readOnly,
+    validator: validator,
+    autovalidateMode: AutovalidateMode.onUserInteraction,
     style: _s13,
     decoration: _dec(label, ro: readOnly),
   );

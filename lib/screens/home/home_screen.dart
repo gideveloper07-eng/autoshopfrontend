@@ -1624,7 +1624,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   subtitle: "Create a new challan",
                                   gradient: const [
                                     Color.fromARGB(255, 6, 35, 66),
-                                    Color.fromARGB(255, 4, 35, 66),
+                                    Color.fromARGB(255, 41, 50, 59),
                                     Color.fromARGB(255, 8, 67, 116),
                                   ],
                                   accentColor: const Color.fromARGB(
@@ -1940,6 +1940,35 @@ class _HomeScreenState extends State<HomeScreen>
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => const ChallanScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                                if (_hasScreenPermission("createChallan")) ...[
+                                  const SizedBox(height: 24),
+                                  _dashCard(
+                                    cardId: 'createChallan',
+                                    icon: Icons.add_card_rounded,
+                                    label: "Create Challan",
+                                    subtitle: "Create a new challan",
+                                    gradient: const [
+                                      Color.fromARGB(255, 6, 35, 66),
+                                      Color.fromARGB(255, 41, 50, 59),
+                                      Color.fromARGB(255, 8, 67, 116),
+                                    ],
+                                    accentColor: const Color.fromARGB(
+                                      255,
+                                      25,
+                                      79,
+                                      102,
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const ChallanGridScreen(),
                                         ),
                                       );
                                     },

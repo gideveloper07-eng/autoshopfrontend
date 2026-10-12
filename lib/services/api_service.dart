@@ -69,8 +69,13 @@ class ApiService {
   }
 
   static Future<void> clearToken() => _storage.delete(key: "token");
-  static Future<bool> isAdmin() async {
+  /*static Future<bool> isAdmin() async {
     return (await _storage.read(key: "isAdmin")) == "true";
+  }*/
+  static Future<bool> isAdmin() async {
+    final utg = await _storage.read(key: "utg");
+
+    return utg?.trim().toUpperCase() == "4848C835-2A09-4A80-A7E2-383C95926C54";
   }
   // ───────────────── SESSION ─────────────────
 
@@ -5187,18 +5192,129 @@ class ApiService {
     }
   }
 
-  /// Saves a new challan.
-  /// [formData] should contain all sp_xxx fields + prefix, pageno.
+  static Future<List<Map<String, dynamic>>> saveRtoCity({
+    required String rtoCity,
+    required String mainCity,
+    required Map<String, bool> charges,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Not authenticated. Please login again.');
+    }
+
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/challan/new/add-rto-city'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'rtoCity': rtoCity.trim(),
+            'mainCity': mainCity.trim(),
+            'charges': charges,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode == 200 && body['success'] == true) {
+      final data = body['data'];
+
+      return data is List
+          ? List<Map<String, dynamic>>.from(
+              data.map((e) => Map<String, dynamic>.from(e)),
+            )
+          : <Map<String, dynamic>>[];
+    }
+
+    throw Exception(body['message'] ?? 'Failed to save RTO city');
+  }
+
+  static Future<Map<String, dynamic>> getAccessoriesAmount(
+    String customerId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception("Authentication required. Please login again.");
+    }
+
+    final uri = Uri.parse(
+      "$baseUrl/api/challan/new/accessories-amount",
+    ).replace(queryParameters: {"customerId": customerId});
+
+    final response = await http.get(
+      uri,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception("Accessories amount failed: ${response.body}");
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (body["success"] != true) {
+      throw Exception(body["message"] ?? "Unable to fetch accessories amount");
+    }
+
+    return Map<String, dynamic>.from(body["data"] ?? {});
+  }
+
+  static Future<List<Map<String, dynamic>>> getAccessoriesGrid(
+    String customerId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception("Authentication required. Please login again.");
+    }
+
+    final uri = Uri.parse(
+      "$baseUrl/api/challan/new/accessories-grid",
+    ).replace(queryParameters: {"customerId": customerId});
+
+    final response = await http.get(
+      uri,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $token",
+      },
+    );
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+    if (response.statusCode != 200 || body["success"] != true) {
+      throw Exception(body["message"] ?? "Failed to load accessories grid");
+    }
+
+    final data = body["data"];
+
+    if (data is! List) return [];
+
+    return data.map((row) => Map<String, dynamic>.from(row as Map)).toList();
+  }
+
+  // SAve Challan Code
   static Future<Map<String, dynamic>> saveChallanNew(
     Map<String, dynamic> formData,
   ) async {
     try {
       final token = await getToken();
+
       if (token == null || token.isEmpty) {
         throw Exception("Not authenticated");
       }
-      print("ðŸš— saveChallanNew: Sending ${formData.keys.length} fields");
-      final res = await http
+
+      print("🚗 saveChallanNew: Sending ${formData.keys.length} fields");
+
+      final response = await http
           .post(
             Uri.parse("$baseUrl/api/challan/new/save"),
             headers: {
@@ -5209,14 +5325,40 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 45));
 
-      print("saveChallanNew status: ${res.statusCode}");
-      print("saveChallanNew body: ${res.body}");
+      print("saveChallanNew status: ${response.statusCode}");
+      print("saveChallanNew body: ${response.body}");
 
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (res.statusCode == 200 && body['success'] == true) {
+      // Decode and validate the server response.
+      Map<String, dynamic> body;
+
+      try {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is! Map<String, dynamic>) {
+          throw const FormatException("Server response is not a JSON object");
+        }
+
+        body = decoded;
+      } on FormatException {
+        throw Exception(
+          "Invalid server response (HTTP ${response.statusCode})",
+        );
+      }
+
+      // Return only when the HTTP status and API response indicate success.
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          body['success'] == true) {
         return body;
       }
-      throw Exception(body['message'] ?? "Save failed");
+
+      final message = body['message']?.toString();
+
+      throw Exception(
+        message != null && message.isNotEmpty
+            ? message
+            : "Save failed (HTTP ${response.statusCode})",
+      );
     } catch (e) {
       print("saveChallanNew ERROR: $e");
       rethrow;
@@ -5409,6 +5551,109 @@ class ApiService {
     } catch (e) {
       print('getChallanTcsData ERROR: $e');
       return 0.0;
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> getChallanOthers() async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication token not found');
+    }
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/challan/new/others'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to load Other dropdown options');
+    }
+
+    final body = jsonDecode(response.body);
+
+    if (body['success'] != true || body['data'] is! List) {
+      throw Exception('Invalid Other dropdown response');
+    }
+
+    return List<Map<String, dynamic>>.from(body['data']);
+  }
+
+  static Future<Map<String, dynamic>> getRtoTrc({
+    required String prefix,
+    required String rtoCityId,
+    required String variantId,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    if (rtoCityId.trim().isEmpty || variantId.trim().isEmpty) {
+      throw Exception('RTO city ID and variant ID are required.');
+    }
+
+    final uri = Uri.parse('$baseUrl/api/challan/new/rto-trc').replace(
+      queryParameters: {
+        'rtoCityId': rtoCityId.trim(),
+        'variantId': variantId.trim(),
+      },
+    );
+
+    print('========== GET RTO TRC ==========');
+    print('Request URL: $uri');
+    print('RTO City ID: $rtoCityId');
+    print('Variant ID: $variantId');
+
+    try {
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(const Duration(seconds: 20));
+
+      print('RTO TRC HTTP STATUS: ${response.statusCode}');
+      print('RTO TRC RESPONSE BODY: ${response.body}');
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to fetch RTO TRC '
+          '(HTTP ${response.statusCode}): ${response.body}',
+        );
+      }
+
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map<String, dynamic>) {
+        throw Exception('Invalid RTO TRC response format.');
+      }
+
+      if (decoded['success'] != true) {
+        throw Exception(
+          decoded['message']?.toString() ?? 'RTO TRC request failed.',
+        );
+      }
+
+      final data = decoded['data'];
+
+      if (data is! Map) {
+        throw Exception('RTO TRC data is missing from the response.');
+      }
+
+      final result = Map<String, dynamic>.from(data);
+
+      print('TRC AMOUNT: ${result['trc']}');
+      print('TRC STATUS: ${result['trcstatus']}');
+
+      return result;
+    } catch (e) {
+      print('GET RTO TRC ERROR: $e');
+      rethrow;
     }
   }
 
