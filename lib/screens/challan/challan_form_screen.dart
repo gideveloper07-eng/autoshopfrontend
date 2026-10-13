@@ -195,6 +195,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   // ── RTO ───────────────────────────────────────────────────────────────────
   String _rtoFrom = 'In House';
   bool _scrappage = false;
+  double _scrappagePercent = 0.0;
+  double _scrappageAmount = 0.0;
+
   final _rtoExShowCtrl = TextEditingController(text: '0.00');
   final _rtoRateCtrl = TextEditingController(text: '0.00');
   final _rtoSurCtrl = TextEditingController(text: '0.00');
@@ -342,23 +345,30 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   }
 
   Widget _accessoryAmountRow(String label, String amount) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F6FF),
+        color: isDark ? const Color(0xFF15253A) : const Color(0xFFF0F6FF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFD7E3F4)),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : const Color(0xFFD7E3F4),
+        ),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF0A1B32),
+                color: isDark
+                    ? const Color(0xFFB0C4DE)
+                    : const Color(0xFF0A1B32),
               ),
             ),
           ),
@@ -2544,31 +2554,17 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
 
       // ==========================================================
 
-      final scrapperValue =
-          double.tryParse(c['scrapper']?.toString() ?? '0') ?? 0;
+      final scrapperRaw = c['scrapper'] ?? c['scrappage'];
 
-      if (scrapperValue > 0) {
+      _scrappagePercent =
+          double.tryParse(scrapperRaw?.toString() ?? '0') ?? 0.0;
+
+      if (_scrappagePercent > 0) {
         _scrappage = true;
-
-        // If your project has a scrappage controller,
-
-        // use it here.
-
-        //
-
-        // _scrappageCtrl.text =
-
-        //     scrapperValue.toStringAsFixed(2);
-
         _customerFinancialFields.add('scrappage');
       } else {
         _scrappage = false;
-
-        // If controller exists:
-
-        //
-
-        // _scrappageCtrl.text = '0';
+        _customerFinancialFields.remove('scrappage');
       }
 
       // ==========================================================
@@ -3342,25 +3338,34 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     } else if (_rtoFrom == 'Out House') {
       rtoAmount = 0.0;
     } else {
+      final originalRto = rtamt * _d(_rtoRateCtrl) / 100;
+
       var taxableRto = rtamt;
-      if (_scrappage) {
-        // Scrappage percentage is supplied by the master/API in the ASP.NET
-        // implementation. Do not invent a percentage on the client.
-        taxableRto = rtamt;
+
+      if (_scrappage && _scrappagePercent > 0) {
+        taxableRto = rtamt * (100 - _scrappagePercent) / 100;
       }
+
       final rto = taxableRto * _d(_rtoRateCtrl) / 100;
+
+      _scrappageAmount = (_scrappage && _scrappagePercent > 0)
+          ? (originalRto - rto).roundToDouble()
+          : 0.0;
+
       final surcharge = rto * _d(_rtoSurCtrl) / 100;
+
       rtoAmount =
           rto +
           surcharge +
           _d(_greenTaxCtrl) +
-          _d(_regFeeCtrl) +
+          (_scrappage ? 0.0 : _d(_regFeeCtrl)) +
           (_finType == 'Cash' ? 0.0 : _d(_hpnRtoCtrl)) +
           _d(_dupCtrl) +
           _d(_smartCtrl) +
           _d(_otherRtoCtrl) +
           _d(_rtoTempCtrl);
     }
+
     // Jchallan.js uses toFixed(0) for BH RTO and toFixed(0) after
     // the normal RTO calculation as well; the UI keeps In House/Out House
     // at two decimals in the Flutter form, so only BH is forced to whole
@@ -3667,368 +3672,384 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 40,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Header ────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1A8BBF),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(4),
+        builder: (ctx, setDlg) {
+          final isDlgDark = Theme.of(ctx).brightness == Brightness.dark;
+          final dlgBg = isDlgDark ? const Color(0xFF1A2535) : Colors.white;
+          final labelColor = isDlgDark
+              ? const Color(0xFFB0BEC5)
+              : const Color(0xFF333333);
+          final borderColor = isDlgDark
+              ? const Color(0xFF3A4A5A)
+              : const Color(0xFFCCCCCC);
+          return Dialog(
+            backgroundColor: dlgBg,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 40,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Header ────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A8BBF),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Add City',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            cityCtrl.dispose();
+                            Navigator.pop(ctx);
+                          },
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Add City',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          cityCtrl.dispose();
-                          Navigator.pop(ctx);
-                        },
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                // ── Body ──────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // State — dropdown, auto-filled from form
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 56,
-                            child: Text(
-                              'State *',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF333333),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SizedBox(
-                              height: 34,
-                              child: DropdownButtonFormField<String>(
-                                value: selStateId,
-                                isDense: true,
-                                isExpanded: true,
-                                style: const TextStyle(
+                  // ── Body ──────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // State — dropdown, auto-filled from form
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 56,
+                              child: Text(
+                                'State *',
+                                style: TextStyle(
                                   fontSize: 13,
-                                  color: Color(0xFF333333),
+                                  fontWeight: FontWeight.w600,
+                                  color: labelColor,
                                 ),
-                                decoration: const InputDecoration(
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SizedBox(
+                                height: 34,
+                                child: DropdownButtonFormField<String>(
+                                  value: selStateId,
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
+                                  isExpanded: true,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: labelColor,
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
                                     ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFFCCCCCC),
+                                    border: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: borderColor,
+                                      ),
                                     ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: borderColor,
+                                      ),
                                     ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFFCCCCCC),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
-                                    ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF1A8BBF),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                                items: [
-                                  const DropdownMenuItem<String>(
-                                    value: null,
-                                    child: Text(
-                                      '-- Select --',
-                                      style: TextStyle(fontSize: 13),
+                                    focusedBorder: const OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: Color(0xFF1A8BBF),
+                                        width: 1.5,
+                                      ),
                                     ),
                                   ),
-                                  ..._states.map(
-                                    (s) => DropdownMenuItem<String>(
-                                      value: s['data']?.toString(),
+                                  items: [
+                                    const DropdownMenuItem<String>(
+                                      value: null,
                                       child: Text(
-                                        s['value']?.toString() ?? '',
-                                        style: const TextStyle(fontSize: 13),
-                                        overflow: TextOverflow.ellipsis,
+                                        '-- Select --',
+                                        style: TextStyle(fontSize: 13),
                                       ),
                                     ),
-                                  ),
-                                ],
-                                onChanged: (v) => setDlg(() => selStateId = v),
+                                    ..._states.map(
+                                      (s) => DropdownMenuItem<String>(
+                                        value: s['data']?.toString(),
+                                        child: Text(
+                                          s['value']?.toString() ?? '',
+                                          style: const TextStyle(fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                  onChanged: (v) =>
+                                      setDlg(() => selStateId = v),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
 
-                      // City — plain text input (user types new city)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 56,
-                            child: Text(
-                              'City *',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF333333),
+                        // City — plain text input (user types new city)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 56,
+                              child: Text(
+                                'City *',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: labelColor,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: SizedBox(
-                              height: 34,
-                              child: TextField(
-                                controller: cityCtrl,
-                                autofocus: true,
-                                style: const TextStyle(fontSize: 13),
-                                decoration: const InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 8,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: SizedBox(
+                                height: 34,
+                                child: TextField(
+                                  controller: cityCtrl,
+                                  autofocus: true,
+                                  style: const TextStyle(fontSize: 13),
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 8,
                                     ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFFCCCCCC),
+                                    border: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: borderColor,
+                                      ),
                                     ),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: const BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: borderColor,
+                                      ),
                                     ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFFCCCCCC),
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(3),
-                                    ),
-                                    borderSide: BorderSide(
-                                      color: Color(0xFF1A8BBF),
-                                      width: 1.5,
+                                    focusedBorder: const OutlineInputBorder(
+                                      borderRadius: BorderRadius.all(
+                                        Radius.circular(3),
+                                      ),
+                                      borderSide: BorderSide(
+                                        color: Color(0xFF1A8BBF),
+                                        width: 1.5,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
-                ),
 
-                // ── Footer ────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: saving
-                            ? null
-                            : () async {
-                                if (selStateId == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Please select a State'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
+                  // ── Footer ────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  if (selStateId == null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please select a State'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  if (cityCtrl.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please enter City name'),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                    return;
+                                  }
+
+                                  // Resolve state display name from ID
+                                  final stateRow = _states.firstWhere(
+                                    (s) => s['data']?.toString() == selStateId,
+                                    orElse: () => {},
                                   );
-                                  return;
-                                }
-                                if (cityCtrl.text.trim().isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Please enter City name'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                  return;
-                                }
+                                  final stateName =
+                                      (stateRow['value'] ?? selStateId ?? '')
+                                          .toString();
+                                  final cityName = cityCtrl.text
+                                      .trim()
+                                      .toUpperCase();
 
-                                // Resolve state display name from ID
-                                final stateRow = _states.firstWhere(
-                                  (s) => s['data']?.toString() == selStateId,
-                                  orElse: () => {},
-                                );
-                                final stateName =
-                                    (stateRow['value'] ?? selStateId ?? '')
-                                        .toString();
-                                final cityName = cityCtrl.text
-                                    .trim()
-                                    .toUpperCase();
+                                  setDlg(() => saving = true);
+                                  try {
+                                    // Insert via A_SP_FOR_ACCOUNTMASTER
+                                    // and get back the refreshed city list
+                                    final refreshed =
+                                        await ApiService.saveChallanCity(
+                                          cityName: cityName,
+                                          stateName: stateName,
+                                        );
 
-                                setDlg(() => saving = true);
-                                try {
-                                  // Insert via A_SP_FOR_ACCOUNTMASTER
-                                  // and get back the refreshed city list
-                                  final refreshed =
-                                      await ApiService.saveChallanCity(
-                                        cityName: cityName,
-                                        stateName: stateName,
-                                      );
+                                    // Find the new city entry
+                                    final newCity = refreshed.firstWhere(
+                                      (c) =>
+                                          (c['value'] ?? c['sp_578'] ?? '')
+                                              .toString()
+                                              .toUpperCase() ==
+                                          cityName,
+                                      orElse: () => refreshed.isNotEmpty
+                                          ? refreshed.last
+                                          : {},
+                                    );
 
-                                  // Find the new city entry
-                                  final newCity = refreshed.firstWhere(
-                                    (c) =>
-                                        (c['value'] ?? c['sp_578'] ?? '')
-                                            .toString()
-                                            .toUpperCase() ==
-                                        cityName,
-                                    orElse: () => refreshed.isNotEmpty
-                                        ? refreshed.last
-                                        : {},
-                                  );
+                                    if (!mounted) return;
+                                    setState(() {
+                                      _cities = refreshed;
+                                      _stateId = selStateId;
+                                      if (newCity.isNotEmpty) {
+                                        _cityId =
+                                            (newCity['data'] ??
+                                                    newCity['sp_572'])
+                                                ?.toString();
+                                        _cityName =
+                                            (newCity['value'] ??
+                                                    newCity['sp_578'] ??
+                                                    cityName)
+                                                .toString();
+                                      }
+                                      _areaId = null;
+                                      _areaName = '';
+                                    });
 
-                                  if (!mounted) return;
-                                  setState(() {
-                                    _cities = refreshed;
-                                    _stateId = selStateId;
-                                    if (newCity.isNotEmpty) {
-                                      _cityId =
-                                          (newCity['data'] ?? newCity['sp_572'])
-                                              ?.toString();
-                                      _cityName =
-                                          (newCity['value'] ??
-                                                  newCity['sp_578'] ??
-                                                  cityName)
-                                              .toString();
-                                    }
-                                    _areaId = null;
-                                    _areaName = '';
-                                  });
-
+                                    cityCtrl.dispose();
+                                    if (ctx.mounted) Navigator.pop(ctx);
+                                  } catch (e) {
+                                    setDlg(() => saving = false);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFFE53935,
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF337AB7),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 9,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          child: saving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Save'),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: saving
+                              ? null
+                              : () {
                                   cityCtrl.dispose();
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                                } catch (e) {
-                                  setDlg(() => saving = false);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Error: ${e.toString().replaceAll('Exception: ', '')}',
-                                      ),
-                                      backgroundColor: const Color(0xFFE53935),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF337AB7),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 9,
+                                  Navigator.pop(ctx);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD9534F),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 9,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          child: const Text('Cancel'),
                         ),
-                        child: saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Save'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: saving
-                            ? null
-                            : () {
-                                cityCtrl.dispose();
-                                Navigator.pop(ctx);
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD9534F),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 9,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        child: const Text('Cancel'),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -4042,259 +4063,270 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       context: context,
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlg) => Dialog(
-          backgroundColor: Colors.white,
-          insetPadding: const EdgeInsets.symmetric(
-            horizontal: 24,
-            vertical: 40,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Header ──────────────────────────────────────────
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF1A8BBF),
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(4),
+        builder: (ctx, setDlg) {
+          final isDlgDark = Theme.of(ctx).brightness == Brightness.dark;
+          final dlgBg = isDlgDark ? const Color(0xFF1A2535) : Colors.white;
+          final labelColor = isDlgDark
+              ? const Color(0xFFB0BEC5)
+              : const Color(0xFF333333);
+          final borderColor = isDlgDark
+              ? const Color(0xFF3A4A5A)
+              : const Color(0xFFCCCCCC);
+          return Dialog(
+            backgroundColor: dlgBg,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 40,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Header ──────────────────────────────────────────
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(16, 13, 12, 13),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF1A8BBF),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Add Area',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            if (saving) return;
+                            areaCtrl.dispose();
+                            Navigator.pop(ctx);
+                          },
+                          child: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Add Area',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      InkWell(
-                        onTap: () {
-                          if (saving) return;
-                          areaCtrl.dispose();
-                          Navigator.pop(ctx);
-                        },
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
 
-                // ── Body ────────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(
-                        width: 56,
-                        child: Text(
-                          'Area *',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF333333),
+                  // ── Body ────────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 56,
+                          child: Text(
+                            'Area *',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: labelColor,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: SizedBox(
-                          height: 34,
-                          child: TextField(
-                            controller: areaCtrl,
-                            autofocus: true,
-                            enabled: !saving,
-                            style: const TextStyle(fontSize: 13),
-                            decoration: const InputDecoration(
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 8,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(3),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            height: 34,
+                            child: TextField(
+                              controller: areaCtrl,
+                              autofocus: true,
+                              enabled: !saving,
+                              style: const TextStyle(fontSize: 13),
+                              decoration: InputDecoration(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
                                 ),
-                                borderSide: BorderSide(
-                                  color: Color(0xFFCCCCCC),
+                                border: OutlineInputBorder(
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(3),
+                                  ),
+                                  borderSide: BorderSide(color: borderColor),
                                 ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(3),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: const BorderRadius.all(
+                                    Radius.circular(3),
+                                  ),
+                                  borderSide: BorderSide(color: borderColor),
                                 ),
-                                borderSide: BorderSide(
-                                  color: Color(0xFFCCCCCC),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.all(
-                                  Radius.circular(3),
-                                ),
-                                borderSide: BorderSide(
-                                  color: Color(0xFF1A8BBF),
-                                  width: 1.5,
+                                focusedBorder: const OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(
+                                    Radius.circular(3),
+                                  ),
+                                  borderSide: BorderSide(
+                                    color: Color(0xFF1A8BBF),
+                                    width: 1.5,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // ── Footer ──────────────────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                  child: Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: saving
-                            ? null
-                            : () async {
-                                final name = areaCtrl.text.trim();
-                                if (name.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Please fill out Area'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                  return;
-                                }
-
-                                setDlg(() => saving = true);
-                                try {
-                                  // Insert via A_SP_FOR_AreaMaster
-                                  // and get back the refreshed area list
-                                  final refreshed =
-                                      await ApiService.saveChallanArea(
-                                        areaName: name.toUpperCase(),
-                                      );
-
-                                  // Find the newly inserted area
-                                  final newArea = refreshed.firstWhere(
-                                    (a) =>
-                                        (a['value'] ?? a['sp_217'] ?? '')
-                                            .toString()
-                                            .toUpperCase() ==
-                                        name.toUpperCase(),
-                                    orElse: () => refreshed.isNotEmpty
-                                        ? refreshed.last
-                                        : {},
-                                  );
-
-                                  if (!mounted) return;
-                                  setState(() {
-                                    _areas = refreshed;
-                                    if (newArea.isNotEmpty) {
-                                      _areaId =
-                                          (newArea['data'] ?? newArea['sp_212'])
-                                              ?.toString();
-                                      _areaName =
-                                          (newArea['value'] ??
-                                                  newArea['sp_217'] ??
-                                                  name)
-                                              .toString();
-                                    } else {
-                                      // fallback: just show typed name
-                                      _areaId = null;
-                                      _areaName = name;
-                                    }
-                                  });
-
-                                  areaCtrl.dispose();
-                                  if (ctx.mounted) Navigator.pop(ctx);
-                                } catch (e) {
-                                  setDlg(() => saving = false);
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                  // ── Footer ──────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: Row(
+                      children: [
+                        ElevatedButton(
+                          onPressed: saving
+                              ? null
+                              : () async {
+                                  final name = areaCtrl.text.trim();
+                                  if (name.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Please fill out Area'),
+                                        behavior: SnackBarBehavior.floating,
                                       ),
-                                      backgroundColor: const Color(0xFFE53935),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                }
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF337AB7),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 9,
+                                    );
+                                    return;
+                                  }
+
+                                  setDlg(() => saving = true);
+                                  try {
+                                    // Insert via A_SP_FOR_AreaMaster
+                                    // and get back the refreshed area list
+                                    final refreshed =
+                                        await ApiService.saveChallanArea(
+                                          areaName: name.toUpperCase(),
+                                        );
+
+                                    // Find the newly inserted area
+                                    final newArea = refreshed.firstWhere(
+                                      (a) =>
+                                          (a['value'] ?? a['sp_217'] ?? '')
+                                              .toString()
+                                              .toUpperCase() ==
+                                          name.toUpperCase(),
+                                      orElse: () => refreshed.isNotEmpty
+                                          ? refreshed.last
+                                          : {},
+                                    );
+
+                                    if (!mounted) return;
+                                    setState(() {
+                                      _areas = refreshed;
+                                      if (newArea.isNotEmpty) {
+                                        _areaId =
+                                            (newArea['data'] ??
+                                                    newArea['sp_212'])
+                                                ?.toString();
+                                        _areaName =
+                                            (newArea['value'] ??
+                                                    newArea['sp_217'] ??
+                                                    name)
+                                                .toString();
+                                      } else {
+                                        // fallback: just show typed name
+                                        _areaId = null;
+                                        _areaName = name;
+                                      }
+                                    });
+
+                                    areaCtrl.dispose();
+                                    if (ctx.mounted) Navigator.pop(ctx);
+                                  } catch (e) {
+                                    setDlg(() => saving = false);
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Error: ${e.toString().replaceAll('Exception: ', '')}',
+                                        ),
+                                        backgroundColor: const Color(
+                                          0xFFE53935,
+                                        ),
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF337AB7),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 9,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          child: saving
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Save'),
                         ),
-                        child: saving
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Save'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: saving
-                            ? null
-                            : () {
-                                areaCtrl.dispose();
-                                Navigator.pop(ctx);
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD9534F),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 9,
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          onPressed: saving
+                              ? null
+                              : () {
+                                  areaCtrl.dispose();
+                                  Navigator.pop(ctx);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD9534F),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 9,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            textStyle: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          child: const Text('Cancel'),
                         ),
-                        child: const Text('Cancel'),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -4326,9 +4358,14 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlg) {
           final allSelected = selectedCharges.values.every((v) => v);
+          final isDlgDark = Theme.of(ctx).brightness == Brightness.dark;
+          final dlgBg = isDlgDark ? const Color(0xFF1A2535) : Colors.white;
+          final footerBg = isDlgDark
+              ? const Color(0xFF0F1923)
+              : const Color(0xFFF2F2F2);
 
           return Dialog(
-            backgroundColor: Colors.white,
+            backgroundColor: dlgBg,
             insetPadding: const EdgeInsets.symmetric(
               horizontal: 24,
               vertical: 24,
@@ -4374,7 +4411,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           },
                           child: const Icon(
                             Icons.close,
-                            color: Color(0xFF0A1B32),
+                            color: Colors.white,
                             size: 27,
                           ),
                         ),
@@ -4467,7 +4504,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-                    color: const Color(0xFFF2F2F2),
+                    color: footerBg,
                     child: Row(
                       children: [
                         ElevatedButton(
@@ -4535,7 +4572,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                           },
 
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
+                            backgroundColor: isDlgDark
+                                ? const Color(0xFF1A2535)
+                                : Colors.white,
                             foregroundColor: const Color(0xFF1675D1),
                             elevation: 0,
                             side: const BorderSide(color: Color(0xFF1675D1)),
@@ -4790,10 +4829,9 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_636': _bhPerCtrl.text,
         'sp_637': _bhYearCtrl.text,
         'sp_549': _rtoExShowCtrl.text,
-        'sp_653': _scrappage ? '1' : '0',
 
-        // Keep unchanged until the calculated scrappage amount is identified.
-        'sp_654': '0',
+        'sp_653': _scrappagePercent.toStringAsFixed(2),
+        'sp_654': _scrappageAmount.toStringAsFixed(0),
 
         // Other amounts
         'sp_617': _oth1Ctrl.text,
@@ -5770,13 +5808,22 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1675D1).withValues(alpha: 0.08),
-                  const Color(0xFF1675D1).withValues(alpha: 0.03),
-                ],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        const Color(0xFF1675D1).withValues(alpha: 0.18),
+                        const Color(0xFF1675D1).withValues(alpha: 0.08),
+                      ]
+                    : [
+                        const Color(0xFF1675D1).withValues(alpha: 0.08),
+                        const Color(0xFF1675D1).withValues(alpha: 0.03),
+                      ],
               ),
               border: Border.all(
-                color: const Color(0xFF1675D1).withValues(alpha: 0.28),
+                color: const Color(0xFF1675D1).withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.55
+                      : 0.28,
+                ),
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -5800,11 +5847,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'CHALLAN NO.',
                       style: TextStyle(
                         fontSize: 8.5,
-                        color: Color(0xFF8C5960),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7EB8FF).withValues(alpha: 0.80)
+                            : const Color(0xFF8C5960),
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
                       ),
@@ -5812,9 +5861,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                     const SizedBox(height: 1),
                     Text(
                       '$_challanNo',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: const Color(0xFF0A1B32),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF0A1B32),
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -5915,52 +5966,38 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
             },
           ),
 
-          Column(
-            children: [
-              _txt(
-                'Email Id',
-                _emailCtrl,
-                inputType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 7),
-              _txt('Aadhar No.', _aadharCtrl, inputType: TextInputType.number),
-            ],
-          ),
+          _txt('Aadhar No.', _aadharCtrl, inputType: TextInputType.number),
         ),
         _vg,
         _r3(
+          _txt('Email Id', _emailCtrl, inputType: TextInputType.emailAddress),
           _txt('PAN', _panCtrl, inputFormatters: [UpperCaseFormatter()]),
           _txt('Nominee Name', _nomineeCtrl),
-          Column(
-            children: [
-              _txt('Age', _ageCtrl, inputType: TextInputType.number),
-              const SizedBox(height: 7),
-              _dropStrField(
-                'Relation',
-                _relation,
-                [
-                      'CHOOSE RELATIONSHIP',
-                      'Son',
-                      'Daughter',
-                      'Spouse',
-                      'Father',
-                      'Mother',
-                      'Other',
-                    ]
-                    .map(
-                      (r) => DropdownMenuItem(
-                        value: r,
-                        child: Text(r, style: _s13),
-                      ),
-                    )
-                    .toList(),
-                (v) => setState(() => _relation = v!),
-              ),
-            ],
-          ),
         ),
         _vg,
         _r3(
+          _txt('Age', _ageCtrl, inputType: TextInputType.number),
+          _dropStrField(
+            'Relation',
+            _relation,
+            [
+                  'CHOOSE RELATIONSHIP',
+                  'Son',
+                  'Daughter',
+                  'Spouse',
+                  'Father',
+                  'Mother',
+                  'Other',
+                ]
+                .map(
+                  (r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(r, style: _s13),
+                  ),
+                )
+                .toList(),
+            (v) => setState(() => _relation = v!),
+          ),
           _txt(
             'GST No.',
             _gstinCtrl,
@@ -5986,15 +6023,12 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               return null;
             },
           ),
-
+        ),
+        _vg,
+        _r3(
           _txt('SC Name', _scCtrl, readOnly: true),
-          Column(
-            children: [
-              _txt('TL Name', _tlCtrl, readOnly: true),
-              const SizedBox(height: 7),
-              _txt('Manager', _managerCtrl, readOnly: true),
-            ],
-          ),
+          _txt('TL Name', _tlCtrl, readOnly: true),
+          _txt('Manager', _managerCtrl, readOnly: true),
         ),
         _vg,
         _r3(
@@ -6008,36 +6042,30 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   _onVariant,
                   disabled: true,
                 ),
-          Column(
-            children: [
-              _loadingCol
-                  ? _loadBox()
-                  : _dropMapField(
-                      'Color',
-                      _colorId,
-                      _colors,
-                      _onColor,
-                      disabled: true,
-                    ),
-              const SizedBox(height: 7),
-              _loadingVin
-                  ? _loadBox()
-                  : _dropMapField(
-                      'VIN',
-                      _vinNo,
-                      _vins,
-                      _onVinSelected,
-                      labelFn: (e) =>
-                          '${e['value'] ?? ''} ${e['mfcyr'] ?? ''}'.trim(),
-                      disabled: true,
-                    ),
-            ],
-          ),
+          _loadingCol
+              ? _loadBox()
+              : _dropMapField(
+                  'Color',
+                  _colorId,
+                  _colors,
+                  _onColor,
+                  disabled: true,
+                ),
         ),
         _vg,
         _r3(
+          _loadingVin
+              ? _loadBox()
+              : _dropMapField(
+                  'VIN',
+                  _vinNo,
+                  _vins,
+                  _onVinSelected,
+                  labelFn: (e) =>
+                      '${e['value'] ?? ''} ${e['mfcyr'] ?? ''}'.trim(),
+                  disabled: true,
+                ),
           _txt('Engine No.', _engineCtrl, readOnly: true),
-          const SizedBox(),
           const SizedBox(),
         ),
       ],
@@ -6097,77 +6125,63 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   // ── Finance section ───────────────────────────────────────────────────────
   Widget _secFinance() => Column(
     children: [
+      // ─────────────────────────────────────────────────────────────
+      // FINANCE TYPE
+      // ─────────────────────────────────────────────────────────────
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _lbl('Finance Type'),
+          const SizedBox(height: 4),
+          Wrap(
+            children: [
+              _radio('In House', _finType, (v) {
+                if (v == null) return;
+
+                setState(() {
+                  _finType = 'In House';
+                  _hpnRtoCtrl.text = _f(_hpnMasterAmount);
+                });
+
+                _recalculateAspNet();
+              }),
+
+              _radio('Out House', _finType, (v) {
+                if (v == null) return;
+
+                setState(() {
+                  _finType = 'Out House';
+                  _hpnRtoCtrl.text = _f(_hpnMasterAmount);
+                });
+
+                _recalculateAspNet();
+              }),
+
+              _radio('Cash', _finType, (v) {
+                if (v == null) return;
+
+                setState(() {
+                  _finType = 'Cash';
+
+                  // Cash finance:
+                  // HPN must be zero.
+                  _hpnRtoCtrl.text = '0.00';
+
+                  // Keep Customer Received Amt as the actual receipt amount.
+                  // Only the receipt-summary Customer Amt is zero for Cash.
+                  _receiptCustAmt = 0.0;
+                });
+
+                _recalculateAspNet();
+              }),
+            ],
+          ),
+        ],
+      ),
+
+      _vg,
+
       _r4(
-        // ─────────────────────────────────────────────────────────────
-        // FINANCE TYPE
-        // ─────────────────────────────────────────────────────────────
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _lbl('Finance Type'),
-            const SizedBox(height: 4),
-            Wrap(
-              children: [
-                _radio('In House', _finType, (v) {
-                  if (v == null) return;
-
-                  setState(() {
-                    _finType = 'In House';
-                    _hpnRtoCtrl.text = _f(_hpnMasterAmount);
-                  });
-
-                  _recalculateAspNet();
-                }),
-
-                _radio('Out House', _finType, (v) {
-                  if (v == null) return;
-
-                  setState(() {
-                    _finType = 'Out House';
-                    _hpnRtoCtrl.text = _f(_hpnMasterAmount);
-                  });
-
-                  _recalculateAspNet();
-                }),
-
-                _radio('Cash', _finType, (v) {
-                  if (v == null) return;
-
-                  setState(() {
-                    _finType = 'Cash';
-
-                    // Cash finance:
-                    // HPN must be zero.
-                    _hpnRtoCtrl.text = '0.00';
-
-                    // Keep Customer Received Amt as the actual receipt amount.
-                    // Only the receipt-summary Customer Amt is zero for Cash.
-                    _receiptCustAmt = 0.0;
-                  });
-
-                  _recalculateAspNet();
-                }),
-              ],
-            ),
-          ],
-        ),
-
-        // ─────────────────────────────────────────────────────────────
-        // LOAN AMOUNT
-        //
-        // Cash  -> Disabled
-        // In/Out -> Enabled
-        // ─────────────────────────────────────────────────────────────
-        _num('Loan Amount', _loanAmtCtrl, ro: _financeFieldsDisabled),
-
-        // ─────────────────────────────────────────────────────────────
-        // NET DISBURSED AMOUNT
-        //
-        // Cash  -> Disabled
-        // In/Out -> Enabled
-        // ─────────────────────────────────────────────────────────────
-        _num('Net Disbursed Amount', _netDisCtrl, ro: _financeFieldsDisabled),
-
         // ─────────────────────────────────────────────────────────────
         // HYPOTHECATION / LESSOR
         //
@@ -6194,32 +6208,46 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           },
           disabled: _financeFieldsDisabled,
         ),
+
+        // ─────────────────────────────────────────────────────────────
+        // BRANCH NAME
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
+          if (v == null) return;
+
+          setState(() {
+            _hpnChildId = v;
+
+            final selected = _hpnBranches.firstWhere(
+              (e) => e['data']?.toString() == v.toString(),
+              orElse: () => <String, dynamic>{},
+            );
+
+            _branchNameCtrl.text = selected['value']?.toString() ?? '';
+          });
+
+          _recalculateAspNet();
+        }, disabled: _financeFieldsDisabled),
+
+        // ─────────────────────────────────────────────────────────────
+        // LOAN AMOUNT
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _num('Loan Amount', _loanAmtCtrl, ro: _financeFieldsDisabled),
+
+        // ─────────────────────────────────────────────────────────────
+        // NET DISBURSED AMOUNT
+        //
+        // Cash  -> Disabled
+        // In/Out -> Enabled
+        // ─────────────────────────────────────────────────────────────
+        _num('Net Disbursed Amount', _netDisCtrl, ro: _financeFieldsDisabled),
       ),
-
-      _vg,
-
-      // ─────────────────────────────────────────────────────────────
-      // BRANCH NAME
-      //
-      // Cash  -> Disabled
-      // In/Out -> Enabled
-      // ─────────────────────────────────────────────────────────────
-      _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
-        if (v == null) return;
-
-        setState(() {
-          _hpnChildId = v;
-
-          final selected = _hpnBranches.firstWhere(
-            (e) => e['data']?.toString() == v.toString(),
-            orElse: () => <String, dynamic>{},
-          );
-
-          _branchNameCtrl.text = selected['value']?.toString() ?? '';
-        });
-
-        _recalculateAspNet();
-      }, disabled: _financeFieldsDisabled),
     ],
   );
 
@@ -6358,13 +6386,13 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           const SizedBox(height: 5),
 
           // Calculated fields shown after all discount rows
-          _num('Ex-Showroom', _exShowCtrl),
+          _num('Ex-Showroom', _exShowCtrl, bold: true),
           const SizedBox(height: 8),
 
           _num('Schemes Less', _schemesCtrl),
           const SizedBox(height: 8),
 
-          _num('SubTotal', _subTotalCtrl, ro: true),
+          _num('SubTotal', _subTotalCtrl, ro: true, bold: true),
         ],
       );
     },
@@ -6752,7 +6780,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           final fields = [
             _num('Add / Less', _addLessCtrl),
             _num('NCB', _ncbCtrl),
-            _num('Insurance Amount', _insAmtFinalCtrl),
+            _num('Insurance Amount', _insAmtFinalCtrl, bold: true),
           ];
           return mobile
               ? Column(
@@ -6853,15 +6881,25 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               Checkbox(
                 value: _scrappage,
                 onChanged: (v) {
-                  setState(() => _scrappage = v ?? false);
+                  if (v == null) return;
+
+                  setState(() {
+                    _scrappage = v;
+                  });
+
                   _recalculateAspNet();
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      duration: const Duration(seconds: 4),
+                      content: Text(
+                        'Scrappage: $_scrappage | '
+                        'Percent: $_scrappagePercent | '
+                        'RTO Amount: ${_rtoAmtCtrl.text}',
+                      ),
+                    ),
+                  );
                 },
-                activeColor: _primary,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: const VisualDensity(
-                  horizontal: -4,
-                  vertical: -4,
-                ),
               ),
               const Text('Scrappage', style: TextStyle(fontSize: 12)),
             ],
@@ -6921,7 +6959,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         _num('BH RTO %', _bhPerCtrl),
         _txt('BH Year', _bhYearCtrl),
         _num('RTO Temporary', _rtoTempCtrl),
-        _num('RTO Amount', _rtoAmtCtrl, ro: true),
+        _num('RTO Amount', _rtoAmtCtrl, ro: true, bold: true),
       ),
     ],
   );
@@ -7073,6 +7111,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           );
           final screenWidth = MediaQuery.sizeOf(ctx).width;
           final mobile = screenWidth < 700;
+          final isDlgDark = Theme.of(ctx).brightness == Brightness.dark;
+          final dlgBg = isDlgDark ? const Color(0xFF1A2535) : Colors.white;
+          final footerBg = isDlgDark
+              ? const Color(0xFF0F1923)
+              : const Color(0xFFF6F8FC);
 
           Widget accessoryCard(Map<String, dynamic> item, int index) {
             final partNo = textValue(item, 'item');
@@ -7086,9 +7129,11 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   children: [
                     Text(
                       '$partNo  •  $name',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF0A1B32),
+                        color: isDlgDark
+                            ? const Color(0xFFE8EDF5)
+                            : const Color(0xFF0A1B32),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -7169,7 +7214,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           }
 
           return Dialog(
-            backgroundColor: Colors.white,
+            backgroundColor: dlgBg,
             insetPadding: EdgeInsets.symmetric(
               horizontal: mobile ? 10 : 28,
               vertical: 18,
@@ -7254,10 +7299,12 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                                   dataRowMaxHeight: 58,
                                   columnSpacing: 14,
                                   horizontalMargin: 8,
-                                  headingTextStyle: const TextStyle(
+                                  headingTextStyle: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0A1B32),
+                                    color: isDlgDark
+                                        ? const Color(0xFFB0BEC5)
+                                        : const Color(0xFF0A1B32),
                                   ),
                                   columns: const [
                                     DataColumn(label: Text('Part No')),
@@ -7312,8 +7359,8 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF6F8FC),
+                    decoration: BoxDecoration(
+                      color: footerBg,
                       borderRadius: BorderRadius.vertical(
                         bottom: Radius.circular(8),
                       ),
@@ -7394,6 +7441,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
   }
 
   Widget _dialogAmountField(String label, String value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InputDecorator(
       decoration: _dlgDec().copyWith(
         labelText: label,
@@ -7407,10 +7455,10 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         alignment: Alignment.centerRight,
         child: Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF263238),
+            color: isDark ? const Color(0xFFE8EDF5) : const Color(0xFF263238),
           ),
         ),
       ),
@@ -7509,13 +7557,16 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _r3(
         _num('Fast Tag', _fastTagCtrl),
         _num('TCS', _tcsCtrl),
-        _num('Total', _totalCtrl, ro: true),
+        _num('Total', _totalCtrl, ro: true, bold: true),
       ),
     ],
   );
 
   // ── Receipts grid ─────────────────────────────────────────────────────────
+
   Widget _secReceipts() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     final cols = [
       'RNo',
       'Date',
@@ -7529,6 +7580,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       'Card',
       'Received',
     ];
+
+    final tableBackground = isDark ? const Color(0xFF15253A) : Colors.white;
+
+    final alternateBackground = isDark
+        ? const Color(0xFF1B2E45)
+        : const Color(0xFFF6F9FF);
+
+    final tableBorder = isDark ? const Color(0xFF34465C) : _border;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -7542,34 +7602,45 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Container(
-              decoration: BoxDecoration(border: Border.all(color: _border)),
+              decoration: BoxDecoration(
+                color: tableBackground,
+                border: Border.all(color: tableBorder),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  // Header
+                  // Keep the existing blue header.
                   Container(
                     color: _accent,
                     child: Row(children: cols.map((h) => _th(h)).toList()),
                   ),
-                  // Data rows
+
                   if (_receiptRows.isEmpty)
                     Container(
-                      color: Colors.grey.shade50,
+                      color: tableBackground,
                       child: Row(children: cols.map((_) => _td('-')).toList()),
                     )
                   else
-                    ..._receiptRows.map((row) {
+                    ..._receiptRows.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final row = entry.value;
+
                       final rno =
                           row['rcl_9']?.toString() ??
                           row['Rcl_9']?.toString() ??
                           '';
+
                       final date =
                           row['rcl_7']?.toString() ??
                           row['Rcl_7']?.toString() ??
                           '';
+
                       final mode =
                           row['rcl_16']?.toString() ??
                           row['rcl_66']?.toString() ??
                           '';
+
                       final chqno = row['rcl_13']?.toString() ?? '';
                       final cash = row['rcl_40']?.toString() ?? '0';
                       final chqAmt = row['Cheque']?.toString() ?? '0';
@@ -7577,14 +7648,16 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
                       final rtgs = row['Rtgs']?.toString() ?? '0';
                       final wallet = row['rcl_41']?.toString() ?? '0';
                       final card = row['rcl_42']?.toString() ?? '0';
+
                       final recv =
                           row['rcl_58']?.toString() ??
                           row['RCL_58']?.toString() ??
                           '0';
+
                       return Container(
-                        color: _receiptRows.indexOf(row).isEven
-                            ? Colors.white
-                            : const Color(0xFFF6F9FF),
+                        color: index.isEven
+                            ? tableBackground
+                            : alternateBackground,
                         child: Row(
                           children: [
                             _td(rno),
@@ -7606,11 +7679,12 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
               ),
             ),
           ),
+
           const SizedBox(height: 8),
-          // Totals row
+
           Wrap(
-            spacing: 16,
-            runSpacing: 6,
+            spacing: 10,
+            runSpacing: 8,
             children: [
               _rcTotalChip('Total Received', _receiptTotal),
               _rcTotalChip('Finance Amt', _receiptFinanceAmt),
@@ -7622,36 +7696,42 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     );
   }
 
-  Widget _rcTotalChip(String label, double value) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-    decoration: BoxDecoration(
-      color: const Color(0xFFEAF2FF),
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: const Color(0xFFD3E3FA)),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF3B5B88),
-          ),
+  Widget _rcTotalChip(String label, double value) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF203752) : const Color(0xFFEAF2FF),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? const Color(0xFF3B526E) : const Color(0xFFD3E3FA),
         ),
-        const SizedBox(width: 6),
-        Text(
-          '₹ ${value.toStringAsFixed(2)}',
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0A3D91),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: isDark ? const Color(0xFFCBD8E8) : const Color(0xFF3B5B88),
+            ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(width: 6),
+          Text(
+            '₹ ${value.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: isDark ? const Color(0xFF8FC2FF) : const Color(0xFF0A3D91),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _th(String t) => Container(
     width: 80,
@@ -7670,14 +7750,32 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       overflow: TextOverflow.ellipsis,
     ),
   );
-  Widget _td(String t) => Container(
-    width: 80,
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
-    decoration: BoxDecoration(
-      border: Border(right: BorderSide(color: _border, width: 0.5)),
-    ),
-    child: Text(t, style: const TextStyle(fontSize: 10)),
-  );
+
+  Widget _td(String t) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 9),
+      decoration: BoxDecoration(
+        border: Border(
+          right: BorderSide(
+            color: isDark ? const Color(0xFF34465C) : _border,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Text(
+        t,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 10,
+          color: isDark ? const Color(0xFFE2EAF5) : const Color(0xFF26364A),
+        ),
+      ),
+    );
+  }
 
   // ── Balances ──────────────────────────────────────────────────────────────
   Widget _secBalances() => Column(
@@ -7713,7 +7811,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         children: [
           Expanded(child: _num('Received Amt', _receivedCtrl, ro: false)),
           const SizedBox(width: 12),
-          Expanded(child: _num('Balance', _balanceCtrl, ro: true)),
+          Expanded(child: _num('Balance', _balanceCtrl, ro: true, bold: true)),
         ],
       ),
     ],
@@ -7820,6 +7918,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     String label,
     TextEditingController ctrl, {
     bool ro = false,
+    bool bold = false,
     ValueChanged<String>? onChanged,
   }) => TextFormField(
     controller: ctrl,
@@ -7833,7 +7932,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
     ],
     textAlign: TextAlign.right,
-    style: _s13,
+    style: bold ? _s13.copyWith(fontWeight: FontWeight.w700) : _s13,
     decoration: _dec(label, ro: ro),
   );
 
@@ -8020,23 +8119,36 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
     ),
   );
 
-  Widget _radio(String val, String group, ValueChanged<String?> fn) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Radio<String>(
-        value: val,
-        groupValue: group,
-        onChanged: fn,
-        activeColor: _primary,
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
-      ),
-      Text(
-        val,
-        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-      ),
-    ],
-  );
+  Widget _radio(String val, String group, ValueChanged<String?> fn) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Radio<String>(
+          value: val,
+          groupValue: group,
+          onChanged: fn,
+          activeColor: isDark ? const Color(0xFF4DA3FF) : _primary,
+          fillColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return isDark ? const Color(0xFF4DA3FF) : _primary;
+            }
+            return isDark ? const Color(0xFF7A8FA6) : const Color(0xFF8899BB);
+          }),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: const VisualDensity(horizontal: -4, vertical: -4),
+        ),
+        Text(
+          val,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white70 : null,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _chk(String label, bool val, ValueChanged<bool?> fn) => Row(
     mainAxisSize: MainAxisSize.min,

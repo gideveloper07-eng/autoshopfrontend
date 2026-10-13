@@ -610,7 +610,10 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
   // ── Data row ───────────────────────────────────────────────────────────────
 
   Widget _buildRow(Map<String, dynamic> row, int index, double tableW) {
-    final bg = index.isEven ? Colors.white : const Color(0xFFF5F7FB);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bg = index.isEven
+        ? (isDark ? const Color(0xFF1A2535) : Colors.white)
+        : (isDark ? const Color(0xFF1E2D40) : const Color(0xFFF5F7FB));
 
     final statusText = _v(row, 'status');
     final statusColor = statusText.toLowerCase() == 'approved'
@@ -634,9 +637,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Date
                 Text(
                   _date(row),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -644,9 +650,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Challan No
                 Text(
                   _v(row, 'sp_468').isEmpty ? '-' : _v(row, 'sp_468'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -654,9 +663,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Type
                 Text(
                   _v(row, 'sp_558').isEmpty ? '-' : _v(row, 'sp_558'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -664,9 +676,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Customer Name
                 Text(
                   _v(row, 'sp_469').isEmpty ? '-' : _v(row, 'sp_469'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -674,9 +689,11 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Vin No
                 Text(
                   _v(row, 'sp_473').isEmpty ? '-' : _v(row, 'sp_473'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF1A56DB),
+                    color: isDark
+                        ? const Color(0xFF7EB8FF)
+                        : const Color(0xFF1A56DB),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -685,9 +702,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 // Variant
                 Text(
                   _v(row, 'sp_471').isEmpty ? '-' : _v(row, 'sp_471'),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -696,9 +716,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                 Text(
                   _v(row, 'sp_521').isEmpty ? '-' : _v(row, 'sp_521'),
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? const Color(0xFFE8EDF5)
+                        : const Color(0xFF1A2535),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
