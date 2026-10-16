@@ -49,6 +49,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
 
   // ── City list for Add City dialog ─────────────────────────────────────────
   List<Map<String, dynamic>> _cities = [];
+  List<Map<String, dynamic>> _areas = [];
 
   // ── Challan type & date ───────────────────────────────────────────────────
   String _challanType = 'Customer Challan';
@@ -372,6 +373,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           ],
         ),
         ApiService.getChallanCities(),
+        ApiService.getChallanAreas(),
       ]);
       if (!mounted) return;
       setState(() {
@@ -384,10 +386,11 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         _insuranceCos = r[6] as List<Map<String, dynamic>>;
         _challanNo = ((r[7] as List).first as Map)['n'] as int? ?? 1;
         _cities = r[8] as List<Map<String, dynamic>>;
+        _areas = r[9] as List<Map<String, dynamic>>;
         _loading = false;
       });
       _animCtrl.forward();
-      // If editing, load the existing challan data
+      // Load the selected challan after dropdown data is ready.
       await _loadEditData();
     } catch (e) {
       if (!mounted) return;
@@ -433,27 +436,194 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
 
   /// Load existing challan data for edit mode
   Future<void> _loadEditData() async {
-    final data = await ApiService.loadChallanForEdit(widget.sp462);
-    if (data == null || !mounted) return;
-    _populateFormFromData(data);
+    if (widget.sp462.trim().isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _initError =
+            'Challan ID is missing. Please return to the challan grid and try again.';
+      });
+      return;
+    }
+
+    try {
+      final data = await ApiService.loadChallanForEdit(widget.sp462);
+      if (!mounted) return;
+
+      if (data == null || data.isEmpty) {
+        setState(() {
+          _initError =
+              'Unable to load this challan. Please check the record and try again.';
+        });
+        return;
+      }
+
+      _populateFormFromData(data);
+    } catch (e, stackTrace) {
+      debugPrint('CHALLAN EDIT LOAD ERROR: $e');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+      setState(() {
+        _initError = 'Failed to load challan: $e';
+      });
+    }
   }
 
   /// Populate all controllers from an Edit API response
   void _populateFormFromData(Map<String, dynamic> d) {
+    // The save API uses sp_NNN field names. The Edit stored procedure may
+    // return friendly aliases instead, so normalize both shapes into the same
+    // keys consumed by the form. Existing non-empty aliases always take
+    // priority; raw sp_NNN fields are used as a fallback.
+    final normalized = Map<String, dynamic>.from(d);
+    const editFieldAliases = <String, String>{
+      'unq': 'sp_462',
+      'date': 'sp_467',
+      'challanno': 'sp_468',
+      'custname': 'sp_469',
+      'model': 'sp_470',
+      'variant': 'sp_471',
+      'color': 'sp_472',
+      'vinno': 'sp_473',
+      'fasttag': 'sp_474',
+      'tcs': 'sp_476',
+      'trc': 'sp_477',
+      'accessories': 'sp_478',
+      'additionalwarranty': 'sp_479',
+      'warrantyyear': 'sp_480',
+      'warrantyamount': 'sp_481',
+      'exshowroomprice': 'sp_482',
+      'corporateyn': 'sp_483',
+      'corporateamount': 'sp_484',
+      'corporategiven': 'sp_485',
+      'exchangeyn': 'sp_486',
+      'exchangeamount': 'sp_487',
+      'exchangegiven': 'sp_488',
+      'loyalityyn': 'sp_489',
+      'loyalityamount': 'sp_490',
+      'loyalitygiven': 'sp_491',
+      'rtorate': 'sp_492',
+      'rtotaxsurcharge': 'sp_493',
+      'greentax': 'sp_494',
+      'regfee': 'sp_495',
+      'hpn': 'sp_496',
+      'duplicate': 'sp_497',
+      'smartcard': 'sp_498',
+      'other': 'sp_499',
+      'rtoamount': 'sp_500',
+      'cess': 'sp_502',
+      'subtotal': 'sp_503',
+      'subtotal2': 'sp_504',
+      'idv': 'sp_505',
+      'idvamount': 'sp_506',
+      'insurancepercentage': 'sp_507',
+      'insperamount': 'sp_508',
+      'discountprecentage': 'sp_509',
+      'discountamount': 'sp_510',
+      'thirdparty': 'sp_511',
+      'pacover': 'sp_512',
+      'zd': 'sp_513',
+      'pb': 'sp_514',
+      'kp': 'sp_515',
+      'paiddriver': 'sp_516',
+      'amtafterpaiddriver': 'sp_543',
+      'gstunq': 'sp_518',
+      'gstamount': 'sp_519',
+      'insuranceamount': 'sp_520',
+      'netamount': 'sp_521',
+      'lessofallencashmentschemne': 'sp_522',
+      'hypothecation': 'sp_523',
+      'address': 'sp_524',
+      'email': 'sp_525',
+      'mobileno': 'sp_526',
+      'aadharcard': 'sp_527',
+      'panno': 'sp_528',
+      'nomineename': 'sp_529',
+      'age': 'sp_530',
+      'relation': 'sp_531',
+      'gstin': 'sp_532',
+      'rtounq': 'sp_533',
+      'rtofrom': 'sp_534',
+      'engineno': 'sp_535',
+      'bankbranch': 'sp_536',
+      'bankamt': 'sp_537',
+      'title': 'sp_538',
+      'afteridvamt': 'sp_539',
+      'paamount': 'sp_540',
+      'addless': 'sp_544',
+      'financetype': 'sp_547',
+      'instype': 'sp_548',
+      'rtoexshow': 'sp_549',
+      'scunq': 'sp_550',
+      'tlunq': 'sp_551',
+      'managunq': 'sp_552',
+      'ep': 'sp_553',
+      'zdamt': 'sp_554',
+      'epamt': 'sp_555',
+      'sgst': 'sp_556',
+      'cgst': 'sp_557',
+      'challantype': 'sp_558',
+      'insshowroom': 'sp_560',
+      'loanamount': 'sp_561',
+      'branchid': 'sp_594',
+      'rti': 'sp_600',
+      'rtiamt': 'sp_601',
+      'cm': 'sp_602',
+      'cmamt': 'sp_603',
+      'hpnp': 'sp_605',
+      'state_list': 'sp_610',
+      'dealeryn': 'sp_611',
+      'dealeramount': 'sp_612',
+      'dealergiven': 'sp_613',
+      'rtotemp': 'sp_614',
+      'ncb': 'sp_615',
+      'remark': 'sp_616',
+      'other1': 'sp_617',
+      'other2': 'sp_618',
+      'other3': 'sp_619',
+      'amount1': 'sp_620',
+      'amount2': 'sp_621',
+      'amount3': 'sp_622',
+      'workshopinvoiceno': 'sp_623',
+      'workshopinvoiceamount': 'sp_624',
+      'cngp': 'sp_634',
+      'cngamt': 'sp_635',
+      'scrapper': 'sp_653',
+      'ownaccss': 'sp_573',
+      'appremark': 'sp_585',
+      'rejectremark': 'sp_581',
+    };
+    for (final entry in editFieldAliases.entries) {
+      final existing = normalized[entry.key];
+      if (existing == null ||
+          existing.toString().trim().isEmpty ||
+          existing.toString().toLowerCase() == 'null') {
+        final raw = d[entry.value];
+        if (raw != null) normalized[entry.key] = raw;
+      }
+    }
+    // Support procedure column casing differences without changing IDs.
+    d = normalized;
+
     setState(() {
-      _editUnq = d['unq']?.toString() ?? widget.sp462 ?? '0';
+      _editUnq = (d['unq'] ?? d['sp_462'] ?? widget.sp462).toString();
 
       // ── dates ──
-      final dateStr = d['date']?.toString() ?? d['cdate']?.toString() ?? '';
+      final dateStr = (d['date'] ?? d['cdate'] ?? d['sp_467'] ?? '')
+          .toString()
+          .trim();
       if (dateStr.isNotEmpty) {
         try {
-          final parts = dateStr.split('/');
-          if (parts.length == 3) {
-            _challanDate = DateTime(
-              int.parse(parts[2]),
-              int.parse(parts[1]),
-              int.parse(parts[0]),
-            );
+          if (dateStr.contains('/')) {
+            final parts = dateStr.split('/');
+            if (parts.length == 3) {
+              _challanDate = DateTime(
+                int.parse(parts[2]),
+                int.parse(parts[1]),
+                int.parse(parts[0]),
+              );
+            }
+          } else {
+            _challanDate = DateTime.parse(dateStr.split('T').first);
           }
         } catch (_) {}
       }
@@ -477,17 +647,27 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           : 'MR';
       _addressCtrl.text = d['address']?.toString() ?? '';
       _mobileCtrl.text = d['mobileno']?.toString() ?? '';
-      _emailCtrl.text =
-          d['fathername']?.toString() ?? ''; // fathername = email in SP alias
+      _emailCtrl.text = d['email']?.toString() ?? d['sp_525']?.toString() ?? '';
       _fatherCtrl.text = d['fathername']?.toString() ?? '';
       _aadharCtrl.text = d['aadharcard']?.toString() ?? '';
       _panCtrl.text = d['panno']?.toString() ?? '';
       _gstinCtrl.text = d['gstin']?.toString() ?? '';
       _nomineeCtrl.text = d['nomineename']?.toString() ?? '';
       _ageCtrl.text = d['age']?.toString() ?? '';
-      _relation = d['relation']?.toString().isNotEmpty == true
-          ? d['relation'].toString()
-          : 'CHOOSE RELATIONSHIP';
+      const allowedRelations = <String>[
+        'CHOOSE RELATIONSHIP',
+        'Son',
+        'Daughter',
+        'Spouse',
+        'Father',
+        'Mother',
+        'Other',
+      ];
+      final savedRelation = (d['relation'] ?? '').toString().trim();
+      _relation = allowedRelations.firstWhere(
+        (item) => item.toLowerCase() == savedRelation.toLowerCase(),
+        orElse: () => 'CHOOSE RELATIONSHIP',
+      );
       _engineCtrl.text = d['engineno']?.toString() ?? '';
       _scCtrl.text = d['scunq']?.toString() ?? '';
       _tlCtrl.text = d['tlunq']?.toString() ?? '';
@@ -597,8 +777,8 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _smartCtrl.text = _f(d['SmartCard'] ?? d['smartcard']);
       _otherRtoCtrl.text = _f(d['Other'] ?? d['other']);
       _rtoTempCtrl.text = _f(d['RTO TEMP'] ?? d['rto temp']);
-      _bhPerCtrl.text = _f(d['bhperc']);
-      _bhYearCtrl.text = d['bhyear']?.toString() ?? '';
+      _bhPerCtrl.text = _f(d['bhperc'] ?? d['sp_637']);
+      _bhYearCtrl.text = (d['bhyear'] ?? d['sp_638'])?.toString() ?? '';
       _rtoAmtCtrl.text = _f(d['RTOAmount'] ?? d['rtoamount']);
 
       // ── others ──
@@ -627,7 +807,10 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _rejRemarkCtrl.text = d['rejectremark']?.toString() ?? '';
     });
 
-    // Load receipt grid, variant details, HPN branches in parallel
+    // Load related dropdowns/receipts after populating the saved record.
+    // IMPORTANT: Do not run _recalculateAspNet() here. Edit mode must first
+    // display the exact persisted amounts returned by A_SP_FOR_Challan Edit.
+    // Recalculation remains wired to user changes in the form controls.
     if (_custId != null && _custId!.isNotEmpty) {
       _loadReceiptGrid(_custId!);
     }
@@ -637,7 +820,6 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
     if (_hpnParentId != null && _hpnParentId!.isNotEmpty) {
       _loadHpnBranches(_hpnParentId!);
     }
-    _recalculateAspNet();
   }
 
   /// After loading edit data, also populate variant/color/vin cascades
@@ -681,11 +863,20 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           if (mounted) setState(() => _loadingVin = false);
         }
       } else {
-        if (mounted) setState(() { _loadingCol = false; _loadingVin = false; });
+        if (mounted)
+          setState(() {
+            _loadingCol = false;
+            _loadingVin = false;
+          });
       }
     } catch (e) {
       print('_loadVariantsColorsVinsForEdit ERROR: $e');
-      if (mounted) setState(() { _loadingVar = false; _loadingCol = false; _loadingVin = false; });
+      if (mounted)
+        setState(() {
+          _loadingVar = false;
+          _loadingCol = false;
+          _loadingVin = false;
+        });
     }
   }
 
@@ -712,11 +903,13 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
             0;
         _loadingReceipts = false;
       });
-      // Pre-fill received amounts from actual receipt totals
-      setState(() {
-        _receivedCtrl.text = _receiptTotal.toStringAsFixed(2);
-        _recalculateAspNet();
-      });
+      // Pre-fill receipt amount, but do not recalculate persisted challan
+      // totals while opening Edit. This was overwriting saved amount fields.
+      if (mounted) {
+        setState(() {
+          _receivedCtrl.text = _receiptTotal.toStringAsFixed(2);
+        });
+      }
     } catch (e) {
       if (mounted) setState(() => _loadingReceipts = false);
       print('_loadReceiptGrid ERROR: $e');
@@ -1853,6 +2046,10 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
   Future<void> _save() async {
     _recalculateAspNet();
     if (!_formKey.currentState!.validate()) return;
+    if (_editUnq.trim().isEmpty || _editUnq.trim() == '0') {
+      _snack('Cannot update: challan unique ID is missing.', isError: true);
+      return;
+    }
     if (_custId == null) {
       _snack('Please select a customer', isError: true);
       return;
@@ -1866,7 +2063,9 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       final payload = <String, dynamic>{
         'prefix': 'rh_',
         'pageno': _stateId ?? '',
-        'sp_462': true ? _editUnq : '0',
+        'sp_462': _editUnq.trim().isNotEmpty && _editUnq != '0'
+            ? _editUnq.trim()
+            : widget.sp462.trim(),
         'sp_463': '',
         'sp_464': '',
         'sp_467': DateFormat('dd/MM/yyyy').format(_challanDate),
@@ -1924,6 +2123,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_506': _idvAmtCtrl.text,
         'sp_507': _insPerCtrl.text,
         'sp_508': _insAmtCtrl.text,
+        'sp_509': _insDisCtrl.text,
         'sp_510': _disAmtCtrl.text,
         'sp_511': _thirdPartyCtrl.text,
         'sp_512': _paCoverCtrl.text,
@@ -1964,8 +2164,8 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_499': _otherRtoCtrl.text,
         'sp_500': _rtoAmtCtrl.text,
         'sp_614': _rtoTempCtrl.text,
-        'sp_636': _bhPerCtrl.text,
-        'sp_637': _bhYearCtrl.text,
+        'sp_637': _bhPerCtrl.text,
+        'sp_638': _bhYearCtrl.text,
         'sp_549': _rtoExShowCtrl.text,
         'sp_653': _scrappage ? '1' : '0',
         'sp_654': '0',
@@ -1980,7 +2180,6 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_477': _trcCtrl.text,
         'sp_478': _compAccCtrl.text,
         'sp_573': _ownAccCtrl.text,
-        'sp_479': _warrantyCtrl.text,
         'sp_480': _warrantyYrCtrl.text,
         'sp_481': _warrantyCtrl.text,
         'sp_474': _fastTagCtrl.text,
@@ -2928,13 +3127,22 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF1675D1).withValues(alpha: 0.08),
-                  const Color(0xFF1675D1).withValues(alpha: 0.03),
-                ],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [
+                        const Color(0xFF1675D1).withValues(alpha: 0.18),
+                        const Color(0xFF1675D1).withValues(alpha: 0.08),
+                      ]
+                    : [
+                        const Color(0xFF1675D1).withValues(alpha: 0.08),
+                        const Color(0xFF1675D1).withValues(alpha: 0.03),
+                      ],
               ),
               border: Border.all(
-                color: const Color(0xFF1675D1).withValues(alpha: 0.28),
+                color: const Color(0xFF1675D1).withValues(
+                  alpha: Theme.of(context).brightness == Brightness.dark
+                      ? 0.55
+                      : 0.28,
+                ),
               ),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -2958,11 +3166,13 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'CHALLAN NO.',
                       style: TextStyle(
                         fontSize: 8.5,
-                        color: Color(0xFF8C5960),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF7EB8FF).withValues(alpha: 0.80)
+                            : const Color(0xFF8C5960),
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.5,
                       ),
@@ -2970,9 +3180,11 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
                     const SizedBox(height: 1),
                     Text(
                       '$_challanNo',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
-                        color: const Color(0xFF0A1B32),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF0A1B32),
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -2989,18 +3201,58 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
             _onStateSelected(v);
           }),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _txt('City', TextEditingController(text: _cityName)),
+                child: _dropMapField('City', _cityId, _cities, (v) {
+                  if (v == '__CLEAR__' || v == null) {
+                    setState(() {
+                      _cityId = null;
+                      _cityName = '';
+                      _areaId = null;
+                      _areaName = '';
+                    });
+                    return;
+                  }
+                  final city = _cities.firstWhere(
+                    (e) => (e['data'] ?? e['sp_572']).toString() == v,
+                    orElse: () => {},
+                  );
+                  setState(() {
+                    _cityId = v;
+                    _cityName = (city['value'] ?? city['sp_578'] ?? v)
+                        .toString();
+                    _areaId = null;
+                    _areaName = '';
+                  });
+                }),
               ),
               const SizedBox(width: 7),
               _plusBtn(_showAddCityDialog),
             ],
           ),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _txt('Area', TextEditingController(text: _areaName)),
+                child: _dropMapField('Area', _areaId, _areas, (v) {
+                  if (v == '__CLEAR__' || v == null) {
+                    setState(() {
+                      _areaId = null;
+                      _areaName = '';
+                    });
+                    return;
+                  }
+                  final area = _areas.firstWhere(
+                    (e) => (e['data'] ?? e['sp_212']).toString() == v,
+                    orElse: () => {},
+                  );
+                  setState(() {
+                    _areaId = v;
+                    _areaName = (area['value'] ?? area['sp_217'] ?? v)
+                        .toString();
+                  });
+                }),
               ),
               const SizedBox(width: 7),
               _plusBtn(_showAddAreaDialog),
@@ -3011,61 +3263,45 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         _r3(
           _txt('Location', _locationCtrl),
           _txt('Mobile No.', _mobileCtrl, inputType: TextInputType.phone),
-          Column(
-            children: [
-              _txt(
-                'Email Id',
-                _emailCtrl,
-                inputType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 7),
-              _txt('Aadhar No.', _aadharCtrl, inputType: TextInputType.number),
-            ],
-          ),
+          _txt('Aadhar No.', _aadharCtrl, inputType: TextInputType.number),
         ),
         _vg,
         _r3(
+          _txt('Email Id', _emailCtrl, inputType: TextInputType.emailAddress),
           _txt('PAN', _panCtrl, inputFormatters: [UpperCaseFormatter()]),
           _txt('Nominee Name', _nomineeCtrl),
-          Column(
-            children: [
-              _txt('Age', _ageCtrl, inputType: TextInputType.number),
-              const SizedBox(height: 7),
-              _dropStrField(
-                'Relation',
-                _relation,
-                [
-                      'CHOOSE RELATIONSHIP',
-                      'Son',
-                      'Daughter',
-                      'Spouse',
-                      'Father',
-                      'Mother',
-                      'Other',
-                    ]
-                    .map(
-                      (r) => DropdownMenuItem(
-                        value: r,
-                        child: Text(r, style: _s13),
-                      ),
-                    )
-                    .toList(),
-                (v) => setState(() => _relation = v!),
-              ),
-            ],
-          ),
         ),
         _vg,
         _r3(
-          _txt('GST No.', _gstinCtrl, inputFormatters: [UpperCaseFormatter()]),
-          _txt('SC Name', _scCtrl),
-          Column(
-            children: [
-              _txt('TL Name', _tlCtrl),
-              const SizedBox(height: 7),
-              _txt('Manager', _managerCtrl),
-            ],
+          _txt('Age', _ageCtrl, inputType: TextInputType.number),
+          _dropStrField(
+            'Relation',
+            _relation,
+            [
+                  'CHOOSE RELATIONSHIP',
+                  'Son',
+                  'Daughter',
+                  'Spouse',
+                  'Father',
+                  'Mother',
+                  'Other',
+                ]
+                .map(
+                  (r) => DropdownMenuItem(
+                    value: r,
+                    child: Text(r, style: _s13),
+                  ),
+                )
+                .toList(),
+            (v) => setState(() => _relation = v!),
           ),
+          _txt('GST No.', _gstinCtrl, inputFormatters: [UpperCaseFormatter()]),
+        ),
+        _vg,
+        _r3(
+          _txt('SC Name', _scCtrl),
+          _txt('TL Name', _tlCtrl),
+          _txt('Manager', _managerCtrl),
         ),
         _vg,
         _r3(
@@ -3073,29 +3309,23 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           _loadingVar
               ? _loadBox()
               : _dropMapField('Variant', _variantId, _variants, _onVariant),
-          Column(
-            children: [
-              _loadingCol
-                  ? _loadBox()
-                  : _dropMapField('Color', _colorId, _colors, _onColor),
-              const SizedBox(height: 7),
-              _loadingVin
-                  ? _loadBox()
-                  : _dropMapField(
-                      'VIN',
-                      _vinNo,
-                      _vins,
-                      _onVinSelected,
-                      labelFn: (e) =>
-                          '${e['value'] ?? ''} ${e['mfcyr'] ?? ''}'.trim(),
-                    ),
-            ],
-          ),
+          _loadingCol
+              ? _loadBox()
+              : _dropMapField('Color', _colorId, _colors, _onColor),
         ),
         _vg,
         _r3(
+          _loadingVin
+              ? _loadBox()
+              : _dropMapField(
+                  'VIN',
+                  _vinNo,
+                  _vins,
+                  _onVinSelected,
+                  labelFn: (e) =>
+                      '${e['value'] ?? ''} ${e['mfcyr'] ?? ''}'.trim(),
+                ),
           _txt('Engine No.', _engineCtrl),
-          const SizedBox(),
           const SizedBox(),
         ),
       ],
@@ -3154,140 +3384,209 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
   // ── Finance section ───────────────────────────────────────────────────────
   Widget _secFinance() => Column(
     children: [
-      // Row 1: Finance type + loan amount
-      _r4(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _lbl('Finance Type'),
-            const SizedBox(height: 4),
-            Wrap(
-              children: [
-                _radio('In House', _finType, (v) {
-                  if (v == null) return;
-                  setState(() => _finType = v);
-                  _recalculateAspNet();
-                }),
-                _radio('Out House', _finType, (v) {
-                  if (v == null) return;
-                  setState(() => _finType = v);
-                  _recalculateAspNet();
-                }),
-                _radio('Cash', _finType, (v) => setState(() => _finType = v!)),
-              ],
-            ),
-          ],
-        ),
-        _num('Loan Amount', _loanAmtCtrl),
-        _num('Net Disbursed Amt', _netDisCtrl),
-        _txt('Branch Name', _branchNameCtrl),
+      // ─────────────────────────────────────────────────────────────
+      // FINANCE TYPE
+      // ─────────────────────────────────────────────────────────────
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _lbl('Finance Type'),
+          const SizedBox(height: 4),
+          Wrap(
+            children: [
+              _radio('In House', _finType, (v) {
+                if (v == null) return;
+                setState(() => _finType = v);
+                _recalculateAspNet();
+              }),
+              _radio('Out House', _finType, (v) {
+                if (v == null) return;
+                setState(() => _finType = v);
+                _recalculateAspNet();
+              }),
+              _radio('Cash', _finType, (v) => setState(() => _finType = v!)),
+            ],
+          ),
+        ],
       ),
+
       _vg,
-      // Row 2: HPN parent + child branch (only when In House / Out House)
-      if (_finType != 'Cash') ...[
-        _r4(
-          // HPN parent dropdown
-          _dropMapField('HPN / Financer', _hpnParentId, _hpnList, (v) {
-            setState(() {
-              _hpnParentId = v;
-              _hpnChildId = null;
-              _hpnBranches = [];
-            });
-            if (v != null && v.isNotEmpty) _loadHpnBranches(v);
-          }),
-          // HPN child branch dropdown — populated after parent is chosen
-          _hpnBranches.isEmpty
-              ? _txt('HPN Branch', _hypCtrl)
-              : DropdownButtonFormField<String>(
-                  value: _hpnChildId,
-                  isExpanded: true,
-                  style: _s13,
-                  decoration: _dec('HPN Branch'),
-                  items: [
-                    const DropdownMenuItem(
-                      value: null,
-                      child: Text(
-                        'SELECT',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF9AA3AF),
-                        ),
-                      ),
-                    ),
-                    ..._hpnBranches.map(
-                      (b) => DropdownMenuItem<String>(
-                        value: (b['data'] ?? b['hp_c_2'])?.toString(),
-                        child: Text(
-                          (b['value'] ?? b['hp_c_3'] ?? '').toString(),
-                          style: _s13,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                  onChanged: (v) => setState(() => _hpnChildId = v),
-                ),
-          const SizedBox(),
-          const SizedBox(),
-        ),
-      ],
+
+      _r4(
+        // HPN parent dropdown
+        _dropMapField('Hypothecation / Lessor', _hpnParentId, _hpnList, (v) {
+          setState(() {
+            _hpnParentId = v;
+            _hpnChildId = null;
+            _hpnBranches = [];
+            _branchNameCtrl.clear();
+          });
+          if (v != null && v.isNotEmpty) _loadHpnBranches(v);
+        }),
+
+        // HPN child branch dropdown — populated after parent is chosen
+        _dropMapField('Branch Name', _hpnChildId, _hpnBranches, (v) {
+          if (v == null) return;
+          setState(() {
+            _hpnChildId = v;
+            final selected = _hpnBranches.firstWhere(
+              (e) => e['data']?.toString() == v.toString(),
+              orElse: () => <String, dynamic>{},
+            );
+            _branchNameCtrl.text = selected['value']?.toString() ?? '';
+          });
+        }),
+
+        _num('Loan Amount', _loanAmtCtrl),
+
+        _num('Net Disbursed Amount', _netDisCtrl),
+      ),
     ],
   );
 
   // ── Discounts section ─────────────────────────────────────────────────────
-  Widget _secDiscounts() => Column(
-    children: [
-      // header row
-      Row(
+  Widget _secDiscounts() => LayoutBuilder(
+    builder: (context, constraints) {
+      final mobile = constraints.maxWidth < 600;
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Expanded(flex: 5, child: SizedBox()),
-          Expanded(flex: 2, child: Center(child: _lbl('Given'))),
-          Expanded(flex: 3, child: Center(child: _lbl('Ex-Showroom'))),
+          // Column headings
+          Padding(
+            padding: const EdgeInsets.only(bottom: 5),
+            child: Row(
+              children: [
+                const Expanded(flex: 4, child: SizedBox()),
+                Expanded(
+                  flex: 3,
+                  child: Center(
+                    child: mobile
+                        ? const Text(
+                            'Amount',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF5F6F85),
+                            ),
+                          )
+                        : _lbl('Amount'),
+                  ),
+                ),
+                Expanded(
+                  flex: 5,
+                  child: Center(
+                    child: mobile
+                        ? const Text(
+                            'Given',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF5F6F85),
+                            ),
+                          )
+                        : _lbl('Given'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          // 1. Corporate
+          _discRow(
+            'Corporate',
+            _corpYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _corpYn = v);
+              _recalculateAspNet();
+            },
+            _corpValCtrl,
+            _corpGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _corpGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
+
+          // 2. Exchange
+          _discRow(
+            'Exchange',
+            _exchYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _exchYn = v);
+              _recalculateAspNet();
+            },
+            _exchValCtrl,
+            _exchGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _exchGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
+
+          // 3. Dealer Discount
+          _discRow(
+            'Dealer Discount',
+            _dealYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _dealYn = v);
+              _recalculateAspNet();
+            },
+            _dealValCtrl,
+            _dealGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _dealGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
+
+          // 4. Loyalty
+          _discRow(
+            'Loyalty',
+            _loyYn,
+            (v) {
+              if (v == null) return;
+              setState(() => _loyYn = v);
+              _recalculateAspNet();
+            },
+            _loyValCtrl,
+            _loyGiven,
+            (v) {
+              if (v == null) return;
+              setState(() => _loyGiven = v);
+              _recalculateAspNet();
+            },
+            null,
+            '',
+          ),
+
+          const SizedBox(height: 5),
+
+          // Calculated fields shown after all discount rows
+          _num('Ex-Showroom', _exShowCtrl, bold: true),
+          const SizedBox(height: 8),
+
+          _num('Schemes Less', _schemesCtrl),
+          const SizedBox(height: 8),
+
+          _num('SubTotal', _subTotalCtrl, ro: true, bold: true),
         ],
-      ),
-      const SizedBox(height: 4),
-      _discRow(
-        'Corporate',
-        _corpYn,
-        (v) => setState(() => _corpYn = v!),
-        _corpValCtrl,
-        _corpGiven,
-        (v) => setState(() => _corpGiven = v!),
-        _exShowCtrl,
-        'Ex-Showroom',
-      ),
-      _discRow(
-        'Exchange',
-        _exchYn,
-        (v) => setState(() => _exchYn = v!),
-        _exchValCtrl,
-        _exchGiven,
-        (v) => setState(() => _exchGiven = v!),
-        _schemesCtrl,
-        'Schemes Less',
-      ),
-      _discRow(
-        'Dealer Discount',
-        _dealYn,
-        (v) => setState(() => _dealYn = v!),
-        _dealValCtrl,
-        _dealGiven,
-        (v) => setState(() => _dealGiven = v!),
-        _subTotalCtrl,
-        'SubTotal',
-        ro: true,
-      ),
-      _discRow(
-        'Loyalty',
-        _loyYn,
-        (v) => setState(() => _loyYn = v!),
-        _loyValCtrl,
-        _loyGiven,
-        (v) => setState(() => _loyGiven = v!),
-        null,
-        '',
-      ),
-    ],
+      );
+    },
   );
 
   Widget _discRow(
@@ -3303,60 +3602,59 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
   }) => LayoutBuilder(
     builder: (context, constraints) {
       final mobile = constraints.maxWidth < 600;
+
       if (mobile) {
+        // MOBILE: label, amount and Given stay on one row.
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          padding: const EdgeInsets.only(bottom: 9),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      lbl,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+              Expanded(
+                flex: 4,
+                child: Text(
+                  lbl,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
                   ),
-                  _radio('Yes', yn, onYn),
-                  _radio('No', yn, onYn),
-                ],
+                ),
               ),
-              const SizedBox(height: 7),
-              _num('Amount', amtC),
-              const SizedBox(height: 7),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Given',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+
+              const SizedBox(width: 6),
+
+              Expanded(flex: 3, child: _num('', amtC)),
+
+              const SizedBox(width: 5),
+
+              Expanded(
+                flex: 5,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _radio('Yes', given, onGiven),
+                      _radio('No', given, onGiven),
+                    ],
                   ),
-                  _radio('Yes', given, onGiven),
-                  _radio('No', given, onGiven),
-                ],
+                ),
               ),
-              if (rightC != null) ...[
-                const SizedBox(height: 7),
-                _num(rightLbl, rightC, ro: ro),
-              ],
             ],
           ),
         );
       }
+
       return Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: 9),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              flex: 3,
+              flex: 4,
               child: Row(
                 children: [
                   Expanded(
@@ -3373,9 +3671,9 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
                 ],
               ),
             ),
-            Expanded(flex: 2, child: _num('', amtC)),
+            Expanded(flex: 3, child: _num('', amtC)),
             Expanded(
-              flex: 2,
+              flex: 5,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -3383,12 +3681,6 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
                   _radio('No', given, onGiven),
                 ],
               ),
-            ),
-            Expanded(
-              flex: 3,
-              child: rightC != null
-                  ? _num(rightLbl, rightC, ro: ro)
-                  : const SizedBox(),
             ),
           ],
         ),
@@ -4678,6 +4970,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
     String label,
     TextEditingController ctrl, {
     bool ro = false,
+    bool bold = false,
     ValueChanged<String>? onChanged,
   }) => TextFormField(
     controller: ctrl,
@@ -4691,7 +4984,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
     ],
     textAlign: TextAlign.right,
-    style: _s13,
+    style: bold ? _s13.copyWith(fontWeight: FontWeight.w700) : _s13,
     decoration: _dec(label, ro: ro),
   );
 
@@ -4701,47 +4994,86 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
     List<Map<String, dynamic>> items,
     ValueChanged<T?> onChanged, {
     String Function(Map<String, dynamic>)? labelFn,
+    bool disabled = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    // Guard: if the current value doesn't exist in the items list yet
-    // (e.g. items are still loading), pass null to avoid the DropdownButton
-    // assertion that requires exactly one matching item.
-    final safeValue = (value == null || items.any((e) => e['data'] == value))
-        ? value
-        : null;
-    return DropdownButtonFormField<T>(
-      value: safeValue,
-      isExpanded: true,
-      style: _s13,
-      icon: Icon(
-        Icons.keyboard_arrow_down_rounded,
-        color: isDark ? Colors.white54 : const Color(0xFF7A8493),
-        size: 20,
-      ),
-      dropdownColor: isDark ? const Color(0xFF202A35) : Colors.white,
-      decoration: _dec(label),
-      items: [
-        DropdownMenuItem<T>(
-          value: null,
-          child: Text(
-            'SELECT',
-            style: TextStyle(
-              fontSize: 13,
-              color: isDark ? Colors.white38 : const Color(0xFF9AA3AF),
+    final displayLabel = value == null
+        ? null
+        : () {
+            final match = items.firstWhere(
+              (e) => e['data'] == value,
+              orElse: () => <String, dynamic>{},
+            );
+            if (match.isEmpty) return null;
+            return labelFn != null
+                ? labelFn(match)
+                : (match['value'] as String? ??
+                      match['data']?.toString() ??
+                      '');
+          }();
+
+    final field = InputDecorator(
+      decoration: _dec(label, ro: disabled),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              displayLabel ?? 'SELECT',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: displayLabel == null
+                    ? (isDark ? Colors.white38 : const Color(0xFF9AA3AF))
+                    : disabled
+                    ? (isDark ? Colors.white54 : const Color(0xFF6B7888))
+                    : (isDark ? Colors.white : const Color(0xFF1A2740)),
+              ),
             ),
           ),
-        ),
-        ...items.map((e) {
+          Icon(
+            disabled ? Icons.lock_outline_rounded : Icons.search_rounded,
+            size: disabled ? 15 : 18,
+            color: disabled
+                ? (isDark ? Colors.white24 : const Color(0xFFBBC5D1))
+                : (isDark ? Colors.white38 : const Color(0xFF8A97AB)),
+          ),
+        ],
+      ),
+    );
+
+    if (disabled) return field;
+
+    return InkWell(
+      onTap: () async {
+        final strItems = items.map((e) {
           final lbl = labelFn != null
               ? labelFn(e)
-              : (e['value'] as String? ?? e['data'] as String? ?? '');
-          return DropdownMenuItem<T>(
-            value: e['data'] as T?,
-            child: Text(lbl, style: _s13, overflow: TextOverflow.ellipsis),
-          );
-        }),
-      ],
-      onChanged: onChanged,
+              : (e['value'] as String? ?? e['data']?.toString() ?? '');
+          return <String, dynamic>{'data': e['data'], 'value': lbl};
+        }).toList();
+
+        final result = await showModalBottomSheet<String>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _SearchSheet(
+            items: strItems,
+            labelKey: 'value',
+            valueKey: 'data',
+            hint: 'Search $label...',
+            selectedValue: value?.toString(),
+            title: label,
+          ),
+        );
+        if (result == '__CLEAR__') {
+          onChanged(null);
+        } else if (result != null) {
+          onChanged(result as T?);
+        }
+      },
+      borderRadius: BorderRadius.circular(11),
+      child: field,
     );
   }
 
@@ -4750,15 +5082,59 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
     String value,
     List<DropdownMenuItem<String>> items,
     ValueChanged<String?> onChanged,
-  ) => DropdownButtonFormField<String>(
-    value: value,
-    items: items,
-    onChanged: onChanged,
-    isExpanded: true,
-    style: _s13,
-    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20),
-    decoration: _dec(label),
-  );
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Convert DropdownMenuItems into the map format _SearchSheet expects
+    final sheetItems = items.where((i) => i.value != null).map((i) {
+      final txt = (i.child is Text)
+          ? (i.child as Text).data ?? i.value!
+          : i.value!;
+      return <String, dynamic>{'data': i.value, 'value': txt};
+    }).toList();
+
+    return InkWell(
+      onTap: () async {
+        final result = await showModalBottomSheet<String>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (_) => _SearchSheet(
+            items: sheetItems,
+            labelKey: 'value',
+            valueKey: 'data',
+            hint: 'Search $label...',
+            selectedValue: value,
+            title: label,
+          ),
+        );
+        if (result != null && result != '__CLEAR__') onChanged(result);
+      },
+      borderRadius: BorderRadius.circular(11),
+      child: InputDecorator(
+        decoration: _dec(label),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                value,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : const Color(0xFF1A2740),
+                ),
+              ),
+            ),
+            Icon(
+              Icons.search_rounded,
+              size: 18,
+              color: isDark ? Colors.white38 : const Color(0xFF8A97AB),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _datePicker() => InkWell(
     onTap: _pickDate,
@@ -4954,6 +5330,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         valueKey: 'data',
         hint: 'Search customer...',
         selectedValue: _custId,
+        title: 'Customer Name',
       ),
     );
     if (result != null) _onCustomerSelected(result);
@@ -4967,36 +5344,46 @@ class _SearchSheet extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final String labelKey, valueKey, hint;
   final String? selectedValue;
+  final String title;
+
   const _SearchSheet({
     required this.items,
     required this.labelKey,
     required this.valueKey,
     required this.hint,
+    required this.title,
     this.selectedValue,
   });
+
   @override
   State<_SearchSheet> createState() => _SearchSheetState();
 }
 
 class _SearchSheetState extends State<_SearchSheet> {
-  late List<Map<String, dynamic>> _f;
-  final _c = TextEditingController();
+  late List<Map<String, dynamic>> _filtered;
+  final _searchCtrl = TextEditingController();
+  final _focusNode = FocusNode();
+
+  static const Color _accent = Color(0xFF0D5BB5);
+  static const Color _primary = Color(0xFF0A1B32);
+
   @override
   void initState() {
     super.initState();
-    _f = widget.items;
+    _filtered = widget.items;
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _searchCtrl.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   void _filter(String q) {
-    final lq = q.toLowerCase();
-    setState(
-      () => _f = q.isEmpty
+    final lq = q.toLowerCase().trim();
+    setState(() {
+      _filtered = lq.isEmpty
           ? widget.items
           : widget.items
                 .where(
@@ -5004,79 +5391,351 @@ class _SearchSheetState extends State<_SearchSheet> {
                       .toLowerCase()
                       .contains(lq),
                 )
-                .toList(),
-    );
+                .toList();
+    });
   }
 
   @override
   Widget build(BuildContext ctx) {
     final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    final bg = isDark ? const Color(0xFF131E2D) : Colors.white;
+    final surfaceBg = isDark
+        ? const Color(0xFF1A2637)
+        : const Color(0xFFF4F8FF);
+    final borderColor = isDark ? Colors.white12 : const Color(0xFFD3E1F2);
+    final textColor = isDark ? Colors.white : const Color(0xFF1A2740);
+    final subColor = isDark ? Colors.white38 : const Color(0xFF8A97AB);
+
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
-      minChildSize: 0.4,
+      minChildSize: 0.45,
       maxChildSize: 0.95,
+      expand: false,
       builder: (_, sc) => Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.22),
+              blurRadius: 28,
+              offset: const Offset(0, -6),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade400,
-                borderRadius: BorderRadius.circular(2),
+            // drag handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 10, bottom: 4),
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : const Color(0xFFCDD7E8),
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
+
+            // header
+            Container(
+              margin: const EdgeInsets.fromLTRB(14, 6, 14, 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF082B5C), Color(0xFF1675D1)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_filtered.length} of ${widget.items.length} items',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.70),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (widget.selectedValue != null &&
+                      widget.selectedValue!.isNotEmpty)
+                    InkWell(
+                      onTap: () => Navigator.pop(ctx, '__CLEAR__'),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.25),
+                          ),
+                        ),
+                        child: const Text(
+                          'Clear',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: () => Navigator.pop(ctx),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // search box
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
               child: TextField(
-                controller: _c,
+                controller: _searchCtrl,
+                focusNode: _focusNode,
                 onChanged: _filter,
                 autofocus: true,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: textColor,
+                  fontWeight: FontWeight.w500,
+                ),
                 decoration: InputDecoration(
                   hintText: widget.hint,
-                  prefixIcon: const Icon(Icons.search),
+                  hintStyle: TextStyle(fontSize: 13, color: subColor),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    size: 20,
+                    color: _accent,
+                  ),
+                  suffixIcon: _searchCtrl.text.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(
+                            Icons.clear_rounded,
+                            size: 18,
+                            color: subColor,
+                          ),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _filter('');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: surfaceBg,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: borderColor),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: _accent, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
                   ),
                   isDense: true,
                 ),
               ),
             ),
-            const SizedBox(height: 6),
+
+            Divider(height: 1, color: borderColor),
+
+            // list
             Expanded(
-              child: ListView.builder(
-                controller: sc,
-                itemCount: _f.length,
-                itemBuilder: (_, i) {
-                  final item = _f[i];
-                  final lbl = item[widget.labelKey] as String? ?? '';
-                  final val = item[widget.valueKey] as String?;
-                  final sel = val == widget.selectedValue;
-                  return ListTile(
-                    dense: true,
-                    title: Text(
-                      lbl,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: sel ? FontWeight.w700 : FontWeight.normal,
+              child: _filtered.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.search_off_rounded,
+                            size: 48,
+                            color: isDark
+                                ? Colors.white24
+                                : const Color(0xFFBBC8DA),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'No results found',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: subColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Try a different search term',
+                            style: TextStyle(fontSize: 11, color: subColor),
+                          ),
+                        ],
                       ),
+                    )
+                  : ListView.separated(
+                      controller: sc,
+                      padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
+                      itemCount: _filtered.length,
+                      separatorBuilder: (_, __) =>
+                          Divider(height: 1, color: borderColor),
+                      itemBuilder: (_, i) {
+                        final item = _filtered[i];
+                        final lbl = item[widget.labelKey] as String? ?? '';
+                        final val = item[widget.valueKey]?.toString();
+                        final isSelected = val == widget.selectedValue;
+
+                        return InkWell(
+                          onTap: () => Navigator.pop(ctx, val),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 11,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (isDark
+                                        ? const Color(0xFF153358)
+                                        : const Color(0xFFE8F0FE))
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(10),
+                              border: isSelected
+                                  ? Border.all(
+                                      color: isDark
+                                          ? const Color(0xFF2A5BAD)
+                                          : const Color(0xFFB8D0F8),
+                                    )
+                                  : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? _accent
+                                        : (isDark
+                                              ? const Color(0xFF1F3347)
+                                              : const Color(0xFFEEF3FB)),
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: isSelected
+                                      ? const Icon(
+                                          Icons.check_rounded,
+                                          color: Colors.white,
+                                          size: 14,
+                                        )
+                                      : Text(
+                                          '${i + 1}',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : const Color(0xFF6B82A0),
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    lbl,
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: isSelected
+                                          ? (isDark ? Colors.white : _primary)
+                                          : textColor,
+                                    ),
+                                  ),
+                                ),
+                                if (isSelected)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _accent,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'Selected',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                    trailing: sel
-                        ? const Icon(
-                            Icons.check_circle,
-                            color: Color(0xFF0D3F8A),
-                            size: 18,
-                          )
-                        : null,
-                    onTap: () => Navigator.pop(ctx, val),
-                  );
-                },
-              ),
             ),
           ],
         ),

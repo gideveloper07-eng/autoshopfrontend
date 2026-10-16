@@ -266,7 +266,12 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
     );
     if (ok != true || !mounted) return;
     try {
-      final res = await ApiService.deleteChallanGridRecord(unqId: id);
+      final vinNo = _v(row, 'sp_473');
+
+      final res = await ApiService.deleteChallanGridRecord(
+        unqId: id,
+        vinNo: vinNo,
+      );
       final s = res['success'] == true;
       _msg(
         res['message']?.toString() ??
@@ -581,13 +586,7 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
           _cell('Variant', align: TextAlign.left),
           _cell('Net Amount', align: TextAlign.right),
           _cell('Status', align: TextAlign.center),
-          Visibility(
-            visible: false,
-            maintainSize: true,
-            maintainAnimation: true,
-            maintainState: true,
-            child: _cell('Action', align: TextAlign.center),
-          ),
+          _cell('Action', align: TextAlign.center),
         ],
         isHeader: true,
       ),
@@ -756,37 +755,43 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                         ),
                       ),
                 // Action — 3 icon buttons, always fits in _cAction width
-                Visibility(
-                  visible: false,
-                  maintainSize: true,
-                  maintainAnimation: true,
-                  maintainState: true,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _iconBtn(
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Visibility(
+                      visible: true,
+                      maintainSize: true,
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: _iconBtn(
                         Icons.edit_outlined,
                         const Color(0xFF1A56DB),
                         () => _edit(row),
                         'Edit',
                       ),
-                      const SizedBox(width: 3),
-                      _iconBtn(
+                    ),
+                    const SizedBox(width: 3),
+                    Visibility(
+                      visible: false,
+                      maintainSize: true,
+                      maintainAnimation: true,
+                      maintainState: true,
+                      child: _iconBtn(
                         Icons.print_outlined,
                         const Color(0xFF059669),
                         () => _print(row),
                         'Print',
                       ),
-                      const SizedBox(width: 3),
-                      _iconBtn(
-                        Icons.delete_outline_rounded,
-                        const Color(0xFFDC2626),
-                        () => _delete(row),
-                        'Del',
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 3),
+                    _iconBtn(
+                      Icons.delete_outline_rounded,
+                      const Color(0xFFDC2626),
+                      () => _delete(row),
+                      'Del',
+                    ),
+                  ],
                 ),
               ],
             ),

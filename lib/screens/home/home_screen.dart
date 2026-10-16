@@ -37,7 +37,9 @@ import '../chat/chat_requests_screen.dart';
 import '../chat/my_contact_requests_screen.dart';
 import '../chat/task_dashboard_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
+import '../dashboard/pbna_modelwise_screen.dart';
 import '../dashboard/pending_delivery_branchwise_screen.dart';
+import '../dashboard/vna_modelwise_screen.dart';
 import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
 import '../notification/notification_screen.dart';
@@ -76,6 +78,8 @@ class _HomeScreenState extends State<HomeScreen>
   int _liveBooking = 0;
   int _mtdBooking = 0;
   int _mtdSale = 0;
+  int _pbnaCount = 0;
+  int _vnaCount = 0;
   List<double> _bookingTrend = [];
   List<double> _saleTrend = [];
 
@@ -309,6 +313,8 @@ class _HomeScreenState extends State<HomeScreen>
       _liveBooking = (stats["liveBooking"] as num? ?? 0).toInt();
       _mtdBooking = (stats["mtdBooking"] as num? ?? 0).toInt();
       _mtdSale = (stats["mtdSale"] as num? ?? 0).toInt();
+      _pbnaCount = (stats["pbnaCount"] as num? ?? 0).toInt();
+      _vnaCount = (stats["vnaCount"] as num? ?? 0).toInt();
     });
   }
 
@@ -1486,13 +1492,79 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                   ),
                                 ),
+
+                                // ── Page 7: PBNA (Pending Booking No Allocation) ──
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const PbnaModelwiseScreen(),
+                                      ),
+                                    ),
+                                    onLongPress: () =>
+                                        _toggleHighlight('pbna'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('pbna'),
+                                      child: _SimpleStatsCard(
+                                        title: "PBNA",
+                                        subtitle: "Pending Booking No Alloc",
+                                        count: _pbnaCount,
+                                        icon: Icons.pending_actions_rounded,
+                                        gradient: const [
+                                          Color(0xFF6A1B9A),
+                                          Color(0xFF7B1FA2),
+                                          Color(0xFFAB47BC),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Page 8: VNA (Vehicles Not Allocated) ──────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const VnaModelwiseScreen(),
+                                      ),
+                                    ),
+                                    onLongPress: () =>
+                                        _toggleHighlight('vna'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('vna'),
+                                      child: _SimpleStatsCard(
+                                        title: "VNA",
+                                        subtitle: "Vehicles Not Allocated",
+                                        count: _vnaCount,
+                                        icon: Icons.no_crash_rounded,
+                                        gradient: const [
+                                          Color(0xFF880E4F),
+                                          Color(0xFFC2185B),
+                                          Color(0xFFE91E63),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 8),
                           _StatsPageDots(
                             controller: _statsPageController,
-                            count: 6,
+                            count: 8,
                           ),
 
                           const SizedBox(height: 24),

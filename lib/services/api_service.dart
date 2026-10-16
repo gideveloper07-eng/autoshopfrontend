@@ -671,6 +671,7 @@ class ApiService {
 
   static Future<Map<String, dynamic>> deleteChallanGridRecord({
     required String unqId,
+    required String vinNo,
   }) async {
     try {
       final token = await getToken();
@@ -686,30 +687,26 @@ class ApiService {
               "Content-Type": "application/json",
               "Authorization": "Bearer $token",
             },
-            body: jsonEncode({"unqid": unqId}),
+            body: jsonEncode({"unqid": unqId, "sp_473": vinNo}),
           )
           .timeout(const Duration(seconds: 30));
 
-      print("CHALLAN DELETE STATUS : ${response.statusCode}");
-      print("CHALLAN DELETE BODY   : ${response.body}");
+      print("CHALLAN GP_CANCEL STATUS: ${response.statusCode}");
+      print("CHALLAN GP_CANCEL BODY: ${response.body}");
 
       final body = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
-        if (body is Map<String, dynamic>) {
-          return body;
-        }
-
-        return {"success": true, "message": "Record deleted successfully"};
+      if (response.statusCode == 200 && body is Map<String, dynamic>) {
+        return body;
       }
 
       throw Exception(
         body is Map
-            ? body["message"]?.toString() ?? "Delete failed"
-            : "Delete failed",
+            ? body["message"]?.toString() ?? "Cancellation failed"
+            : "Cancellation failed",
       );
     } catch (e) {
-      print("❌ CHALLAN DELETE ERROR: $e");
+      print("CHALLAN GP_CANCEL ERROR: $e");
       rethrow;
     }
   }
@@ -2825,6 +2822,203 @@ class ApiService {
   /// Fetches model-wise booking / sale counts for today or yesterday.
   /// [type]:   'booking' or 'sale'
   /// [period]: 'today'   or 'yesterday'
+  /// Fetches PBNA (Pending Booking No Allocation) model-wise counts.
+  /// Returns { 'total': int, 'models': List<{modelName, count}> }
+  static Future<Map<String, dynamic>> getPbnaModelwise() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'models': <dynamic>[]};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/pbna-modelwise"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("PBNA MODELWISE STATUS: ${response.statusCode}");
+      print("PBNA MODELWISE RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'models': data['models'] is List ? data['models'] : <dynamic>[],
+          };
+        }
+      }
+
+      return {'total': 0, 'models': <dynamic>[]};
+    } catch (e) {
+      print("PBNA MODELWISE ERROR: $e");
+
+      return {'total': 0, 'models': <dynamic>[]};
+    }
+  }
+
+  /// Fetches PBNA details for a specific model.
+  /// [modelName]: the model name string (passed as @ModelUnq to SP)
+  /// Returns { 'modelName': str, 'total': int, 'rows': List<{bookingDate,customer,model,variant,color}> }
+  static Future<Map<String, dynamic>> getPbnaModelwiseDetails(
+    String modelName,
+  ) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {'modelName': modelName, 'total': 0, 'rows': <dynamic>[]};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse(
+              "$baseUrl/api/challan/pbna-modelwise-details"
+              "?modelName=${Uri.encodeComponent(modelName)}",
+            ),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("PBNA DETAILS STATUS: ${response.statusCode}");
+      print("PBNA DETAILS RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+
+          return {
+            'modelName': data['modelName'] ?? modelName,
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'rows': data['rows'] is List ? data['rows'] : <dynamic>[],
+          };
+        }
+      }
+
+      return {'modelName': modelName, 'total': 0, 'rows': <dynamic>[]};
+    } catch (e) {
+      print("PBNA DETAILS ERROR: $e");
+
+      return {'modelName': modelName, 'total': 0, 'rows': <dynamic>[]};
+    }
+  }
+
+  /// Fetches VNA (Vehicles Not Allocated) model+variant+color wise data.
+  /// Returns { 'total': int, 'rows': List<{model, variant, color, qty}> }
+  static Future<Map<String, dynamic>> getVnaModelwise() async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'rows': <dynamic>[]};
+      }
+
+      final response = await http
+          .get(
+            Uri.parse("$baseUrl/api/challan/vna-modelwise"),
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("VNA MODELWISE STATUS: ${response.statusCode}");
+      print("VNA MODELWISE RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'rows': data['rows'] is List ? data['rows'] : <dynamic>[],
+          };
+        }
+      }
+
+      return {'total': 0, 'rows': <dynamic>[]};
+    } catch (e) {
+      print("VNA MODELWISE ERROR: $e");
+
+      return {'total': 0, 'rows': <dynamic>[]};
+    }
+  }
+
+  /// Fetches VNA booking details for a specific model + variant + color.
+  /// Returns { 'total': int, 'rows': List<{bookingDate, customer, model, variant, color}> }
+  static Future<Map<String, dynamic>> getVnaDetails({
+    required String modelName,
+    required String variantName,
+    required String colorName,
+  }) async {
+    try {
+      final token = await getToken();
+
+      if (token == null || token.isEmpty) {
+        return {'total': 0, 'rows': <dynamic>[]};
+      }
+
+      final uri = Uri.parse("$baseUrl/api/challan/vna-details").replace(
+        queryParameters: {
+          'modelName':   modelName,
+          'variantName': variantName,
+          'colorName':   colorName,
+        },
+      );
+
+      print("VNA DETAILS URL: $uri");
+
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": "Bearer $token",
+            },
+          )
+          .timeout(const Duration(seconds: 30));
+
+      print("VNA DETAILS STATUS: ${response.statusCode}");
+      print("VNA DETAILS RESPONSE: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+        if (body['success'] == true && body['data'] is Map) {
+          final data = Map<String, dynamic>.from(body['data']);
+
+          return {
+            'total': (data['total'] as num?)?.toInt() ?? 0,
+            'rows' : data['rows'] is List ? data['rows'] : <dynamic>[],
+          };
+        }
+      }
+
+      return {'total': 0, 'rows': <dynamic>[]};
+    } catch (e) {
+      print("VNA DETAILS ERROR: $e");
+
+      return {'total': 0, 'rows': <dynamic>[]};
+    }
+  }
+
   /// Returns { 'total': int, 'models': List<{modelName, count}> }
   static Future<Map<String, dynamic>> getDashboardModelwise(
     String type,
