@@ -17,7 +17,7 @@ class RgbBorderCard extends StatefulWidget {
     super.key,
     required this.child,
     this.borderRadius = 20,
-    this.borderWidth = 2.4,
+    this.borderWidth = 3.5,
     this.duration = const Duration(seconds: 3),
     this.glow = true,
     this.intense = false,
@@ -112,10 +112,10 @@ class _RgbBorderCardState extends State<RgbBorderCard>
                 ? [
                     BoxShadow(
                       color: glowColor.withOpacity(
-                        widget.intense ? 0.60 : 0.35,
+                        widget.intense ? 0.60 : 0.45,
                       ),
-                      blurRadius: widget.intense ? 28 : 16,
-                      spreadRadius: widget.intense ? 2 : 0.5,
+                      blurRadius: widget.intense ? 28 : 20,
+                      spreadRadius: widget.intense ? 2 : 1,
                     ),
                   ]
                 : null,

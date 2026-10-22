@@ -908,6 +908,15 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
       _ownAccCtrl.text = _f(d['ownaccss']);
       _warrantyCtrl.text = _f(d['WarrantyAmount'] ?? d['warrantyamount']);
       _warrantyYrCtrl.text = d['WarrantyYear']?.toString() ?? '';
+      final rsaValue =
+          d['RSA'] ??
+          d['rsa'] ??
+          d['sp_475'] ??
+          d['Sp_475'] ??
+          d['rsaamt'] ??
+          d['RSAAmount'];
+
+      _rsaCtrl.text = _f(rsaValue);
       _fastTagCtrl.text = _f(d['fasttag']);
       final tcsCalRaw = d['tcscal']?.toString().trim().toUpperCase() ?? '';
 
@@ -4851,7 +4860,7 @@ class _ChallanFormScreenState extends State<ChallanFormScreen>
         'sp_474': _fastTagCtrl.text,
         'sp_476': _tcsCtrl.text,
         'sp_521': _totalCtrl.text,
-
+        'sp_475': _rsaCtrl.text,
         // Remarks
         'sp_616': _remarkCtrl.text,
         'sp_585': _appRemarkCtrl.text,

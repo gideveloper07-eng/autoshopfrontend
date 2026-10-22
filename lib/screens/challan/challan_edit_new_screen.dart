@@ -77,7 +77,12 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
 
   // ── Selected IDs ──────────────────────────────────────────────────────────
   String? _custId, _modelId, _variantId, _colorId, _vinNo;
+  // Display label returned by A_SP_FOR_Challan; _custId remains the customer GUID saved to sp_469.
+  String _selectedCustomerName = '';
   String? _stateId, _branchId, _rtoCityId, _hpnId, _gstUnq;
+  String? _scId,
+      _tlId,
+      _managerId; // Preserve GUIDs separately from displayed names.
   String? _cityId; // selected city from Add City popup
   String? _areaId; // selected area from Add Area popup
   String _cityName = '';
@@ -137,9 +142,13 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
   final _insDisCtrl = TextEditingController();
   final _insExShowCtrl = TextEditingController(text: '0.00');
   final _cessCtrl = TextEditingController(text: '0.00');
+  final _cessAmtCtrl = TextEditingController(text: '0.00');
   final _idvCtrl = TextEditingController(text: '0.00');
   final _idvAmtCtrl = TextEditingController(text: '0.00');
   final _afterIdvCtrl = TextEditingController(text: '0.00');
+  final _exAmtCtrl = TextEditingController(
+    text: '0.00',
+  ); // sp_540 (amount after IDV)
   final _insAmtCtrl = TextEditingController(text: '0.00');
   final _insPerCtrl = TextEditingController(text: '0.00');
   final _finalInsCtrl = TextEditingController(text: '0.00');
@@ -274,9 +283,11 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _insDisCtrl,
       _insExShowCtrl,
       _cessCtrl,
+      _cessAmtCtrl,
       _idvCtrl,
       _idvAmtCtrl,
       _afterIdvCtrl,
+      _exAmtCtrl,
       _insAmtCtrl,
       _insPerCtrl,
       _finalInsCtrl,
@@ -548,7 +559,8 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       'bankamt': 'sp_537',
       'title': 'sp_538',
       'afteridvamt': 'sp_539',
-      'paamount': 'sp_540',
+      'examt': 'sp_540',
+      'paamount': 'sp_542',
       'addless': 'sp_544',
       'financetype': 'sp_547',
       'instype': 'sp_548',
@@ -633,7 +645,11 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           : _challanType;
 
       // ── customer/vehicle ──
-      _custId = d['custname']?.toString();
+      _custId = (d['custname'] ?? d['sp_469'])?.toString();
+      _selectedCustomerName =
+          (d['customername'] ?? d['customerName'] ?? d['customer_name'] ?? '')
+              .toString()
+              .trim();
       _modelId = d['model']?.toString();
       _variantId = d['variant']?.toString();
       _colorId = d['color']?.toString();
@@ -647,7 +663,17 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
           : 'MR';
       _addressCtrl.text = d['address']?.toString() ?? '';
       _mobileCtrl.text = d['mobileno']?.toString() ?? '';
-      _emailCtrl.text = d['email']?.toString() ?? d['sp_525']?.toString() ?? '';
+
+      _emailCtrl.text =
+          (d['email'] ??
+                  d['Email'] ??
+                  d['EMAIL'] ??
+                  d['sp_525'] ??
+                  d['fathername'] ??
+                  '')
+              .toString()
+              .trim();
+
       _fatherCtrl.text = d['fathername']?.toString() ?? '';
       _aadharCtrl.text = d['aadharcard']?.toString() ?? '';
       _panCtrl.text = d['panno']?.toString() ?? '';
@@ -669,19 +695,28 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         orElse: () => 'CHOOSE RELATIONSHIP',
       );
       _engineCtrl.text = d['engineno']?.toString() ?? '';
-      _scCtrl.text = d['scunq']?.toString() ?? '';
-      _tlCtrl.text = d['tlunq']?.toString() ?? '';
-      _managerCtrl.text = d['managunq']?.toString() ?? '';
+
+      _scId = (d['scunq'] ?? d['sp_550'] ?? '').toString();
+      _tlId = (d['tlunq'] ?? d['sp_551'] ?? '').toString();
+      _managerId = (d['managunq'] ?? d['sp_552'] ?? '').toString();
+      _scCtrl.text = (d['scname'] ?? d['SCName'] ?? '').toString();
+      _tlCtrl.text = (d['tlname'] ?? d['TLName'] ?? '').toString();
+      _managerCtrl.text = (d['managername'] ?? d['ManagerName'] ?? '')
+          .toString();
 
       // ── finance ──
-      final finTypeRaw = d['financetype']?.toString() ?? '';
-      _finType = finTypeRaw == 'in'
-          ? 'In House'
-          : finTypeRaw == 'out'
-          ? 'Out House'
-          : finTypeRaw == 'Cash'
-          ? 'Cash'
-          : 'In House';
+
+      final finTypeRaw = (d['financetype'] ?? d['sp_547'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      _finType = switch (finTypeRaw) {
+        'in' || 'in house' => 'In House',
+        'out' || 'out house' => 'Out House',
+        'cash' => 'Cash',
+        _ => 'In House',
+      };
+
       _hpnParentId = d['hpnp']?.toString();
       _hpnChildId = d['hypothecation']?.toString();
       _loanAmtCtrl.text = _f(d['bankamt']);
@@ -719,40 +754,82 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       // ── insurance ──
       final insTypeRaw = d['instype']?.toString() ?? '';
       _insType = insTypeRaw == 'in' ? 'In House' : 'Out House';
-      _insExShowCtrl.text = _f(d['insshowroom']);
-      _cessCtrl.text = _f(d['CESS'] ?? d['cess']);
-      _idvCtrl.text = _f(d['Idv'] ?? d['idv']);
-      _idvAmtCtrl.text = _f(d['IdvAmount'] ?? d['idvamount']);
-      _afterIdvCtrl.text = _f(d['afteridvamt']);
-      _insAmtCtrl.text = _f(d['InsperAmount'] ?? d['insperamount']);
-      _insPerCtrl.text = _f(
-        d['InsurancePercentage'] ?? d['insurancepercentage'],
+      // Restore saved checkbox states when editing a challan.
+      bool savedFlag(dynamic value) {
+        final text = value?.toString().trim().toLowerCase() ?? '';
+        return text == 'in' || text == 'yes' || text == 'true' || text == '1';
+      }
+
+      _epAdd = savedFlag(d['epadd'] ?? d['EPAmountAdd'] ?? d['sp_553']);
+      _rtiAdd = savedFlag(d['rtiadd'] ?? d['RTIAmountAdd'] ?? d['sp_600']);
+      _cmAdd = savedFlag(d['cmadd'] ?? d['CMAmountAdd'] ?? d['sp_602']);
+      _insExShowCtrl.text = _f(d['insshowroom'] ?? d['sp_560']);
+      _cessCtrl.text = _f(d['CESS'] ?? d['cess'] ?? d['sp_502']);
+      final savedCessAmount =
+          d['cessamount'] ?? d['CessAmount'] ?? d['cessamt'];
+      final cessRate = double.tryParse(_cessCtrl.text) ?? 0.0;
+      final insuranceShowroom = double.tryParse(_insExShowCtrl.text) ?? 0.0;
+      _cessAmtCtrl.text = savedCessAmount != null
+          ? _f(savedCessAmount)
+          : (insuranceShowroom * cessRate / 100).toStringAsFixed(2);
+      _idvCtrl.text = _f(d['Idv'] ?? d['idv'] ?? d['sp_505']);
+      _idvAmtCtrl.text = _f(d['IdvAmount'] ?? d['idvamount'] ?? d['sp_506']);
+      _afterIdvCtrl.text = _f(d['afteridvamt'] ?? d['sp_539']);
+      _exAmtCtrl.text = _f(d['examt'] ?? d['sp_540']);
+      _insAmtCtrl.text = _f(
+        d['InsperAmount'] ?? d['insperamount'] ?? d['sp_508'],
       );
-      _finalInsCtrl.text = _f(d['InsuranceAmount'] ?? d['insuranceamount']);
+      _insPerCtrl.text = _f(
+        d['InsurancePercentage'] ?? d['insurancepercentage'] ?? d['sp_507'],
+      );
+      _finalInsCtrl.text = _f(
+        d['InsuranceAmount'] ?? d['insuranceamount'] ?? d['sp_520'],
+      );
       _insDisCtrl.text = _f(d['DiscountPrecentage'] ?? d['discountprecentage']);
-      _disAmtCtrl.text = _f(d['DiscountAmount'] ?? d['discountamount']);
-      _afterDisCtrl.text = _f(d['afterdisamtamt']);
-      _thirdPartyCtrl.text = _f(d['ThirdParty'] ?? d['thirdparty']);
-      _paCoverCtrl.text = _f(d['PACover'] ?? d['pacover']);
-      _paAmtCtrl.text = _f(d['pacoveramt']);
+      _disAmtCtrl.text = _f(
+        d['DiscountAmount'] ?? d['discountamount'] ?? d['sp_510'],
+      );
+      _afterDisCtrl.text = _f(d['afterdisamtamt'] ?? d['sp_541']);
+      _thirdPartyCtrl.text = _f(
+        d['ThirdParty'] ?? d['thirdparty'] ?? d['sp_511'],
+      );
+      _paCoverCtrl.text = _f(d['PACover'] ?? d['pacover'] ?? d['sp_512']);
+      _paAmtCtrl.text = _f(d['pacoveramt'] ?? d['sp_542']);
       _zdCtrl.text = _f(d['ZD'] ?? d['zd']);
-      _zdAmtCtrl.text = _f(d['zdamt']);
+      _zdAmtCtrl.text = _f(d['zdamt'] ?? d['sp_554']);
       _epCtrl.text = _f(d['ep']);
       _epAmtCtrl.text = _f(d['epamt']);
       _pbCtrl.text = _f(d['PB'] ?? d['pb']);
-      _kpCtrl.text = _f(d['KP'] ?? d['kp']);
-      _paidDrvCtrl.text = _f(d['PaidDriver'] ?? d['paiddriver']);
-      _afterPdCtrl.text = _f(d['amtafterpaiddriver']);
+      _kpCtrl.text = _f(d['KP'] ?? d['kp'] ?? d['sp_515']);
+      // sp_517 is the KP Amount field in the Edit result.
+      _kpAmtCtrl.text = _f(
+        d['KPAmount'] ??
+            d['kpAmount'] ??
+            d['Amount'] ??
+            d['amount'] ??
+            d['sp_517'],
+      );
+      _paidDrvCtrl.text = _f(d['PaidDriver'] ?? d['paiddriver'] ?? d['sp_516']);
+      // After PD is returned separately as amtafterpaiddriver (sp_543).
+      _afterPdCtrl.text = _f(d['amtafterpaiddriver'] ?? d['sp_543']);
       _rtiCtrl.text = _f(d['rti']);
       _rtiAmtCtrl.text = _f(d['rtiamt']);
       _cmCtrl.text = _f(d['cm']);
       _cmAmtCtrl.text = _f(d['cmamt']);
+      // Restore checkbox state from the saved add-on rates.
+      _epAdd = (double.tryParse(_epCtrl.text) ?? 0) > 0;
+      _rtiAdd = (double.tryParse(_rtiCtrl.text) ?? 0) > 0;
+      _cmAdd = (double.tryParse(_cmCtrl.text) ?? 0) > 0;
       _gstUnq = d['gstunq']?.toString();
       _cgstCtrl.text = _f(d['cgst']);
       _sgstCtrl.text = _f(d['sgst']);
-      _gstAmtCtrl.text = _f(d['GSTAmount'] ?? d['gstamount']);
+      _gstAmtCtrl.text = _f(d['GSTAmount'] ?? d['gstamount'] ?? d['sp_519']);
       _addLessCtrl.text = _f(d['addless']);
-      _ncbCtrl.text = _f(d['NCB'] ?? d['ncb']);
+      _ncbCtrl.text = _f(d['NCB'] ?? d['ncb'] ?? d['sp_615']);
+      // Bottom-row Insurance Amount is the saved final amount (sp_520).
+      _insAmtFinalCtrl.text = _f(
+        d['InsuranceAmount'] ?? d['insuranceamount'] ?? d['sp_520'],
+      );
       _cngPerCtrl.text = _f(d['cngp']);
       _cngAmtCtrl.text = _f(d['cngamt']);
 
@@ -797,6 +874,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _ownAccCtrl.text = _f(d['ownaccss']);
       _warrantyCtrl.text = _f(d['WarrantyAmount'] ?? d['warrantyamount']);
       _warrantyYrCtrl.text = d['WarrantyYear']?.toString() ?? '';
+      _rsaCtrl.text = _f(d['RSA'] ?? d['handlingchrg'] ?? d['sp_475'] ?? 0);
       _fastTagCtrl.text = _f(d['fasttag']);
       _tcsCtrl.text = _f(d['tcs']);
       _totalCtrl.text = _f(d['netamount']);
@@ -903,11 +981,28 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
             0;
         _loadingReceipts = false;
       });
-      // Pre-fill receipt amount, but do not recalculate persisted challan
-      // totals while opening Edit. This was overwriting saved amount fields.
+      // Populate all receipt/balance fields after the receipt API returns.
+      // Keep the saved challan total intact; do not call _recalculateAspNet()
+      // here because that can overwrite amounts loaded from the Edit API.
       if (mounted) {
         setState(() {
+          // ASP.NET shows the customer-specific receipt total in this field.
+          // Some API responses may not include custTotal, so fall back to rcTotal.
+          final customerReceived = _receiptCustAmt > 0
+              ? _receiptCustAmt
+              : _receiptTotal;
+
+          _customerReceivedCtrl.text = customerReceived.toStringAsFixed(2);
           _receivedCtrl.text = _receiptTotal.toStringAsFixed(2);
+
+          final challanTotal = _d(_totalCtrl);
+          final loanAmount = _d(_loanAmtCtrl);
+          _customerBalanceCtrl.text =
+              (challanTotal - loanAmount - customerReceived).toStringAsFixed(2);
+          _balanceCtrl.text = (challanTotal - _receiptTotal).toStringAsFixed(2);
+
+          _hpnBalanceCtrl.text = (_d(_loanAmtCtrl) - _d(_hpnReceivedCtrl))
+              .toStringAsFixed(2);
         });
       }
     } catch (e) {
@@ -1073,12 +1168,21 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
   }
 
   void _onCustomerSelected(String? id) {
-    setState(() => _custId = id);
     if (id == null) return;
     final c = _customers.firstWhere(
-      (e) => (e['data'] ?? e['value'] ?? e['id']).toString() == id,
+      (e) =>
+          (e['data'] ?? e['value'] ?? e['id'])
+              .toString()
+              .trim()
+              .toLowerCase() ==
+          id.trim().toLowerCase(),
       orElse: () => <String, dynamic>{},
     );
+    setState(() {
+      _custId = id; // keep customer GUID; this is what gets saved into sp_469
+      _selectedCustomerName =
+          (c['value'] ?? c['customername'] ?? c['name'] ?? '').toString();
+    });
     if (c.isEmpty) {
       _loadReceiptGrid(id);
       return;
@@ -1093,6 +1197,9 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _emailCtrl.text = c['email']?.toString() ?? '';
       _ageCtrl.text = c['age']?.toString() ?? '';
       _nomineeCtrl.text = c['nominee']?.toString() ?? '';
+      _scId = (c['scunq'] ?? c['scid'] ?? '').toString();
+      _tlId = (c['tlunq'] ?? c['tlid'] ?? '').toString();
+      _managerId = (c['managunq'] ?? c['managerid'] ?? '').toString();
       _scCtrl.text = c['scname']?.toString() ?? '';
       _tlCtrl.text = c['tl']?.toString() ?? '';
       _managerCtrl.text = c['manager']?.toString() ?? '';
@@ -1353,7 +1460,7 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
       _customerBalanceCtrl,
       total - _d(_loanAmtCtrl) - _d(_customerReceivedCtrl),
     );
-    _set(_hpnBalanceCtrl, _d(_hpnRtoCtrl) - _d(_hpnReceivedCtrl));
+    _set(_hpnBalanceCtrl, _d(_loanAmtCtrl) - _d(_hpnReceivedCtrl));
   }
 
   double get _rtoTotal => _d(_rtoAmtCtrl);
@@ -2086,9 +2193,9 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_527': _aadharCtrl.text,
         'sp_528': _panCtrl.text,
         'sp_532': _gstinCtrl.text,
-        'sp_550': _scCtrl.text,
-        'sp_551': _tlCtrl.text,
-        'sp_552': _managerCtrl.text,
+        'sp_550': _scId ?? '',
+        'sp_551': _tlId ?? '',
+        'sp_552': _managerId ?? '',
         'sp_535': _engineCtrl.text,
         'sp_529': _nomineeCtrl.text,
         'sp_530': _ageCtrl.text,
@@ -2134,7 +2241,8 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_514': _pbCtrl.text,
         'sp_515': _kpCtrl.text,
         'sp_516': _paidDrvCtrl.text,
-        'sp_517': _afterPdCtrl.text,
+        'sp_517': _kpAmtCtrl.text,
+        'sp_543': _afterPdCtrl.text,
         'sp_600': _rtiCtrl.text,
         'sp_601': _rtiAmtCtrl.text,
         'sp_602': _cmCtrl.text,
@@ -2146,7 +2254,8 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         'sp_539': _afterIdvCtrl.text,
         'sp_634': _cngPerCtrl.text,
         'sp_635': _cngAmtCtrl.text,
-        'sp_540': _paAmtCtrl.text,
+        'sp_540': _exAmtCtrl.text,
+        'sp_542': _paAmtCtrl.text,
         'sp_544': _addLessCtrl.text,
         'sp_615': _ncbCtrl.text,
         'sp_560': _insExShowCtrl.text,
@@ -3334,14 +3443,22 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
 
   Widget _customerSelector() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final name = _custId == null
+    final selectedCustomer = _customers.firstWhere(
+      (e) =>
+          (e['data'] ?? e['value'] ?? e['id'])
+              .toString()
+              .trim()
+              .toLowerCase() ==
+          (_custId ?? '').trim().toLowerCase(),
+      orElse: () => <String, dynamic>{},
+    );
+    final name = _custId == null || _custId!.trim().isEmpty
         ? 'SELECT CUSTOMER'
-        : (_customers.firstWhere(
-                    (e) => e['data'] == _custId,
-                    orElse: () => {},
-                  )['value']
-                  as String? ??
-              'SELECT CUSTOMER');
+        : ((selectedCustomer['value'] ?? '').toString().trim().isNotEmpty
+              ? selectedCustomer['value'].toString()
+              : (_selectedCustomerName.isNotEmpty
+                    ? _selectedCustomerName
+                    : 'SELECT CUSTOMER'));
     return InkWell(
       onTap: _openCustomerSheet,
       borderRadius: BorderRadius.circular(12),
@@ -3771,13 +3888,22 @@ class _ChallanEditNewScreenState extends State<ChallanEditNewScreen>
         ],
       ),
       _vg,
-      _i4('CESS', _cessCtrl, 'IDV', _idvCtrl, 'IDV Amount', _idvAmtCtrl, ''),
+      _i4(
+        'CESS',
+        _cessCtrl,
+        'Amount',
+        _cessAmtCtrl,
+        'IDV',
+        _idvCtrl,
+        'IDV Amount',
+        c4: _idvAmtCtrl,
+      ),
       _vg,
       _i4(
         'After IDV',
         _afterIdvCtrl,
         'Amount',
-        _insAmtCtrl,
+        _exAmtCtrl,
         'Insurance %',
         _insPerCtrl,
         'Insurance Amount',

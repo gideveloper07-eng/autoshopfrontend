@@ -878,6 +878,60 @@ class ApiService {
     }
   }
 
+  /// Creates an order from a VNA booking.
+  static Future<Map<String, dynamic>> createVnaOrder({
+    required String bookingNo,
+    required String modelName,
+    required String variantName,
+    required String colorName,
+    required String customerName,
+    required String scName,
+    String supplierName = '',
+    int orderQty = 1,
+    int toBeOrder = 1,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/challan/vna-order'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'bookingNo': bookingNo,
+            'modelName': modelName,
+            'variantName': variantName,
+            'colorName': colorName,
+            'customerName': customerName,
+            'supplierName': supplierName,
+            'scName': scName,
+            'orderQty': orderQty,
+            'toBeOrder': toBeOrder,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is! Map<String, dynamic>) {
+      throw Exception('Invalid server response.');
+    }
+
+    if (response.statusCode == 200 && decoded['success'] == true) {
+      return decoded;
+    }
+
+    throw Exception(
+      decoded['message']?.toString() ?? 'Unable to create VNA order.',
+    );
+  }
+
   /// Rejects a challan by calling the stored procedure with @what = 'reject'
   /// Returns success message
   static Future<Map<String, dynamic>> rejectChallan(
@@ -2917,6 +2971,85 @@ class ApiService {
     }
   }
 
+  static Future<List<Map<String, dynamic>>> getVahanDetails(
+    String period,
+  ) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      throw StateError('Authentication token is unavailable.');
+    }
+
+    final uri = Uri.parse(
+      "$baseUrl/api/challan/vahan-details",
+    ).replace(queryParameters: {'period': period});
+    final response = await http
+        .get(
+          uri,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode != 200) {
+      throw Exception('Unable to load Vahan details (${response.statusCode}).');
+    }
+
+    final body = jsonDecode(response.body);
+    if (body is! Map<String, dynamic> ||
+        body['success'] != true ||
+        body['data'] is! Map ||
+        (body['data'] as Map)['rows'] is! List) {
+      throw const FormatException('Invalid Vahan details response.');
+    }
+
+    return ((body['data'] as Map)['rows'] as List)
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> getB2RDetails(String period) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw StateError('Authentication token is unavailable.');
+    }
+
+    final uri = Uri.parse(
+      "$baseUrl/api/challan/b2r-details",
+    ).replace(queryParameters: {'period': period});
+
+    final response = await http
+        .get(
+          uri,
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    if (response.statusCode != 200) {
+      throw Exception('Unable to load B2R details (${response.statusCode}).');
+    }
+
+    final body = jsonDecode(response.body);
+
+    if (body is! Map<String, dynamic> ||
+        body['success'] != true ||
+        body['data'] is! Map ||
+        (body['data'] as Map)['rows'] is! List) {
+      throw const FormatException('Invalid B2R details response.');
+    }
+
+    return ((body['data'] as Map)['rows'] as List)
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
   /// Fetches VNA (Vehicles Not Allocated) model+variant+color wise data.
   /// Returns { 'total': int, 'rows': List<{model, variant, color, qty}> }
   static Future<Map<String, dynamic>> getVnaModelwise() async {
@@ -2977,9 +3110,9 @@ class ApiService {
 
       final uri = Uri.parse("$baseUrl/api/challan/vna-details").replace(
         queryParameters: {
-          'modelName':   modelName,
+          'modelName': modelName,
           'variantName': variantName,
-          'colorName':   colorName,
+          'colorName': colorName,
         },
       );
 
@@ -3006,7 +3139,7 @@ class ApiService {
 
           return {
             'total': (data['total'] as num?)?.toInt() ?? 0,
-            'rows' : data['rows'] is List ? data['rows'] : <dynamic>[],
+            'rows': data['rows'] is List ? data['rows'] : <dynamic>[],
           };
         }
       }

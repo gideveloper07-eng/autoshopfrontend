@@ -48,9 +48,8 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
 
       // Sort highest count first
       models.sort(
-        (a, b) => ((b['count'] as num?) ?? 0).compareTo(
-          (a['count'] as num?) ?? 0,
-        ),
+        (a, b) =>
+            ((b['count'] as num?) ?? 0).compareTo((a['count'] as num?) ?? 0),
       );
 
       if (mounted) {
@@ -121,12 +120,16 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.cloud_off_rounded, color: Colors.grey[400], size: 64),
+          Icon(
+            Icons.cloud_off_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 16),
           Center(
@@ -134,10 +137,7 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: _primary),
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text(
-                'Retry',
-                style: TextStyle(color: Colors.white),
-              ),
+              label: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
@@ -208,7 +208,7 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                   Text(
-                    'No Allocation (PBNA)',
+                    'Not Allocated',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ],
@@ -246,16 +246,16 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
     final modelName = model['modelName']?.toString() ?? 'Unknown';
     final count = (model['count'] as num?)?.toInt() ?? 0;
     final isDark = theme.brightness == Brightness.dark;
+    final badgeColor = isDark ? const Color(0xFFD0A4FF) : _primary;
+    final statusColor = isDark ? const Color(0xFFE1BEE7) : _accent;
     final fraction = _total > 0 ? count / _total : 0.0;
 
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => PbnaDetailsScreen(
-            modelName: modelName,
-            totalCount: count,
-          ),
+          builder: (_) =>
+              PbnaDetailsScreen(modelName: modelName, totalCount: count),
         ),
       ),
       child: Container(
@@ -286,8 +286,8 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                       alignment: Alignment.center,
                       child: Text(
                         '#${index + 1}',
-                        style: const TextStyle(
-                          color: _primary,
+                        style: TextStyle(
+                          color: badgeColor,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -319,8 +319,8 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                       ),
                       child: Text(
                         count.toString(),
-                        style: const TextStyle(
-                          color: _primary,
+                        style: TextStyle(
+                          color: badgeColor,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -330,7 +330,7 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                     const SizedBox(width: 8),
                     Icon(
                       Icons.chevron_right_rounded,
-                      color: _primary.withOpacity(0.5),
+                      color: badgeColor.withOpacity(0.7),
                     ),
                   ],
                 ),
@@ -341,9 +341,10 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                   child: LinearProgressIndicator(
                     value: fraction,
                     minHeight: 8,
-                    backgroundColor:
-                        isDark ? Colors.white12 : Colors.grey.shade200,
-                    valueColor: const AlwaysStoppedAnimation<Color>(_primary),
+                    backgroundColor: isDark
+                        ? Colors.white12
+                        : Colors.grey.shade200,
+                    valueColor: AlwaysStoppedAnimation<Color>(badgeColor),
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -352,13 +353,16 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
                   children: [
                     Text(
                       '${(fraction * 100).toStringAsFixed(1)}% of total',
-                      style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     Text(
                       '$count pending',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
-                        color: _accent,
+                        color: statusColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -375,30 +379,32 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
   // ── Empty state ────────────────────────────────────────────────────────────
 
   Widget _buildEmpty() {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            color: _primary.withOpacity(0.4),
+            color: colors.onSurfaceVariant,
             size: 64,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No pending bookings without allocation',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey,
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'All bookings have vehicles allocated.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
           ),
         ],
       ),

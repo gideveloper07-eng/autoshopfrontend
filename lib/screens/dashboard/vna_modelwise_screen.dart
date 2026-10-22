@@ -128,12 +128,16 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.cloud_off_rounded, color: Colors.grey[400], size: 64),
+          Icon(
+            Icons.cloud_off_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 16),
           Center(
@@ -141,10 +145,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: _primary),
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text(
-                'Retry',
-                style: TextStyle(color: Colors.white),
-              ),
+              label: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
@@ -215,7 +216,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Vehicles Not Allocated',
+                    'Vehicles Not Available',
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                   Text(
@@ -260,6 +261,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
       (sum, r) => sum + ((r['qty'] as num?)?.toInt() ?? 0),
     );
     final isDark = theme.brightness == Brightness.dark;
+    final badgeColor = isDark ? const Color(0xFFFF80AB) : _primary;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -304,8 +306,8 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           '#${index + 1}',
-                          style: const TextStyle(
-                            color: _primary,
+                          style: TextStyle(
+                            color: badgeColor,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -329,7 +331,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                               '${variants.length} variant${variants.length == 1 ? '' : 's'}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey[500],
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -347,8 +349,8 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                         ),
                         child: Text(
                           modelTotal.toString(),
-                          style: const TextStyle(
-                            color: _primary,
+                          style: TextStyle(
+                            color: badgeColor,
                             fontSize: 17,
                             fontWeight: FontWeight.bold,
                           ),
@@ -360,7 +362,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                         duration: const Duration(milliseconds: 220),
                         child: Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: _primary.withOpacity(0.6),
+                          color: badgeColor.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -378,9 +380,7 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
                   children: [
                     Divider(
                       height: 1,
-                      color: isDark
-                          ? Colors.white12
-                          : Colors.grey.shade200,
+                      color: isDark ? Colors.white12 : Colors.grey.shade200,
                     ),
                     ...variants.asMap().entries.map(
                       (entry) => _buildVariantRow(
@@ -410,20 +410,21 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
     ThemeData theme,
   ) {
     final variant = row['variant']?.toString() ?? '';
-    final color   = row['color']?.toString()   ?? '';
-    final qty     = (row['qty'] as num?)?.toInt() ?? 0;
-    final model   = row['model']?.toString()   ?? '';
-    final isDark  = theme.brightness == Brightness.dark;
+    final color = row['color']?.toString() ?? '';
+    final qty = (row['qty'] as num?)?.toInt() ?? 0;
+    final model = row['model']?.toString() ?? '';
+    final isDark = theme.brightness == Brightness.dark;
+    final qtyColor = isDark ? const Color(0xFFFFA1C1) : _accent;
 
     return InkWell(
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => VnaDetailsScreen(
-            modelName:   model,
+            modelName: model,
             variantName: variant,
-            colorName:   color,
-            qty:         qty,
+            colorName: color,
+            qty: qty,
           ),
         ),
       ),
@@ -469,22 +470,18 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: _accent.withOpacity(0.10),
+                color: qtyColor.withOpacity(isDark ? 0.18 : 0.10),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 13,
-                    color: _accent,
-                  ),
+                  Icon(Icons.warning_amber_rounded, size: 13, color: qtyColor),
                   const SizedBox(width: 4),
                   Text(
                     qty.toString(),
-                    style: const TextStyle(
-                      color: _accent,
+                    style: TextStyle(
+                      color: qtyColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
                     ),
@@ -511,23 +508,28 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
     required ThemeData theme,
   }) {
     final isDark = theme.brightness == Brightness.dark;
+    final foreground = isDark
+        ? (color == _primary
+              ? const Color(0xFFFF80AB)
+              : const Color(0xFFFFA1C1))
+        : color;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.15 : 0.08),
+        color: foreground.withOpacity(isDark ? 0.18 : 0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
+          Icon(icon, size: 12, color: foreground),
           const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: color,
+              color: foreground,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -539,30 +541,32 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
   // ── Empty ──────────────────────────────────────────────────────────────────
 
   Widget _buildEmpty() {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            color: _primary.withOpacity(0.4),
+            color: colors.onSurfaceVariant,
             size: 64,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No unallocated vehicle demand',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.grey,
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'All booking demand is covered by current stock.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey, fontSize: 13),
+            style: TextStyle(color: colors.onSurfaceVariant, fontSize: 13),
           ),
         ],
       ),

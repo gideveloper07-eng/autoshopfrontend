@@ -43,8 +43,7 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
     });
 
     try {
-      final result =
-          await ApiService.getPbnaModelwiseDetails(widget.modelName);
+      final result = await ApiService.getPbnaModelwiseDetails(widget.modelName);
 
       final rawRows = result['rows'];
       final rows = rawRows is List
@@ -96,10 +95,7 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
           children: [
             Text(
               widget.modelName,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const Text(
               'PBNA — Booking Details',
@@ -144,12 +140,16 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.cloud_off_rounded, color: Colors.grey[400], size: 64),
+          Icon(
+            Icons.cloud_off_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 16),
           Center(
@@ -157,10 +157,7 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: _primary),
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text(
-                'Retry',
-                style: TextStyle(color: Colors.white),
-              ),
+              label: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
@@ -235,7 +232,7 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
                       ),
                     ),
                     const Text(
-                      'Pending Booking — No Allocation',
+                      'Pending Booking — Not Allocated',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
@@ -246,10 +243,7 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
           const SizedBox(height: 16),
           Row(
             children: [
-              _statPill(
-                label: 'Total Pending',
-                value: _total.toString(),
-              ),
+              _statPill(label: 'Total Pending', value: _total.toString()),
             ],
           ),
         ],
@@ -295,9 +289,12 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
   ) {
     final customer = row['customer']?.toString() ?? '—';
     final bookingDate = _formatDate(row['bookingDate']);
+    final scname = row['scname']?.toString().trim() ?? '';
     final variant = row['variant']?.toString() ?? '—';
     final color = row['color']?.toString() ?? '—';
+    final ageing = row['ageing']?.toString() ?? '—';
     final isDark = theme.brightness == Brightness.dark;
+    final badgeColor = isDark ? const Color(0xFFD0A4FF) : _primary;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -337,8 +334,8 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
                   alignment: Alignment.center,
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
-                      color: _primary,
+                    style: TextStyle(
+                      color: badgeColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -360,20 +357,66 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_rounded,
                             size: 11,
-                            color: Colors.grey,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             bookingDate,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Sales Consultant name
+                      if (scname.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline_rounded,
+                              size: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'SC: $scname',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+
+                      // Booking ageing in days
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ageing: $ageing days',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -420,13 +463,18 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
     required ThemeData theme,
     Color? color,
   }) {
-    final c = color ?? _primary;
     final isDark = theme.brightness == Brightness.dark;
+    final baseColor = color ?? _primary;
+    final c = isDark
+        ? (baseColor == _primary
+              ? const Color(0xFFD0A4FF)
+              : const Color(0xFFE1BEE7))
+        : baseColor;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: c.withOpacity(isDark ? 0.15 : 0.08),
+        color: c.withOpacity(isDark ? 0.18 : 0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -450,21 +498,23 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
   // ── Empty ──────────────────────────────────────────────────────────────────
 
   Widget _buildEmpty() {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            color: _primary.withOpacity(0.4),
+            color: colors.onSurfaceVariant,
             size: 64,
           ),
           const SizedBox(height: 16),
           Text(
             'No pending bookings for ${widget.modelName}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.grey,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

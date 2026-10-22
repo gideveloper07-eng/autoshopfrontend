@@ -25,8 +25,8 @@ class VnaDetailsScreen extends StatefulWidget {
 
 class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
   static const Color _primary = Color(0xFF880E4F);
-  static const Color _accent  = Color(0xFFE91E63);
-
+  static const Color _accent = Color(0xFFE91E63);
+  final Set<String> _orderingBookings = {};
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _rows = [];
@@ -42,18 +42,23 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
     if (!mounted) return;
     setState(() {
       _isLoading = true;
-      _error     = null;
+      _error = null;
     });
 
     try {
       final result = await ApiService.getVnaDetails(
-        modelName:   widget.modelName,
+        modelName: widget.modelName,
         variantName: widget.variantName,
-        colorName:   widget.colorName,
+        colorName: widget.colorName,
       );
 
-      final rawRows = result['rows'];
-      final rows    = rawRows is List
+      final payload = result['data'] is Map
+          ? Map<String, dynamic>.from(result['data'] as Map)
+          : result;
+
+      final rawRows = payload['rows'];
+
+      final rows = rawRows is List
           ? rawRows
                 .whereType<Map>()
                 .map((r) => Map<String, dynamic>.from(r))
@@ -62,17 +67,72 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
 
       if (mounted) {
         setState(() {
-          _total     = (result['total'] as num?)?.toInt() ?? rows.length;
-          _rows      = rows;
+          _total = (payload['total'] as num?)?.toInt() ?? rows.length;
+          _rows = rows;
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error     = e.toString();
+          _error = e.toString();
           _isLoading = false;
         });
+      }
+    }
+  }
+
+  Future<void> _placeOrder(Map<String, dynamic> row) async {
+    final bookingNo = (row['bookingNo'] ?? '').toString().trim();
+
+    if (bookingNo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Booking number is missing. Check the VNA SQL response.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_orderingBookings.contains(bookingNo)) return;
+
+    setState(() => _orderingBookings.add(bookingNo));
+
+    try {
+      final result = await ApiService.createVnaOrder(
+        bookingNo: bookingNo,
+        modelName: widget.modelName,
+        variantName: widget.variantName,
+        colorName: widget.colorName,
+        customerName: (row['customer'] ?? '').toString().trim(),
+        scName: (row['scname'] ?? row['SCName'] ?? row['ScName'] ?? '')
+            .toString(),
+        orderQty: 1,
+        toBeOrder: 1,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${result['message']} (Order No: ${result['data']?['orderNo']})',
+          ),
+        ),
+      );
+
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Order failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _orderingBookings.remove(bookingNo));
       }
     }
   }
@@ -102,10 +162,7 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
           children: [
             Text(
               widget.modelName,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             Text(
               'VNA — Booking Details',
@@ -150,12 +207,16 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           const SizedBox(height: 100),
-          Icon(Icons.cloud_off_rounded, color: Colors.grey[400], size: 64),
+          Icon(
+            Icons.cloud_off_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+            size: 64,
+          ),
           const SizedBox(height: 16),
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.grey),
+            style: TextStyle(color: theme.colorScheme.onSurface),
           ),
           const SizedBox(height: 16),
           Center(
@@ -163,10 +224,7 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: _primary),
               onPressed: _load,
               icon: const Icon(Icons.refresh, color: Colors.white),
-              label: const Text(
-                'Retry',
-                style: TextStyle(color: Colors.white),
-              ),
+              label: const Text('Retry', style: TextStyle(color: Colors.white)),
             ),
           ),
         ],
@@ -242,7 +300,7 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
                       ),
                     ),
                     const Text(
-                      'Vehicles Not Allocated — Demand',
+                      'Vehicles Not Available — Demand',
                       style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
@@ -359,11 +417,20 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
     Map<String, dynamic> row,
     ThemeData theme,
   ) {
-    final customer    = row['customer']?.toString()    ?? '—';
+    final customer = row['customer']?.toString() ?? '—';
     final bookingDate = _formatDate(row['bookingDate']);
-    final variant     = row['variant']?.toString()     ?? '—';
-    final color       = row['color']?.toString()       ?? '—';
-    final isDark      = theme.brightness == Brightness.dark;
+    final scname = (row['scname'] ?? row['SCName'] ?? row['ScName'] ?? '')
+        .toString()
+        .trim();
+    final variant = row['variant']?.toString() ?? '—';
+    final color = row['color']?.toString() ?? '—';
+    final ageingValue = row['ageing'] ?? row['Ageing'];
+
+    final ageing = ageingValue == null || ageingValue.toString().trim().isEmpty
+        ? '—'
+        : ageingValue.toString().trim();
+    final isDark = theme.brightness == Brightness.dark;
+    final badgeColor = isDark ? const Color(0xFFFF80AB) : _primary;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -403,8 +470,8 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
                   alignment: Alignment.center,
                   child: Text(
                     '${index + 1}',
-                    style: const TextStyle(
-                      color: _primary,
+                    style: TextStyle(
+                      color: badgeColor,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -428,17 +495,59 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
                       const SizedBox(height: 2),
                       Row(
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.calendar_today_rounded,
                             size: 11,
-                            color: Colors.grey,
+                            color: theme.colorScheme.onSurfaceVariant,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             bookingDate,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      if (scname.isNotEmpty) ...[
+                        const SizedBox(height: 5),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.person_outline_rounded,
+                              size: 12,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                'SC: $scname',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time_rounded,
+                            size: 12,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Ageing: $ageing days',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ],
@@ -474,6 +583,47 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed:
+                    _orderingBookings.contains(
+                      (row['bookingNo'] ?? '').toString().trim(),
+                    )
+                    ? null
+                    : () => _placeOrder(row),
+                icon:
+                    _orderingBookings.contains(
+                      (row['bookingNo'] ?? '').toString().trim(),
+                    )
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.shopping_cart_checkout_rounded),
+                label: Text(
+                  _orderingBookings.contains(
+                        (row['bookingNo'] ?? '').toString().trim(),
+                      )
+                      ? 'Creating Order...'
+                      : 'Order',
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -487,23 +637,28 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
     required ThemeData theme,
   }) {
     final isDark = theme.brightness == Brightness.dark;
+    final foreground = isDark
+        ? (color == _primary
+              ? const Color(0xFFFF80AB)
+              : const Color(0xFFFFA1C1))
+        : color;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.15 : 0.08),
+        color: foreground.withOpacity(isDark ? 0.18 : 0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
+          Icon(icon, size: 13, color: foreground),
           const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
-              color: color,
+              color: foreground,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -515,21 +670,23 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
   // ── Empty ──────────────────────────────────────────────────────────────────
 
   Widget _buildEmpty() {
+    final colors = Theme.of(context).colorScheme;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
       child: Column(
         children: [
           Icon(
             Icons.check_circle_outline_rounded,
-            color: _primary.withOpacity(0.4),
+            color: colors.onSurfaceVariant,
             size: 64,
           ),
           const SizedBox(height: 16),
           Text(
             'No bookings found for ${widget.modelName}',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.grey,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

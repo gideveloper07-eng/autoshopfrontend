@@ -36,12 +36,14 @@ import '../chat/chat_list_screen.dart';
 import '../chat/chat_requests_screen.dart';
 import '../chat/my_contact_requests_screen.dart';
 import '../chat/task_dashboard_screen.dart';
+import '../dashboard/b2r_details_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../dashboard/pbna_modelwise_screen.dart';
 import '../dashboard/pending_delivery_branchwise_screen.dart';
-import '../dashboard/vna_modelwise_screen.dart';
 import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
+import '../dashboard/vahan_details_screen.dart';
+import '../dashboard/vna_modelwise_screen.dart';
 import '../notification/notification_screen.dart';
 import '../receipt/combined_receipt_screen.dart';
 import '../settings/dealership_selector_screen.dart';
@@ -80,6 +82,10 @@ class _HomeScreenState extends State<HomeScreen>
   int _mtdSale = 0;
   int _pbnaCount = 0;
   int _vnaCount = 0;
+  int _vahanCount = 0;
+  int _vahanTodayCount = 0;
+  int _vahanMonthCount = 0;
+  int _b2rCount = 0;
   List<double> _bookingTrend = [];
   List<double> _saleTrend = [];
 
@@ -315,6 +321,11 @@ class _HomeScreenState extends State<HomeScreen>
       _mtdSale = (stats["mtdSale"] as num? ?? 0).toInt();
       _pbnaCount = (stats["pbnaCount"] as num? ?? 0).toInt();
       _vnaCount = (stats["vnaCount"] as num? ?? 0).toInt();
+      _vahanCount = (stats["vahanCount"] as num? ?? 0).toInt();
+      _vahanTodayCount = (stats["vahanTodayCount"] as num? ?? 0).toInt();
+
+      _vahanMonthCount = (stats["vahanMonthCount"] as num? ?? 0).toInt();
+      _b2rCount = (stats['b2rCount'] as num? ?? 0).toInt();
     });
   }
 
@@ -1506,14 +1517,14 @@ class _HomeScreenState extends State<HomeScreen>
                                             const PbnaModelwiseScreen(),
                                       ),
                                     ),
-                                    onLongPress: () =>
-                                        _toggleHighlight('pbna'),
+                                    onLongPress: () => _toggleHighlight('pbna'),
                                     child: RgbBorderCard(
                                       borderRadius: 18,
                                       intense: _isHighlighted('pbna'),
                                       child: _SimpleStatsCard(
                                         title: "PBNA",
-                                        subtitle: "Pending Booking No Alloc",
+                                        subtitle:
+                                            "Pending Booking Not Alloccated",
                                         count: _pbnaCount,
                                         icon: Icons.pending_actions_rounded,
                                         gradient: const [
@@ -1539,14 +1550,13 @@ class _HomeScreenState extends State<HomeScreen>
                                             const VnaModelwiseScreen(),
                                       ),
                                     ),
-                                    onLongPress: () =>
-                                        _toggleHighlight('vna'),
+                                    onLongPress: () => _toggleHighlight('vna'),
                                     child: RgbBorderCard(
                                       borderRadius: 18,
                                       intense: _isHighlighted('vna'),
                                       child: _SimpleStatsCard(
                                         title: "VNA",
-                                        subtitle: "Vehicles Not Allocated",
+                                        subtitle: "Vehicles Not Available",
                                         count: _vnaCount,
                                         icon: Icons.no_crash_rounded,
                                         gradient: const [
@@ -1558,13 +1568,84 @@ class _HomeScreenState extends State<HomeScreen>
                                     ),
                                   ),
                                 ),
+                                // ── Page 9: Vahan ──────────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onLongPress: () =>
+                                        _toggleHighlight('vahan'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('vahan'),
+                                      child: _SimpleStatsCard(
+                                        title: "Vahan",
+                                        subtitle: "Vahan Registration Counts",
+                                        count: _vahanCount,
+                                        todayCount: _vahanTodayCount,
+                                        monthCount: _vahanMonthCount,
+                                        onCountTap: (period) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  VahanDetailsScreen(
+                                                    period: period,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                        icon: Icons.app_registration_rounded,
+                                        gradient: const [
+                                          Color(0xFF0D47A1),
+                                          Color(0xFF1565C0),
+                                          Color(0xFF1976D2),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // ── Page 10: B2R ────────────────────────────────
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                  ),
+                                  child: GestureDetector(
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const B2RDetailsScreen(
+                                          period: 'total',
+                                        ),
+                                      ),
+                                    ),
+                                    onLongPress: () => _toggleHighlight('b2r'),
+                                    child: RgbBorderCard(
+                                      borderRadius: 18,
+                                      intense: _isHighlighted('b2r'),
+                                      child: _SimpleStatsCard(
+                                        title: "B2R",
+                                        subtitle: "B2R Details",
+                                        count: _b2rCount,
+                                        icon: Icons.receipt_long_rounded,
+                                        gradient: const [
+                                          Color(0xFF1565C0),
+                                          Color(0xFF1976D2),
+                                          Color(0xFF2196F3),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 8),
                           _StatsPageDots(
                             controller: _statsPageController,
-                            count: 8,
+                            count: 10,
                           ),
 
                           const SizedBox(height: 24),
@@ -4979,6 +5060,9 @@ class _SimpleStatsCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final int count;
+  final int? todayCount;
+  final int? monthCount;
+  final ValueChanged<String>? onCountTap;
   final IconData icon;
   final List<Color> gradient;
 
@@ -4986,6 +5070,9 @@ class _SimpleStatsCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.count,
+    this.todayCount,
+    this.monthCount,
+    this.onCountTap,
     required this.icon,
     required this.gradient,
   });
@@ -5061,41 +5148,100 @@ class _SimpleStatsCard extends StatelessWidget {
             ],
           ),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withOpacity(0.10)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+          if (todayCount != null && monthCount != null)
+            Row(
               children: [
-                Text(
-                  'Total $title',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    height: 1.1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                AnimatedFlipCounter(
-                  value: count,
-                  duration: const Duration(milliseconds: 700),
-                  textStyle: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 30,
-                    height: 1.0,
-                  ),
+                Expanded(child: _countTile('Total', count, 'total')),
+                const SizedBox(width: 6),
+                Expanded(child: _countTile('Today', todayCount!, 'today')),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: _countTile('Month to date', monthCount!, 'month'),
                 ),
               ],
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withOpacity(0.10)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Total $title',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      height: 1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  AnimatedFlipCounter(
+                    value: count,
+                    duration: const Duration(milliseconds: 700),
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 30,
+                      height: 1.0,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Widget _countTile(String label, int value, String period) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onCountTap == null ? null : () => onCountTap!(period),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withOpacity(0.10)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedFlipCounter(
+                value: value,
+                duration: const Duration(milliseconds: 700),
+                textStyle: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                  height: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
