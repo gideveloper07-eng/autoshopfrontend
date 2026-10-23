@@ -932,6 +932,76 @@ class ApiService {
     );
   }
 
+  static Future<List<Map<String, dynamic>>>
+  getPendingVehicleOrderApprovals() async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/api/challan/order-approval'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is Map<String, dynamic> &&
+        response.statusCode == 200 &&
+        decoded['success'] == true &&
+        decoded['data'] is List) {
+      return List<Map<String, dynamic>>.from(
+        (decoded['data'] as List).map((row) => Map<String, dynamic>.from(row)),
+      );
+    }
+
+    final message = decoded is Map ? decoded['message']?.toString() : null;
+
+    throw Exception(message ?? 'Unable to load pending vehicle orders.');
+  }
+
+  static Future<Map<String, dynamic>> approveVehicleOrder(
+    String orderDetailId,
+  ) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/challan/approved'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'orderdetailid': orderDetailId}),
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final dynamic decoded = jsonDecode(response.body);
+
+    if (decoded is! Map) {
+      throw Exception('Invalid vehicle order approval response.');
+    }
+
+    if (response.statusCode != 200 || decoded['success'] != true) {
+      throw Exception(
+        decoded['message']?.toString() ??
+            'Unable to approve vehicle order. HTTP ${response.statusCode}',
+      );
+    }
+
+    return Map<String, dynamic>.from(decoded);
+  }
+
   /// Rejects a challan by calling the stored procedure with @what = 'reject'
   /// Returns success message
   static Future<Map<String, dynamic>> rejectChallan(

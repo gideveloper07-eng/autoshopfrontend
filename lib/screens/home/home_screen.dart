@@ -40,6 +40,7 @@ import '../dashboard/b2r_details_screen.dart';
 import '../dashboard/branchwise_details_screen.dart';
 import '../dashboard/pbna_modelwise_screen.dart';
 import '../dashboard/pending_delivery_branchwise_screen.dart';
+import '../dashboard/pending_vehicle_approval_screen.dart';
 import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
 import '../dashboard/vahan_details_screen.dart';
@@ -1796,6 +1797,7 @@ class _HomeScreenState extends State<HomeScreen>
                                     );
                                   },
                                 ),
+
                                 _dashCard(
                                   cardId: 'bookingRequestForm',
                                   icon: Icons.app_registration_rounded,
@@ -1913,6 +1915,31 @@ class _HomeScreenState extends State<HomeScreen>
                                     );
                                   },
                                 ),
+                                if (_hasScreenPermission(
+                                  "pendingVehicleOrderApproval",
+                                ))
+                                  _dashCard(
+                                    cardId: 'pendingVehicleOrderApproval',
+                                    icon: Icons.fact_check_rounded,
+                                    label: "Pending Vehicle Order Approval",
+                                    subtitle:
+                                        "Review and approve vehicle orders",
+                                    gradient: const [
+                                      Color(0xFF7B1FA2),
+                                      Color(0xFF8E24AA),
+                                      Color(0xFFBA68C8),
+                                    ],
+                                    accentColor: const Color(0xFFCE93D8),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PendingVehicleApprovalScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
                               ],
                             ),
 
@@ -2153,6 +2180,31 @@ class _HomeScreenState extends State<HomeScreen>
                                     },
                                   ),
                                 ],
+                                if (_hasScreenPermission(
+                                  "pendingVehicleOrderApproval",
+                                ))
+                                  _dashCard(
+                                    cardId: 'pendingVehicleOrderApproval',
+                                    icon: Icons.fact_check_rounded,
+                                    label: "Pending Vehicle Order Approval",
+                                    subtitle:
+                                        "Review and approve vehicle orders",
+                                    gradient: const [
+                                      Color(0xFF7B1FA2),
+                                      Color(0xFF8E24AA),
+                                      Color(0xFFBA68C8),
+                                    ],
+                                    accentColor: const Color(0xFFCE93D8),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const PendingVehicleApprovalScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
                               ],
                             ),
                         ],

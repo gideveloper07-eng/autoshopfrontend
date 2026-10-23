@@ -760,9 +760,9 @@ class _ChallanGridScreenState extends State<ChallanGridScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Visibility(
-                      visible: true,
-                      maintainSize: true,
-                      maintainAnimation: true,
+                      visible: false,
+                      maintainSize: false,
+                      maintainAnimation: false,
                       maintainState: true,
                       child: _iconBtn(
                         Icons.edit_outlined,
