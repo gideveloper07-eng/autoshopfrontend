@@ -14,6 +14,7 @@ class PendingVehicleApprovalScreen extends StatefulWidget {
 class _PendingVehicleApprovalScreenState
     extends State<PendingVehicleApprovalScreen> {
   late Future<List<Map<String, dynamic>>> _ordersFuture;
+  String _selectedStatus = 'Pending';
 
   static const Color primary = Color(0xFF7020A0);
   static const Color accent = Color(0xFFB344C6);
@@ -28,7 +29,9 @@ class _PendingVehicleApprovalScreenState
   }
 
   void _loadOrders() {
-    _ordersFuture = ApiService.getPendingVehicleOrderApprovals();
+    _ordersFuture = _selectedStatus == 'Approved'
+        ? ApiService.getApprovedVehicleOrders()
+        : ApiService.getPendingVehicleOrderApprovals();
   }
 
   Future<void> _refresh() async {
@@ -157,6 +160,7 @@ class _PendingVehicleApprovalScreenState
     final primaryText = isDark
         ? const Color(0xFFF1F5F9)
         : theme.colorScheme.onSurface;
+
     return Scaffold(
       backgroundColor: pageBackground,
       appBar: PreferredSize(
@@ -170,12 +174,15 @@ class _PendingVehicleApprovalScreenState
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Pending Vehicle Order Approval',
+                'Vehicle Order Approval',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-              Text('Vehicle Order Approval', style: TextStyle(fontSize: 10)),
+              Text(
+                'Pending and approved vehicle orders',
+                style: TextStyle(fontSize: 10),
+              ),
             ],
           ),
           actions: [
@@ -187,93 +194,155 @@ class _PendingVehicleApprovalScreenState
           ],
         ),
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _ordersFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: primary),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 44,
-                      color: Colors.redAccent,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Unable to load pending vehicle orders',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: primaryText),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        setState(_loadOrders);
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retry'),
-                    ),
-                  ],
-                ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment<String>(
+                    value: 'Pending',
+                    label: Text('Pending'),
+                    icon: Icon(Icons.pending_actions),
+                  ),
+                  ButtonSegment<String>(
+                    value: 'Approved',
+                    label: Text('Approved'),
+                    icon: Icon(Icons.check_circle_outline),
+                  ),
+                ],
+                selected: {_selectedStatus},
+                onSelectionChanged: (selection) {
+                  if (selection.isEmpty) return;
+                  setState(() {
+                    _selectedStatus = selection.first;
+                    _loadOrders();
+                  });
+                },
               ),
-            );
-          }
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _ordersFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: primary),
+                  );
+                }
 
-          final orders = snapshot.data ?? [];
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 44,
+                            color: Colors.redAccent,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            _selectedStatus == 'Pending'
+                                ? 'Unable to load pending vehicle orders'
+                                : 'Unable to load approved vehicle orders',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: primaryText),
+                          ),
+                          const SizedBox(height: 12),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              setState(_loadOrders);
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
 
-          return Column(
-            children: [
-              _buildHeader(orders.length),
-              Expanded(
-                child: orders.isEmpty
-                    ? RefreshIndicator(
-                        onRefresh: _refresh,
-                        child: ListView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 150),
-                            Icon(
-                              Icons.check_circle_outline,
-                              size: 58,
-                              color: Colors.green,
-                            ),
-                            SizedBox(height: 14),
-                            Center(
-                              child: Text(
-                                'No pending vehicle orders',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                final orders = snapshot.data ?? [];
+
+                return Column(
+                  children: [
+                    _buildHeader(orders.length),
+                    Expanded(
+                      child: orders.isEmpty
+                          ? RefreshIndicator(
+                              onRefresh: _refresh,
+                              child: ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  const SizedBox(height: 120),
+                                  Icon(
+                                    _selectedStatus == 'Pending'
+                                        ? Icons.pending_actions
+                                        : Icons.check_circle_outline,
+                                    size: 58,
+                                    color: _selectedStatus == 'Pending'
+                                        ? Colors.deepOrange
+                                        : Colors.green,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  Center(
+                                    child: Text(
+                                      _selectedStatus == 'Pending'
+                                          ? 'No pending vehicle orders'
+                                          : 'No approved vehicle orders',
+                                      style: TextStyle(
+                                        color: primaryText,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Center(
+                                    child: Text(
+                                      'Pull down to refresh',
+                                      style: TextStyle(
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: _refresh,
+                              child: ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  12,
+                                  12,
+                                  20,
                                 ),
+                                itemCount: orders.length,
+                                itemBuilder: (context, index) {
+                                  return _buildOrderCard(
+                                    orders[index],
+                                    index + 1,
+                                  );
+                                },
                               ),
                             ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _refresh,
-                        child: ListView.builder(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
-                          itemCount: orders.length,
-                          itemBuilder: (context, index) {
-                            return _buildOrderCard(orders[index], index + 1);
-                          },
-                        ),
-                      ),
-              ),
-            ],
-          );
-        },
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -310,9 +379,11 @@ class _PendingVehicleApprovalScreenState
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Total Pending',
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                Text(
+                  _selectedStatus == 'Pending'
+                      ? 'Total Pending'
+                      : 'Total Approved',
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -407,10 +478,14 @@ class _PendingVehicleApprovalScreenState
                 ),
               ),
               const SizedBox(width: 4),
-              const Icon(
-                Icons.pending_actions,
+              Icon(
+                _selectedStatus == 'Pending'
+                    ? Icons.pending_actions
+                    : Icons.check_circle,
                 size: 19,
-                color: Colors.deepOrange,
+                color: _selectedStatus == 'Pending'
+                    ? Colors.deepOrange
+                    : Colors.green,
               ),
             ],
           ),
@@ -470,22 +545,40 @@ class _PendingVehicleApprovalScreenState
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF4A3218)
-                      : const Color(0xFFFFF2DF),
+                  color: _selectedStatus == 'Pending'
+                      ? (isDark
+                            ? const Color(0xFF4A3218)
+                            : const Color(0xFFFFF2DF))
+                      : (isDark
+                            ? const Color(0xFF173D2B)
+                            : const Color(0xFFE5F7EC)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.schedule, size: 14, color: Colors.deepOrange),
-                    SizedBox(width: 5),
+                    Icon(
+                      _selectedStatus == 'Pending'
+                          ? Icons.schedule
+                          : Icons.check_circle_outline,
+                      size: 14,
+                      color: _selectedStatus == 'Pending'
+                          ? Colors.deepOrange
+                          : Colors.green,
+                    ),
+                    const SizedBox(width: 5),
                     Text(
-                      'Pending Approval',
+                      _selectedStatus == 'Pending'
+                          ? 'Pending Approval'
+                          : 'Approved',
                       style: TextStyle(
-                        color: isDark
-                            ? const Color(0xFFFFC16B)
-                            : const Color(0xFF80501B),
+                        color: _selectedStatus == 'Pending'
+                            ? (isDark
+                                  ? const Color(0xFFFFC16B)
+                                  : const Color(0xFF80501B))
+                            : (isDark
+                                  ? const Color(0xFF8CE0AA)
+                                  : const Color(0xFF176B3A)),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -493,42 +586,43 @@ class _PendingVehicleApprovalScreenState
                   ],
                 ),
               ),
-              ElevatedButton.icon(
-                onPressed: isApproving || orderDetailId.isEmpty
-                    ? null
-                    : () => _approveOrder(row),
-                icon: isApproving
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check_circle_outline, size: 16),
-                label: Text(isApproving ? 'Approving...' : 'Approve'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.green.shade200,
-                  disabledForegroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  minimumSize: const Size(0, 34),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  textStyle: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+              if (_selectedStatus == 'Pending')
+                ElevatedButton.icon(
+                  onPressed: isApproving || orderDetailId.isEmpty
+                      ? null
+                      : () => _approveOrder(row),
+                  icon: isApproving
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline, size: 16),
+                  label: Text(isApproving ? 'Approving...' : 'Approve'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green.shade700,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.green.shade200,
+                    disabledForegroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    minimumSize: const Size(0, 34),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ],

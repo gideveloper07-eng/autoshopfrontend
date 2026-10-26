@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../services/api_service.dart';
+import '../vehicle_allocation/vehicle_allocation_form_screen.dart';
 
 /// PBNA Booking Details for a specific model.
 /// Calls SP: A_SP_FOR_ApplicationChallangrid @what='Pbna_Modelwise_details'
@@ -293,6 +294,37 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
     final variant = row['variant']?.toString() ?? '—';
     final color = row['color']?.toString() ?? '—';
     final ageing = row['ageing']?.toString() ?? '—';
+    // Support both API camelCase keys and raw SQL column aliases.
+    // SQL may return "Finance Type", "Financer Name", "LOAN AMOUNT", etc.
+    final status = (row['finstatus'] ?? '').toString().trim().toUpperCase();
+
+    final financeType = _rowValue(row, ['financeType', 'Finance Type']).trim();
+    final financerName = _rowValue(row, [
+      'financerName',
+      'Financer Name',
+    ]).trim();
+    final loanAmount = _rowRawValue(row, ['loanAmount', 'LOAN AMOUNT']);
+    final disbursedAmount = _rowRawValue(row, [
+      'disbursedAmount',
+      'DISBURSED AMOUNT',
+    ]);
+    final remarks = _rowValue(row, ['remarks']).trim();
+    final normalizedStatus = status.trim().toUpperCase();
+    final hasFinanceFields = [
+      financeType,
+      financerName,
+      _formatAmount(loanAmount) ?? '',
+      _formatAmount(disbursedAmount) ?? '',
+      remarks,
+    ].any((value) => value.trim().isNotEmpty && value.toLowerCase() != 'null');
+    final isFinanceEntryPending =
+        normalizedStatus == 'FINANCE ENTRY PENDING' ||
+        (normalizedStatus.isEmpty && !hasFinanceFields);
+
+    // Only show the pending message when SQL explicitly says
+    // FINANCE ENTRY PENDING. A normal status such as APPROVE/PENDING/HOLD
+    // must display its finance information when available.
+
     final isDark = theme.brightness == Brightness.dark;
     final badgeColor = isDark ? const Color(0xFFD0A4FF) : _primary;
 
@@ -451,8 +483,182 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
                   ),
               ],
             ),
+            const SizedBox(height: 12),
+
+            // Finance details returned by Pbna_Modelwise_details.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.35,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.dividerColor.withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_rounded,
+                        color: badgeColor,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Finance Details',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (isFinanceEntryPending)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 18,
+                          color: theme.colorScheme.error,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Finance Details Pending',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: theme.colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else ...[
+                    _financeInfo('Finance Status', status, theme),
+                    _financeInfo('Finance Type', financeType, theme),
+                    _financeInfo('Financer Name', financerName, theme),
+                    _financeInfo(
+                      'Loan Amount',
+                      _formatAmount(loanAmount),
+                      theme,
+                    ),
+                    _financeInfo(
+                      'Disbursed Amount',
+                      _formatAmount(disbursedAmount),
+                      theme,
+                    ),
+                    _financeInfo('Remarks', remarks, theme),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final customerUnq =
+                      row['customerUnq']?.toString().trim() ?? '';
+
+                  if (customerUnq.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Customer ID not found in PBNA data.'),
+                      ),
+                    );
+                    return;
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => VehicleAllocationFormScreen(
+                        initialCustomerUnq: customerUnq,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.directions_car_rounded),
+                label: const Text('Allocate Vehicle'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  dynamic _rowRawValue(Map<String, dynamic> row, List<String> possibleKeys) {
+    for (final possibleKey in possibleKeys) {
+      for (final entry in row.entries) {
+        if (entry.key.trim().toLowerCase() == possibleKey.toLowerCase()) {
+          return entry.value;
+        }
+      }
+    }
+    return null;
+  }
+
+  String _rowValue(Map<String, dynamic> row, List<String> possibleKeys) {
+    final value = _rowRawValue(row, possibleKeys);
+    if (value == null) return '';
+    final text = value.toString().trim();
+    return text.toLowerCase() == 'null' ? '' : text;
+  }
+
+  String? _formatAmount(dynamic value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    if (text.isEmpty || text.toLowerCase() == 'null') return null;
+    return text;
+  }
+
+  Widget _financeInfo(String label, String? value, ThemeData theme) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty || text.toLowerCase() == 'null') {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 125,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const Text(': '),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

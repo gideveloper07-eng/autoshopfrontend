@@ -966,6 +966,39 @@ class ApiService {
     throw Exception(message ?? 'Unable to load pending vehicle orders.');
   }
 
+  static Future<List<Map<String, dynamic>>> getApprovedVehicleOrders() async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    final response = await http
+        .get(
+          Uri.parse('$baseUrl/api/challan/order-approval/approved'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        )
+        .timeout(const Duration(seconds: 30));
+
+    final decoded = jsonDecode(response.body);
+
+    if (decoded is Map<String, dynamic> &&
+        response.statusCode == 200 &&
+        decoded['success'] == true &&
+        decoded['data'] is List) {
+      return List<Map<String, dynamic>>.from(
+        (decoded['data'] as List).map((row) => Map<String, dynamic>.from(row)),
+      );
+    }
+
+    final message = decoded is Map ? decoded['message']?.toString() : null;
+
+    throw Exception(message ?? 'Unable to load approved vehicle orders.');
+  }
+
   static Future<Map<String, dynamic>> approveVehicleOrder(
     String orderDetailId,
   ) async {
@@ -3172,12 +3205,16 @@ class ApiService {
     required String colorName,
   }) async {
     try {
+      // 1. Get authentication token
       final token = await getToken();
 
       if (token == null || token.isEmpty) {
+        print("VNA DETAILS ERROR: Authentication token missing");
+
         return {'total': 0, 'rows': <dynamic>[]};
       }
 
+      // 2. Build API URL
       final uri = Uri.parse("$baseUrl/api/challan/vna-details").replace(
         queryParameters: {
           'modelName': modelName,
@@ -3188,6 +3225,7 @@ class ApiService {
 
       print("VNA DETAILS URL: $uri");
 
+      // 3. Call backend API
       final response = await http
           .get(
             uri,
@@ -3201,22 +3239,81 @@ class ApiService {
       print("VNA DETAILS STATUS: ${response.statusCode}");
       print("VNA DETAILS RESPONSE: ${response.body}");
 
-      if (response.statusCode == 200) {
-        final body = jsonDecode(response.body) as Map<String, dynamic>;
+      // 4. Validate HTTP response
+      if (response.statusCode != 200) {
+        print("VNA DETAILS ERROR: HTTP ${response.statusCode}");
 
-        if (body['success'] == true && body['data'] is Map) {
-          final data = Map<String, dynamic>.from(body['data']);
+        return {'total': 0, 'rows': <dynamic>[]};
+      }
 
-          return {
-            'total': (data['total'] as num?)?.toInt() ?? 0,
-            'rows': data['rows'] is List ? data['rows'] : <dynamic>[],
-          };
+      // 5. Parse response safely
+      final decoded = jsonDecode(response.body);
+
+      if (decoded is! Map) {
+        print("VNA DETAILS ERROR: Invalid response format");
+
+        return {'total': 0, 'rows': <dynamic>[]};
+      }
+
+      final body = Map<String, dynamic>.from(decoded);
+
+      if (body['success'] != true || body['data'] is! Map) {
+        print(
+          "VNA DETAILS ERROR: ${body['message'] ?? 'Invalid API response'}",
+        );
+
+        return {'total': 0, 'rows': <dynamic>[]};
+      }
+
+      final data = Map<String, dynamic>.from(body['data'] as Map);
+
+      // 6. Extract rows
+      final rawRows = data['rows'];
+
+      final List<dynamic> rows = rawRows is List ? rawRows : <dynamic>[];
+
+      // 7. Log finance fields for verification
+      for (final item in rows) {
+        if (item is Map) {
+          String readField(List<String> keys) {
+            for (final key in keys) {
+              for (final entry in item.entries) {
+                if (entry.key.toString().toLowerCase() == key.toLowerCase()) {
+                  final value = entry.value;
+
+                  if (value != null &&
+                      value.toString().trim().isNotEmpty &&
+                      value.toString().toLowerCase() != 'null') {
+                    return value.toString().trim();
+                  }
+                }
+              }
+            }
+
+            return '';
+          }
+
+          print(
+            "VNA FINANCE API | "
+            "Customer: ${readField(['customer'])} | "
+            "Status: ${readField(['status', 'finstatus'])} | "
+            "Finance Type: ${readField(['financeType', 'Finance Type'])} | "
+            "Financer: ${readField(['financerName', 'Financer Name'])} | "
+            "Loan: ${readField(['loanAmount', 'LOAN AMOUNT'])} | "
+            "Disbursed: ${readField(['disbursedAmount', 'DISBURSED AMOUNT'])} | "
+            "Remarks: ${readField(['remarks'])}",
+          );
         }
       }
 
-      return {'total': 0, 'rows': <dynamic>[]};
-    } catch (e) {
+      // 8. Return data in the existing format
+      return {
+        'total': (data['total'] as num?)?.toInt() ?? rows.length,
+        'rows': rows,
+      };
+    } catch (e, stackTrace) {
       print("VNA DETAILS ERROR: $e");
+      print("VNA DETAILS STACK TRACE: $stackTrace");
 
       return {'total': 0, 'rows': <dynamic>[]};
     }

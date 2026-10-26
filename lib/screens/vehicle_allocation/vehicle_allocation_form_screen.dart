@@ -12,9 +12,14 @@ import '../../services/api_service.dart';
 //              Model / Variant / Colour → auto-loads VIN list
 // ─────────────────────────────────────────────────────────────────────────────
 class VehicleAllocationFormScreen extends StatefulWidget {
-  final String? va12; // null → new record
+  final String? va12;
+  final String? initialCustomerUnq;
 
-  const VehicleAllocationFormScreen({super.key, this.va12});
+  const VehicleAllocationFormScreen({
+    super.key,
+    this.va12,
+    this.initialCustomerUnq,
+  });
 
   @override
   State<VehicleAllocationFormScreen> createState() =>
@@ -139,8 +144,20 @@ class _VehicleAllocationFormScreenState
         _loadingDropdowns = false;
       });
 
+      // Existing edit mode
       if (widget.va12 != null && widget.va12!.isNotEmpty) {
         await _loadEditData(widget.va12!);
+      } else {
+        // Auto-select the customer passed from the PBNA screen
+        final initialCustomer = widget.initialCustomerUnq?.trim();
+
+        if (initialCustomer != null &&
+            initialCustomer.isNotEmpty &&
+            _customers.any(
+              (c) => c['m1_2']?.toString().trim() == initialCustomer,
+            )) {
+          await _onCustomerChanged(initialCustomer);
+        }
       }
     } catch (e) {
       if (!mounted) return;

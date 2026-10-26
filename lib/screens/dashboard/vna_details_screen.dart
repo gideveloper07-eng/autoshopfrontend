@@ -424,6 +424,49 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
         .trim();
     final variant = row['variant']?.toString() ?? '—';
     final color = row['color']?.toString() ?? '—';
+
+    // Read fields without depending on SQL/API key casing.
+    String financeValue(List<String> keys) {
+      for (final key in keys) {
+        for (final entry in row.entries) {
+          if (entry.key.toLowerCase() == key.toLowerCase()) {
+            final value = entry.value;
+            if (value != null &&
+                value.toString().trim().isNotEmpty &&
+                value.toString().toLowerCase() != 'null') {
+              return value.toString().trim();
+            }
+          }
+        }
+      }
+      return '';
+    }
+
+    final financeStatus = financeValue([
+      'status',
+      'finstatus',
+      'Finance Status',
+    ]);
+    final financeType = financeValue(['financeType', 'Finance Type']);
+    final financerName = financeValue(['financerName', 'Financer Name']);
+    final loanAmount = financeValue(['loanAmount', 'LOAN AMOUNT']);
+    final disbursedAmount = financeValue([
+      'disbursedAmount',
+      'DISBURSED AMOUNT',
+    ]);
+    final financeRemarks = financeValue(['remarks']);
+    final hasFinanceFields = [
+      financeType,
+      financerName,
+      loanAmount,
+      disbursedAmount,
+      financeRemarks,
+    ].any((value) => value.isNotEmpty);
+    final normalizedFinanceStatus = financeStatus.toUpperCase();
+    final isFinanceEntryPending =
+        normalizedFinanceStatus == 'FINANCE ENTRY PENDING' ||
+        (normalizedFinanceStatus.isEmpty && !hasFinanceFields);
+
     final ageingValue = row['ageing'] ?? row['Ageing'];
 
     final ageing = ageingValue == null || ageingValue.toString().trim().isEmpty
@@ -585,6 +628,60 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
             ),
             const SizedBox(height: 12),
 
+            // Finance details from the VNA details API.
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? const Color(0xFF29212A)
+                    : const Color(0xFFFCE4EC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _primary.withOpacity(0.25)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_rounded,
+                        color: isDark ? const Color(0xFFFF80AB) : _primary,
+                        size: 19,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Finance Details',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  if (isFinanceEntryPending)
+                    Text(
+                      'Finance Details Pending',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    )
+                  else ...[
+                    _financeInfo('Finance Status', financeStatus, theme),
+                    _financeInfo('Finance Type', financeType, theme),
+                    _financeInfo('Financer Name', financerName, theme),
+                    _financeInfo('Loan Amount', loanAmount, theme),
+                    _financeInfo('Disbursed Amount', disbursedAmount, theme),
+                    _financeInfo('Remarks', financeRemarks, theme),
+                  ],
+                ],
+              ),
+            ),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -626,6 +723,41 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _financeInfo(String label, String value, ThemeData theme) {
+    if (value.trim().isEmpty || value.toLowerCase() == 'null') {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 125,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
