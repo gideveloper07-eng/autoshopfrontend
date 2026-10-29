@@ -18,6 +18,27 @@ class _B2RDetailsScreenState extends State<B2RDetailsScreen> {
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _rows = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredRows {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _rows;
+    return _rows
+        .where(
+          (row) => row.entries.any(
+            (entry) =>
+                (entry.value?.toString().toLowerCase() ?? '').contains(query),
+          ),
+        )
+        .toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   String get _periodLabel => switch (widget.period) {
     'today' => 'Today',
@@ -332,6 +353,52 @@ class _B2RDetailsScreenState extends State<B2RDetailsScreen> {
     );
   }
 
+  Widget _searchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'Search customer, model, variant, colour, date...',
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          prefixIcon: const Icon(Icons.search_rounded, color: _primary),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                ),
+          filled: true,
+          fillColor: theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white12 : const Color(0xFFE0E7F0),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white12 : const Color(0xFFE0E7F0),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: const BorderSide(color: _primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _messageState({
     required ThemeData theme,
     required IconData icon,
@@ -440,11 +507,27 @@ class _B2RDetailsScreenState extends State<B2RDetailsScreen> {
             : ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(top: 12, bottom: 20),
-                itemCount: _rows.length + 1,
+                itemCount: _filteredRows.isEmpty ? 3 : _filteredRows.length + 2,
                 itemBuilder: (context, index) {
                   if (index == 0) return _summaryHeader(theme);
+                  if (index == 1) return _searchField(theme);
 
-                  return _recordCard(_rows[index - 1], index - 1, theme);
+                  if (_filteredRows.isEmpty) {
+                    return SizedBox(
+                      height: 260,
+                      child: _messageState(
+                        theme: theme,
+                        icon: Icons.search_off_rounded,
+                        message: 'No matching B2R records found',
+                      ),
+                    );
+                  }
+
+                  return _recordCard(
+                    _filteredRows[index - 2],
+                    index - 2,
+                    theme,
+                  );
                 },
               ),
       ),

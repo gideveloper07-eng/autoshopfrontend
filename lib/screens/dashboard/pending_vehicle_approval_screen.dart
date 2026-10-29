@@ -15,6 +15,8 @@ class _PendingVehicleApprovalScreenState
     extends State<PendingVehicleApprovalScreen> {
   late Future<List<Map<String, dynamic>>> _ordersFuture;
   String _selectedStatus = 'Pending';
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   static const Color primary = Color(0xFF7020A0);
   static const Color accent = Color(0xFFB344C6);
@@ -26,6 +28,87 @@ class _PendingVehicleApprovalScreenState
   void initState() {
     super.initState();
     _loadOrders();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  bool _matchesSearch(Map<String, dynamic> row) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+
+    final searchableText = [
+      _value(row, 'customername'),
+      _value(row, 'orderno'),
+      _value(row, 'model'),
+      _value(row, 'variant'),
+      _value(row, 'color'),
+      _value(row, 'orderdetailid'),
+    ].join(' ').toLowerCase();
+
+    return searchableText.contains(query);
+  }
+
+  Widget _buildSearchField(ThemeData theme, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        textInputAction: TextInputAction.search,
+        style: TextStyle(
+          color: isDark ? const Color(0xFFF1F5F9) : theme.colorScheme.onSurface,
+          fontSize: 13,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search customer, order no., model, variant or colour',
+          hintStyle: TextStyle(
+            color: isDark ? const Color(0xFF9AA8BC) : theme.hintColor,
+            fontSize: 12,
+          ),
+          prefixIcon: const Icon(Icons.search, color: primary),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                ),
+          filled: true,
+          fillColor: isDark ? const Color(0xFF1B2433) : theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 12,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDark
+                  ? const Color(0xFF39465A)
+                  : theme.colorScheme.outlineVariant,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDark
+                  ? const Color(0xFF39465A)
+                  : theme.colorScheme.outlineVariant,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
   }
 
   void _loadOrders() {
@@ -269,12 +352,14 @@ class _PendingVehicleApprovalScreenState
                 }
 
                 final orders = snapshot.data ?? [];
+                final filteredOrders = orders.where(_matchesSearch).toList();
 
                 return Column(
                   children: [
-                    _buildHeader(orders.length),
+                    _buildHeader(filteredOrders.length),
+                    _buildSearchField(theme, isDark),
                     Expanded(
-                      child: orders.isEmpty
+                      child: filteredOrders.isEmpty
                           ? RefreshIndicator(
                               onRefresh: _refresh,
                               child: ListView(
@@ -293,9 +378,11 @@ class _PendingVehicleApprovalScreenState
                                   const SizedBox(height: 14),
                                   Center(
                                     child: Text(
-                                      _selectedStatus == 'Pending'
-                                          ? 'No pending vehicle orders'
-                                          : 'No approved vehicle orders',
+                                      _searchQuery.trim().isNotEmpty
+                                          ? 'No vehicle orders match your search'
+                                          : (_selectedStatus == 'Pending'
+                                                ? 'No pending vehicle orders'
+                                                : 'No approved vehicle orders'),
                                       style: TextStyle(
                                         color: primaryText,
                                         fontSize: 16,
@@ -306,7 +393,9 @@ class _PendingVehicleApprovalScreenState
                                   const SizedBox(height: 8),
                                   Center(
                                     child: Text(
-                                      'Pull down to refresh',
+                                      _searchQuery.trim().isNotEmpty
+                                          ? 'Try a different customer name or order number'
+                                          : 'Pull down to refresh',
                                       style: TextStyle(
                                         color:
                                             theme.colorScheme.onSurfaceVariant,
@@ -327,10 +416,10 @@ class _PendingVehicleApprovalScreenState
                                   12,
                                   20,
                                 ),
-                                itemCount: orders.length,
+                                itemCount: filteredOrders.length,
                                 itemBuilder: (context, index) {
                                   return _buildOrderCard(
-                                    orders[index],
+                                    filteredOrders[index],
                                     index + 1,
                                   );
                                 },

@@ -18,6 +18,26 @@ class _VahanDetailsScreenState extends State<VahanDetailsScreen> {
   bool _isLoading = true;
   String? _error;
   List<Map<String, dynamic>> _rows = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredRows {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _rows;
+
+    return _rows.where((row) {
+      return row.entries.any((entry) {
+        final value = entry.value?.toString().toLowerCase() ?? '';
+        return value.contains(query);
+      });
+    }).toList();
+  }
 
   String get _periodLabel => switch (widget.period) {
     'today' => 'Today',
@@ -144,16 +164,93 @@ class _VahanDetailsScreenState extends State<VahanDetailsScreen> {
       );
     }
 
+    final filteredRows = _filteredRows;
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 28),
       children: [
         _buildHeader(theme),
-        const SizedBox(height: 16),
-        ..._rows.asMap().entries.map(
-          (entry) => _buildVahanCard(entry.key, entry.value, theme),
-        ),
+        const SizedBox(height: 14),
+        _buildSearchField(theme),
+        const SizedBox(height: 14),
+        if (filteredRows.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 42),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 52,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No matching Vahan records found.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...filteredRows.asMap().entries.map(
+            (entry) => _buildVahanCard(entry.key, entry.value, theme),
+          ),
       ],
+    );
+  }
+
+  Widget _buildSearchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: 'Search customer, model, variant, branch, date...',
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          prefixIcon: Icon(
+            Icons.search_rounded,
+            color: isDark ? const Color(0xFF90CAF9) : _primary,
+          ),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                ),
+          filled: true,
+          fillColor: theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white12 : const Color(0xFFE0E6EF),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white12 : const Color(0xFFE0E6EF),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _primary, width: 1.5),
+          ),
+        ),
+      ),
     );
   }
 

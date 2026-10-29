@@ -31,6 +31,14 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
   String? _error;
   List<Map<String, dynamic>> _rows = [];
   int _total = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -231,16 +239,101 @@ class _VnaDetailsScreenState extends State<VnaDetailsScreen> {
       );
     }
 
+    final query = _searchQuery.trim().toLowerCase();
+    final filteredRows = query.isEmpty
+        ? _rows
+        : _rows.where((row) {
+            // Search every field returned by the API, regardless of SQL key casing.
+            final searchableValues = <String>[
+              widget.modelName,
+              widget.variantName,
+              widget.colorName,
+              ...row.entries.expand(
+                (entry) => [entry.key, entry.value?.toString() ?? ''],
+              ),
+            ];
+            return searchableValues.any(
+              (value) => value.toLowerCase().contains(query),
+            );
+          }).toList();
+
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: 'Search customer, booking no., variant, finance...',
+              prefixIcon: const Icon(Icons.search_rounded, color: _primary),
+              suffixIcon: _searchQuery.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    ),
+              filled: true,
+              fillColor: theme.cardColor,
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 13,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withOpacity(0.35),
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: theme.colorScheme.outline.withOpacity(0.25),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: _primary, width: 1.5),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         if (_rows.isEmpty)
           _buildEmpty()
+        else if (filteredRows.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 54,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No matching bookings found',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          )
         else
-          ..._rows.asMap().entries.map(
+          ...filteredRows.asMap().entries.map(
             (entry) => _buildBookingCard(entry.key, entry.value, theme),
           ),
       ],

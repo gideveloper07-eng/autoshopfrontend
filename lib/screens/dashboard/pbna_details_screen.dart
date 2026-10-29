@@ -29,6 +29,39 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
   String? _error;
   List<Map<String, dynamic>> _rows = [];
   int _total = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredRows {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _rows;
+
+    return _rows.where((row) {
+      // Search every API field, including customer, booking date, SC, variant,
+      // colour, ageing, finance details, remarks, and IDs when returned.
+      final searchableValues = <String>[
+        ...row.entries.map((entry) => '${entry.key} ${entry.value ?? ''}'),
+        _formatDate(row['bookingDate']),
+        _rowValue(row, ['customer', 'customerName', 'Customer Name']),
+        _rowValue(row, ['scname', 'scName', 'Sales Consultant']),
+        _rowValue(row, ['variant', 'Variant']),
+        _rowValue(row, ['color', 'colour', 'Color', 'Colour']),
+        _rowValue(row, ['finstatus', 'Finance Status']),
+        _rowValue(row, ['financeType', 'Finance Type']),
+        _rowValue(row, ['financerName', 'Financer Name']),
+        _rowValue(row, ['remarks', 'Remarks']),
+      ];
+      return searchableValues.any(
+        (value) => value.toLowerCase().contains(query),
+      );
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -171,13 +204,105 @@ class _PbnaDetailsScreenState extends State<PbnaDetailsScreen> {
       children: [
         _buildHeader(),
         const SizedBox(height: 12),
+        _buildSearchField(theme),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              '${_filteredRows.length} of ${_rows.length} bookings',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
         if (_rows.isEmpty)
           _buildEmpty()
+        else if (_filteredRows.isEmpty)
+          _buildNoSearchResults(theme)
         else
-          ..._rows.asMap().entries.map(
+          ..._filteredRows.asMap().entries.map(
             (entry) => _buildBookingCard(entry.key, entry.value, theme),
           ),
       ],
+    );
+  }
+
+  Widget _buildSearchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        style: TextStyle(color: theme.colorScheme.onSurface),
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: 'Search customer, variant, colour, SC, finance...',
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          prefixIcon: const Icon(Icons.search_rounded, color: _primary),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                ),
+          filled: true,
+          fillColor: isDark
+              ? theme.colorScheme.surfaceContainerHighest.withOpacity(0.45)
+              : theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.dividerColor),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: theme.dividerColor),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResults(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+            size: 56,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No matching bookings found',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try another customer name, variant, colour, or finance detail.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 

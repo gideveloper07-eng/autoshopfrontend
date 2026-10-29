@@ -21,6 +21,30 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
   String? _error;
   int _total = 0;
   List<Map<String, dynamic>> _models = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredModels {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _models;
+
+    return _models.where((model) {
+      // Search every value returned for the model, plus common model fields.
+      final searchableText = [
+        model['modelName'],
+        model['model'],
+        model['count'],
+        ...model.values,
+      ].where((value) => value != null).join(' ').toLowerCase();
+      return searchableText.contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -149,14 +173,100 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         _buildHeader(),
+        const SizedBox(height: 14),
+        _buildSearchField(theme),
         const SizedBox(height: 16),
         if (_models.isEmpty)
           _buildEmpty()
+        else if (_filteredModels.isEmpty)
+          _buildNoSearchResults(theme)
         else
-          ..._models.asMap().entries.map(
+          ..._filteredModels.asMap().entries.map(
             (entry) => _buildModelCard(entry.key, entry.value, theme),
           ),
       ],
+    );
+  }
+
+  Widget _buildSearchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) => setState(() => _searchQuery = value),
+        textInputAction: TextInputAction.search,
+        style: TextStyle(color: theme.colorScheme.onSurface),
+        decoration: InputDecoration(
+          hintText: 'Search model name or details...',
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          prefixIcon: const Icon(Icons.search_rounded, color: _accent),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                ),
+          filled: true,
+          fillColor: theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white24 : _primary.withOpacity(0.18),
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white24 : _primary.withOpacity(0.18),
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _accent, width: 1.6),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResults(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 64, horizontal: 24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 56,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No matching models found',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try another model name or keyword.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
     );
   }
 
@@ -228,7 +338,7 @@ class _PbnaModelwiseScreenState extends State<PbnaModelwiseScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_models.length} ${_models.length == 1 ? 'Model' : 'Models'} with pending bookings',
+            '${_filteredModels.length} ${_filteredModels.length == 1 ? 'Model' : 'Models'} shown with pending bookings',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],

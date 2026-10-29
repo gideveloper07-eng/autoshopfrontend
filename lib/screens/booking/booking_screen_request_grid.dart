@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../theme/app_colors.dart';
 import '../../services/activity_service.dart';
 import '../../services/api_service.dart';
+import '../../theme/app_colors.dart';
 import 'booking_request_form_screen.dart';
 
 class BookingScreenRequestGrid extends StatefulWidget {
@@ -29,10 +29,34 @@ class _BookingScreenRequestGridState extends State<BookingScreenRequestGrid> {
   String? _error;
 
   List<Map<String, dynamic>> _bookingRequests = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  List<Map<String, dynamic>> get _filteredBookingRequests {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _bookingRequests;
+
+    return _bookingRequests.where((item) {
+      final searchableText = [
+        item['customername'],
+        item['Model'],
+        item['Variant'],
+        item['Color'],
+      ].map((value) => value?.toString() ?? '').join(' ').toLowerCase();
+
+      return searchableText.contains(query);
+    }).toList();
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Lifecycle
   // ─────────────────────────────────────────────────────────────────────────
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -277,10 +301,16 @@ class _BookingScreenRequestGridState extends State<BookingScreenRequestGrid> {
               children: [
                 _buildSummaryCard(constraints.maxWidth),
 
+                const SizedBox(height: 14),
+
+                _buildSearchField(),
+
                 const SizedBox(height: 16),
 
                 if (_bookingRequests.isEmpty)
                   _buildEmptyState()
+                else if (_filteredBookingRequests.isEmpty)
+                  _buildNoSearchResults()
                 else
                   _buildBookingGrid(constraints),
               ],
@@ -396,13 +426,93 @@ class _BookingScreenRequestGridState extends State<BookingScreenRequestGrid> {
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              '${_bookingRequests.length}',
+              '${_filteredBookingRequests.length}',
               style: TextStyle(
                 color: _primary,
                 fontSize: compact ? 14 : 16,
                 fontWeight: FontWeight.w800,
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = isDark ? Colors.white12 : Colors.black12;
+
+    return TextField(
+      controller: _searchController,
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value;
+        });
+      },
+      textInputAction: TextInputAction.search,
+      decoration: InputDecoration(
+        hintText: 'Search customer, model, variant or color...',
+        hintStyle: TextStyle(
+          color: isDark ? Colors.white54 : Colors.black45,
+          fontSize: 13,
+        ),
+        prefixIcon: const Icon(Icons.search_rounded, color: _accent),
+        suffixIcon: _searchQuery.isEmpty
+            ? null
+            : IconButton(
+                tooltip: 'Clear search',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              ),
+        filled: true,
+        fillColor: isDark ? const Color(0xFF1B2638) : Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: _accent, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResults() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 42),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.search_off_rounded, size: 46, color: Colors.grey.shade500),
+          const SizedBox(height: 12),
+          const Text(
+            'No matching booking requests',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try another customer name, model, variant or color.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -579,8 +689,8 @@ class _BookingScreenRequestGridState extends State<BookingScreenRequestGrid> {
             ),
 
             // Data
-            ...List.generate(_bookingRequests.length, (index) {
-              final item = _bookingRequests[index];
+            ...List.generate(_filteredBookingRequests.length, (index) {
+              final item = _filteredBookingRequests[index];
               final isEven = index % 2 == 0;
 
               return TableRow(
@@ -680,8 +790,8 @@ class _BookingScreenRequestGridState extends State<BookingScreenRequestGrid> {
 
   Widget _buildMobileCards({bool compact = false}) {
     return Column(
-      children: List.generate(_bookingRequests.length, (index) {
-        final item = _bookingRequests[index];
+      children: List.generate(_filteredBookingRequests.length, (index) {
+        final item = _filteredBookingRequests[index];
 
         return _buildBookingCard(index + 1, item, compact: compact);
       }),

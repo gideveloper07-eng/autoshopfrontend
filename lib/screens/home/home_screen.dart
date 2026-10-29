@@ -45,6 +45,7 @@ import '../dashboard/sales_comparison_screen.dart';
 import '../dashboard/sales_performance_screen.dart';
 import '../dashboard/vahan_details_screen.dart';
 import '../dashboard/vna_modelwise_screen.dart';
+import '../finance/finance_grid_screen.dart';
 import '../notification/notification_screen.dart';
 import '../receipt/combined_receipt_screen.dart';
 import '../settings/dealership_selector_screen.dart';
@@ -1940,6 +1941,30 @@ class _HomeScreenState extends State<HomeScreen>
                                       );
                                     },
                                   ),
+                                _dashCard(
+                                  cardId: 'financeDetails',
+                                  icon: Icons.account_balance_rounded,
+                                  label: "Finance",
+                                  subtitle: "Manage vehicle finance details",
+                                  gradient: const [
+                                    Color(0xFF0A1B32),
+                                    Color(0xFF173B63),
+                                    Color(0xFFAB2025),
+                                  ],
+                                  accentColor: const Color(0xFFAB2025),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        settings: const RouteSettings(
+                                          name: 'FinanceGridScreen',
+                                        ),
+                                        builder: (_) =>
+                                            const FinanceGridScreen(),
+                                      ),
+                                    );
+                                  },
+                                ),
                               ],
                             ),
 
@@ -2201,6 +2226,31 @@ class _HomeScreenState extends State<HomeScreen>
                                         MaterialPageRoute(
                                           builder: (_) =>
                                               const PendingVehicleApprovalScreen(),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                if (_hasScreenPermission("financeDetails"))
+                                  _dashCard(
+                                    cardId: 'financeDetailsNonAdmin',
+                                    icon: Icons.account_balance_rounded,
+                                    label: "Finance",
+                                    subtitle: "Manage vehicle finance details",
+                                    gradient: const [
+                                      Color(0xFF0A1B32),
+                                      Color(0xFF173B63),
+                                      Color(0xFFAB2025),
+                                    ],
+                                    accentColor: const Color(0xFFAB2025),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          settings: const RouteSettings(
+                                            name: 'FinanceGridScreen',
+                                          ),
+                                          builder: (_) =>
+                                              const FinanceGridScreen(),
                                         ),
                                       );
                                     },

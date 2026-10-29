@@ -21,6 +21,32 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
   String? _error;
   int _total = 0;
   List<Map<String, dynamic>> _rows = [];
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Map<String, List<Map<String, dynamic>>> get _filteredGrouped {
+    final query = _searchQuery.trim().toLowerCase();
+    final Map<String, List<Map<String, dynamic>>> result = {};
+
+    for (final row in _rows) {
+      final searchableText = row.values
+          .map((value) => value?.toString() ?? '')
+          .join(' ')
+          .toLowerCase();
+
+      if (query.isEmpty || searchableText.contains(query)) {
+        final model = row['model']?.toString() ?? 'Unknown';
+        result.putIfAbsent(model, () => []).add(row);
+      }
+    }
+    return result;
+  }
 
   // Group rows by model name for collapsible sections
   Map<String, List<Map<String, dynamic>>> _grouped = {};
@@ -157,11 +183,15 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         _buildHeader(),
+        const SizedBox(height: 14),
+        _buildSearchField(theme),
         const SizedBox(height: 16),
         if (_rows.isEmpty)
           _buildEmpty()
+        else if (_filteredGrouped.isEmpty)
+          _buildNoSearchResults(theme)
         else
-          ..._grouped.entries.toList().asMap().entries.map(
+          ..._filteredGrouped.entries.toList().asMap().entries.map(
             (outer) => _buildModelSection(
               outer.key,
               outer.value.key,
@@ -239,8 +269,98 @@ class _VnaModelwiseScreenState extends State<VnaModelwiseScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${_grouped.length} ${_grouped.length == 1 ? 'Model' : 'Models'} • ${_rows.length} variant combinations',
+            '${_filteredGrouped.length} ${_filteredGrouped.length == 1 ? 'Model' : 'Models'} • ${_filteredGrouped.values.fold<int>(0, (sum, rows) => sum + rows.length)} variant combinations',
             style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField(ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+            // Expand matching model sections so matching variants are visible.
+            _expandedModels = _filteredGrouped.keys.toSet();
+          });
+        },
+        style: TextStyle(color: theme.colorScheme.onSurface),
+        decoration: InputDecoration(
+          hintText: 'Search model, variant, colour, quantity...',
+          hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+          prefixIcon: const Icon(Icons.search_rounded, color: _primary),
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: 'Clear search',
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () {
+                    _searchController.clear();
+                    setState(() {
+                      _searchQuery = '';
+                      _expandedModels = _grouped.keys.toSet();
+                    });
+                  },
+                ),
+          filled: true,
+          fillColor: theme.cardColor,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white24 : Colors.grey.shade300,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(
+              color: isDark ? Colors.white24 : Colors.grey.shade300,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: _primary, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResults(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
+      child: Column(
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 54,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'No matching VNA records found',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try another model, variant, colour, or quantity.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
           ),
         ],
       ),

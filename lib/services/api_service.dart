@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 import 'cache_service.dart';
 
@@ -6260,6 +6261,285 @@ class ApiService {
       print('getChallanRetailSupport ERROR: $e');
       return {};
     }
+  }
+
+  // ============================================================
+  // FINANCE DETAILS API
+  // Base route: /api/finance
+  // ============================================================
+
+  static Future<Map<String, dynamic>> _financeRequest({
+    required String path,
+    String method = 'GET',
+    Map<String, dynamic>? body,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    final uri = Uri.parse('$baseUrl/api/finance$path');
+
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+
+    late http.Response response;
+
+    if (method.toUpperCase() == 'POST') {
+      response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: jsonEncode(body ?? <String, dynamic>{}),
+          )
+          .timeout(const Duration(seconds: 45));
+    } else {
+      response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 45));
+    }
+
+    Map<String, dynamic> decoded;
+
+    try {
+      final parsed = jsonDecode(response.body);
+
+      if (parsed is! Map) {
+        throw const FormatException('Expected JSON object.');
+      }
+
+      decoded = Map<String, dynamic>.from(parsed);
+    } catch (_) {
+      throw Exception('Invalid server response: HTTP ${response.statusCode}');
+    }
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['success'] != true) {
+      throw Exception(
+        decoded['message']?.toString() ??
+            decoded['error']?.toString() ??
+            'Finance API failed: HTTP ${response.statusCode}',
+      );
+    }
+
+    return decoded;
+  }
+
+  // ------------------------------------------------------------
+  // 1. GET CUSTOMERS
+  // GET /api/finance/customers
+  // ------------------------------------------------------------
+
+  static Future<List<Map<String, dynamic>>> getFinanceCustomers() async {
+    final response = await _financeRequest(path: '/customers');
+
+    final data = response['data'];
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  // ------------------------------------------------------------
+  // 2. GET FINANCERS / BANKS
+  // GET /api/finance/banks
+  // ------------------------------------------------------------
+
+  static Future<List<Map<String, dynamic>>> getFinanceBanks() async {
+    final response = await _financeRequest(path: '/banks');
+
+    final data = response['data'];
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  // ------------------------------------------------------------
+  // 3. GET FINANCER BRANCHES
+  // GET /api/finance/banks/:bankId/branches
+  // ------------------------------------------------------------
+
+  static Future<List<Map<String, dynamic>>> getFinanceBranches(
+    String bankId,
+  ) async {
+    if (bankId.trim().isEmpty) return [];
+
+    final response = await _financeRequest(
+      path: '/banks/${Uri.encodeComponent(bankId)}/branches',
+    );
+
+    final data = response['data'];
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  // ------------------------------------------------------------
+  // 4. GET COMPANY BRANCH BY CUSTOMER
+  // GET /api/finance/company-branch/:customerId
+  // ------------------------------------------------------------
+
+  static Future<List<Map<String, dynamic>>> getFinanceCompanyBranches(
+    String customerId,
+  ) async {
+    if (customerId.trim().isEmpty) return [];
+
+    final response = await _financeRequest(
+      path: '/company-branch/${Uri.encodeComponent(customerId)}',
+    );
+
+    final data = response['data'];
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  // ------------------------------------------------------------
+  // 5. GET FINANCE STATUS HISTORY
+  // GET /api/finance/history/:financeId
+  // ------------------------------------------------------------
+
+  static Future<List<Map<String, dynamic>>> getFinanceHistory(
+    String financeId,
+  ) async {
+    if (financeId.trim().isEmpty) return [];
+
+    final response = await _financeRequest(
+      path: '/history/${Uri.encodeComponent(financeId)}',
+    );
+
+    final data = response['data'];
+
+    if (data is! List) return [];
+
+    return data
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  // ------------------------------------------------------------
+  // 6. GET FINANCE RECORD FOR EDITING
+  // GET /api/finance/edit/:financeId
+  // ------------------------------------------------------------
+
+  static Future<Map<String, dynamic>?> getFinanceEditDetails(
+    String financeId,
+  ) async {
+    if (financeId.trim().isEmpty) return null;
+
+    final response = await _financeRequest(
+      path: '/edit/${Uri.encodeComponent(financeId)}',
+    );
+
+    final data = response['data'];
+
+    if (data is Map) {
+      return Map<String, dynamic>.from(data);
+    }
+
+    return null;
+  }
+
+  // ------------------------------------------------------------
+  // 7. SAVE OR UPDATE FINANCE DETAILS
+  // POST /api/finance/save
+  // ------------------------------------------------------------
+
+  static Future<Map<String, dynamic>> saveFinanceDetails({
+    required Map<String, dynamic> financeData,
+  }) async {
+    return _financeRequest(path: '/save', method: 'POST', body: financeData);
+  }
+
+  // ------------------------------------------------------------
+  // 8. UPLOAD DO DOCUMENT
+  // POST /api/finance/upload
+  // Multipart field: file
+  // ------------------------------------------------------------
+
+  static Future<Map<String, dynamic>> uploadFinanceDocument({
+    required String customerId,
+    required PlatformFile file,
+  }) async {
+    final token = await getToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception('Authentication required. Please login again.');
+    }
+
+    if (customerId.trim().isEmpty) {
+      throw Exception('Please select a customer first.');
+    }
+
+    if (file.bytes == null || file.bytes!.isEmpty) {
+      throw Exception('File content is unavailable. Pick the file again.');
+    }
+
+    final session = await getUserSession();
+
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/finance/upload'),
+    );
+
+    request.headers['Authorization'] = 'Bearer $token';
+
+    request.fields['customerId'] = customerId;
+    request.fields['companyCode'] = session?['companyCode'] ?? '';
+
+    request.files.add(
+      http.MultipartFile.fromBytes('file', file.bytes!, filename: file.name),
+    );
+
+    final streamedResponse = await request.send().timeout(
+      const Duration(seconds: 60),
+    );
+
+    final response = await http.Response.fromStream(streamedResponse);
+
+    Map<String, dynamic> decoded;
+
+    try {
+      final parsed = jsonDecode(response.body);
+
+      if (parsed is! Map) {
+        throw const FormatException('Expected JSON object.');
+      }
+
+      decoded = Map<String, dynamic>.from(parsed);
+    } catch (_) {
+      throw Exception('Invalid upload response: HTTP ${response.statusCode}');
+    }
+
+    if (response.statusCode < 200 ||
+        response.statusCode >= 300 ||
+        decoded['success'] != true) {
+      throw Exception(
+        decoded['message']?.toString() ?? 'Document upload failed.',
+      );
+    }
+
+    return decoded;
   }
 
   /// Returns area list.
